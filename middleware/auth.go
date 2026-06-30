@@ -22,6 +22,30 @@ import (
 	"gorm.io/gorm"
 )
 
+// resolveTokenKey 解析请求里的 key 字符串，返回用于查库的 key 和分段 parts。
+//
+// 历史逻辑：去掉 "sk-" 前缀后，按 "-" 切，只取第一段（parts[0]）。
+// 这里 "-" 是「key-渠道id」语法的保留分隔符（管理员指定渠道用）。
+// 但这导致 key 本身含 "-" 的（如从 Anthropic 风格 sk-ant-xxx 导入的 ant-xxx）
+// 被错误截断成 "ant"，永远匹配不上。
+//
+// 新逻辑：去 "sk-" 后，若整串含 "-"，先用整串探一次库——
+//   - 整串就是某个真实 token 的 key  → 用整串，parts 仅含整串（不触发渠道覆盖）；
+//   - 整串查不到（说明是 key-渠道id 这种语法，或纯属无效）→ 回退按 "-" 切。
+// 不含 "-" 的 key 行为完全不变（零额外查询）。
+func resolveTokenKey(rawKey string) (key string, parts []string) {
+	rawKey = strings.TrimPrefix(rawKey, "sk-")
+	if !strings.Contains(rawKey, "-") {
+		return rawKey, []string{rawKey}
+	}
+	// 含 "-"：先整串探库（命中走缓存，开销极小）
+	if _, err := model.GetTokenByKey(rawKey, false); err == nil {
+		return rawKey, []string{rawKey}
+	}
+	parts = strings.Split(rawKey, "-")
+	return parts[0], parts
+}
+
 func validUserInfo(username string, role int) bool {
 	// check username is empty
 	if strings.TrimSpace(username) == "" {
@@ -235,9 +259,7 @@ func TokenAuthReadOnly() func(c *gin.Context) {
 		if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
 			key = strings.TrimSpace(key[7:])
 		}
-		key = strings.TrimPrefix(key, "sk-")
-		parts := strings.Split(key, "-")
-		key = parts[0]
+		key, _ = resolveTokenKey(key)
 
 		token, err := model.GetTokenByKey(key, false)
 		if err != nil {
@@ -331,13 +353,9 @@ func TokenAuth() func(c *gin.Context) {
 			if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
 				key = strings.TrimSpace(key[7:])
 			}
-			key = strings.TrimPrefix(key, "sk-")
-			parts = strings.Split(key, "-")
-			key = parts[0]
+			key, parts = resolveTokenKey(key)
 		} else {
-			key = strings.TrimPrefix(key, "sk-")
-			parts = strings.Split(key, "-")
-			key = parts[0]
+			key, parts = resolveTokenKey(key)
 		}
 		token, err := model.ValidateUserToken(key)
 		if token != nil {
