@@ -1,0 +1,11 @@
+# 构建产物 / 依赖
+/new-api
+*.o
+*.exe
+web/node_modules/
+web/*/node_modules/
+node_modules/
+.cache/
+.gocache/
+logs/*.log
+data/
