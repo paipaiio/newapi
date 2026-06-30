@@ -37,8 +37,13 @@ func buildUserClaims(user *model.User, scopes map[string]bool) map[string]interf
 		claims["preferred_username"] = user.Username
 	}
 	if scopes["email"] {
-		claims["email"] = user.Email
-		claims["email_verified"] = user.Email != ""
+		// 仅在用户确有邮箱时才下发 email/email_verified。
+		// 微信/Telegram 等第三方注册用户邮箱为空，发空串会噎到下游 OIDC 库；
+		// 按 OIDC 规范，缺失的 claim 应直接省略，接入方应以 sub 作为账号唯一标识。
+		if user.Email != "" {
+			claims["email"] = user.Email
+			claims["email_verified"] = true
+		}
 	}
 	if scopes["groups"] {
 		claims["groups"] = []string{user.Group}
