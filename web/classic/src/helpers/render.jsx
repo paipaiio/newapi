@@ -86,6 +86,8 @@ import {
   TrendingUp,
   Search,
   Bell,
+  LayoutGrid,
+  Boxes,
 } from 'lucide-react';
 import {
   SiAtlassian,
@@ -170,6 +172,10 @@ export function getLucideIcon(key, selected = false) {
       return <CalendarClock {...commonProps} color={iconColor} />;
     case 'setting':
       return <Settings {...commonProps} color={iconColor} />;
+    case 'other-services':
+      return <LayoutGrid {...commonProps} color={iconColor} />;
+    case 'service-manage':
+      return <Boxes {...commonProps} color={iconColor} />;
     default:
       return <CircleUser {...commonProps} color={iconColor} />;
   }

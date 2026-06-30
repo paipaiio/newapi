@@ -45,6 +45,8 @@ const routerMap = {
   detail: '/console',
   pricing: '/pricing',
   task: '/console/task',
+  'other-services': '/console/other-services',
+  'service-manage': '/console/service-manage',
   models: '/console/models',
   deployment: '/console/deployment',
   'session-logs': '/console/session-logs',
@@ -110,6 +112,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         to: '/task',
         className:
           localStorage.getItem('enable_task') === 'true' ? '' : 'tableHiddle',
+      },
+      {
+        text: t('其他服务'),
+        itemKey: 'other-services',
+        to: '/other-services',
       },
     ];
 
@@ -223,6 +230,12 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         text: t('邮件告警'),
         itemKey: 'alert-setting',
         to: '/alert-setting',
+        className: isAdmin() ? '' : 'tableHiddle',
+      },
+      {
+        text: t('服务管理'),
+        itemKey: 'service-manage',
+        to: '/service-manage',
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {

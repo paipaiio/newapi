@@ -214,6 +214,7 @@ func InitDB() (err error) {
 		if err == nil {
 			EnsureSessionLogFulltextIndex()
 			_ = InitGroupExclusiveCache()
+			_ = InitOtherServiceCache()
 		}
 		return err
 	} else {
@@ -295,6 +296,7 @@ func migrateDB() error {
 		&UserOAuthBinding{},
 		&PerfMetric{},
 		&GroupExclusive{},
+		&OtherService{},
 	)
 	if err != nil {
 		return err

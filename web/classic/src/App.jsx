@@ -27,6 +27,8 @@ import GroupExclusive from './pages/GroupExclusive';
 import ChannelCost from './pages/ChannelCost';
 import TokenLookup from './pages/TokenLookup';
 import AlertSetting from './pages/AlertSetting';
+import OtherServices from './pages/OtherServices';
+import ServiceManage from './pages/ServiceManage';
 import { AuthRedirect, PrivateRoute, AdminRoute } from './helpers';
 import RegisterForm from './components/auth/RegisterForm';
 import LoginForm from './components/auth/LoginForm';
@@ -222,6 +224,22 @@ function App() {
           element={
             <AdminRoute>
               <AlertSetting />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path='/console/other-services'
+          element={
+            <PrivateRoute>
+              <OtherServices />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path='/console/service-manage'
+          element={
+            <AdminRoute>
+              <ServiceManage />
             </AdminRoute>
           }
         />

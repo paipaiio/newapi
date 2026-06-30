@@ -38,6 +38,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     log: true,
     midjourney: true,
     task: true,
+    'other-services': true,
   },
   personal: {
     enabled: true,
@@ -58,6 +59,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     'channel-cost': true,
     'token-lookup': true,
     'alert-setting': true,
+    'service-manage': true,
     setting: true,
   },
 };

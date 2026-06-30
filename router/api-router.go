@@ -348,6 +348,17 @@ func SetApiRouter(router *gin.Engine) {
 			groupRoute.POST("/exclusive", controller.SetExclusiveGroup)
 		}
 
+		otherServiceRoute := apiRouter.Group("/other_service")
+		{
+			// 用户侧：列出已启用服务
+			otherServiceRoute.GET("/", middleware.UserAuth(), controller.GetOtherServices)
+			// 管理端：增删改查全部服务
+			otherServiceRoute.GET("/all", middleware.AdminAuth(), controller.GetAllOtherServices)
+			otherServiceRoute.POST("/", middleware.AdminAuth(), controller.CreateOtherService)
+			otherServiceRoute.PUT("/", middleware.AdminAuth(), controller.UpdateOtherService)
+			otherServiceRoute.DELETE("/:id", middleware.AdminAuth(), controller.DeleteOtherService)
+		}
+
 		prefillGroupRoute := apiRouter.Group("/prefill_group")
 		prefillGroupRoute.Use(middleware.AdminAuth())
 		{
