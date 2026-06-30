@@ -85,39 +85,39 @@ export default function OtherServicesPage() {
     <Card
       key={s.id}
       shadows='hover'
-      className='!rounded-2xl cursor-pointer transition-all hover:-translate-y-0.5'
-      bodyStyle={{ padding: 18 }}
+      className='!rounded-2xl cursor-pointer transition-all hover:-translate-y-1 h-full'
+      bodyStyle={{ padding: 24 }}
       onClick={() => openService(s)}
     >
-      <div className='flex items-start gap-3'>
+      <div className='flex items-start gap-4'>
         <div className='shrink-0'>
           {isImageUrl(s.icon) ? (
             <Avatar
               shape='square'
-              size='default'
+              size='large'
               src={s.icon}
-              style={{ borderRadius: 12 }}
+              style={{ borderRadius: 14, width: 56, height: 56 }}
             />
           ) : (
             <div
-              className='flex items-center justify-center rounded-xl text-2xl'
+              className='flex items-center justify-center rounded-2xl text-3xl'
               style={{
-                width: 40,
-                height: 40,
+                width: 56,
+                height: 56,
                 background: 'var(--semi-color-primary-light-default)',
               }}
             >
-              {s.icon || <LayoutGrid size={20} />}
+              {s.icon || <LayoutGrid size={28} />}
             </div>
           )}
         </div>
         <div className='flex-1 min-w-0'>
           <div className='flex items-center gap-1.5'>
-            <Text strong className='truncate'>
+            <Text strong className='truncate' style={{ fontSize: 17 }}>
               {s.name}
             </Text>
             <ExternalLink
-              size={13}
+              size={15}
               className='shrink-0'
               style={{ color: 'var(--semi-color-text-2)' }}
             />
@@ -125,9 +125,9 @@ export default function OtherServicesPage() {
           {s.description ? (
             <Paragraph
               type='tertiary'
-              size='small'
-              ellipsis={{ rows: 2 }}
-              className='!mt-1 !mb-0'
+              ellipsis={{ rows: 3 }}
+              className='!mt-1.5 !mb-0'
+              style={{ fontSize: 14, lineHeight: 1.6 }}
             >
               {s.description}
             </Paragraph>
@@ -167,7 +167,7 @@ export default function OtherServicesPage() {
                     </Tag>
                   </div>
                 ) : null}
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5'>
                   {items.map(renderCard)}
                 </div>
               </div>
