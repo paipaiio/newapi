@@ -29,6 +29,8 @@ import TokenLookup from './pages/TokenLookup';
 import AlertSetting from './pages/AlertSetting';
 import OtherServices from './pages/OtherServices';
 import ServiceManage from './pages/ServiceManage';
+import OAuthApps from './pages/OAuthApps';
+import OAuthConsent from './pages/OAuthConsent';
 import { AuthRedirect, PrivateRoute, AdminRoute } from './helpers';
 import RegisterForm from './components/auth/RegisterForm';
 import LoginForm from './components/auth/LoginForm';
@@ -244,6 +246,14 @@ function App() {
           }
         />
         <Route
+          path='/console/oauth-apps'
+          element={
+            <AdminRoute>
+              <OAuthApps />
+            </AdminRoute>
+          }
+        />
+        <Route
           path='/user/reset'
           element={
             <Suspense fallback={<Loading></Loading>} key={location.pathname}>
@@ -309,6 +319,14 @@ function App() {
             <Suspense fallback={<Loading></Loading>} key={location.pathname}>
               <OAuth2Callback type='linuxdo'></OAuth2Callback>
             </Suspense>
+          }
+        />
+        <Route
+          path='/oauth/consent'
+          element={
+            <PrivateRoute>
+              <OAuthConsent />
+            </PrivateRoute>
           }
         />
         <Route

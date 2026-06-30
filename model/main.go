@@ -215,6 +215,7 @@ func InitDB() (err error) {
 			EnsureSessionLogFulltextIndex()
 			_ = InitGroupExclusiveCache()
 			_ = InitOtherServiceCache()
+			_ = InitOAuthClientCache()
 		}
 		return err
 	} else {
@@ -297,6 +298,9 @@ func migrateDB() error {
 		&PerfMetric{},
 		&GroupExclusive{},
 		&OtherService{},
+		&OAuthClient{},
+		&OAuthAuthorizationCode{},
+		&OAuthToken{},
 	)
 	if err != nil {
 		return err
@@ -347,6 +351,11 @@ func migrateDBFast() error {
 		{&CustomOAuthProvider{}, "CustomOAuthProvider"},
 		{&UserOAuthBinding{}, "UserOAuthBinding"},
 		{&PerfMetric{}, "PerfMetric"},
+		{&GroupExclusive{}, "GroupExclusive"},
+		{&OtherService{}, "OtherService"},
+		{&OAuthClient{}, "OAuthClient"},
+		{&OAuthAuthorizationCode{}, "OAuthAuthorizationCode"},
+		{&OAuthToken{}, "OAuthToken"},
 	}
 	// 动态计算migration数量，确保errChan缓冲区足够大
 	errChan := make(chan error, len(migrations))

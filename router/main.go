@@ -17,6 +17,8 @@ func SetRouter(router *gin.Engine, assets ThemeAssets) {
 	SetDashboardRouter(router)
 	SetRelayRouter(router)
 	SetVideoRouter(router)
+	// OAuth Provider 协议端点必须在 SetWebRouter（SPA NoRoute 兜底）之前注册
+	SetOAuthServerRouter(router)
 	frontendBaseUrl := os.Getenv("FRONTEND_BASE_URL")
 	if common.IsMasterNode && frontendBaseUrl != "" {
 		frontendBaseUrl = ""

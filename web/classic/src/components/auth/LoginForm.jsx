@@ -82,6 +82,20 @@ const LoginForm = () => {
   });
   const { username, password } = inputs;
   const [searchParams, setSearchParams] = useSearchParams();
+  // 登录成功后的跳转：若带 redirect（如 OAuth 授权回跳到 /oauth2/authorize 后端端点），
+  // 仅允许站内相对路径，用整页跳转（后端路由非 SPA 路由）；否则回控制台。
+  const goAfterLogin = () => {
+    const redirect = searchParams.get('redirect');
+    if (
+      typeof redirect === 'string' &&
+      redirect.startsWith('/') &&
+      !redirect.startsWith('//')
+    ) {
+      window.location.href = redirect;
+      return;
+    }
+    goAfterLogin();
+  };
   const [submitted, setSubmitted] = useState(false);
   const [userState, userDispatch] = useContext(UserContext);
   const [statusState] = useContext(StatusContext);
@@ -198,7 +212,7 @@ const LoginForm = () => {
         localStorage.setItem('user', JSON.stringify(data));
         setUserData(data);
         updateAPI();
-        navigate('/');
+        goAfterLogin();
         showSuccess('登录成功！');
         setShowWeChatLoginModal(false);
       } else {
@@ -255,7 +269,7 @@ const LoginForm = () => {
               centered: true,
             });
           }
-          navigate('/console');
+          goAfterLogin();
         } else {
           showError(message);
         }
@@ -300,7 +314,7 @@ const LoginForm = () => {
         showSuccess('登录成功！');
         setUserData(data);
         updateAPI();
-        navigate('/');
+        goAfterLogin();
       } else {
         showError(message);
       }
@@ -456,7 +470,7 @@ const LoginForm = () => {
         setUserData(finish.data);
         updateAPI();
         showSuccess('登录成功！');
-        navigate('/console');
+        goAfterLogin();
       } else {
         showError(finish.message || 'Passkey 登录失败，请重试');
       }
@@ -491,7 +505,7 @@ const LoginForm = () => {
     setUserData(data);
     updateAPI();
     showSuccess('登录成功！');
-    navigate('/console');
+    goAfterLogin();
   };
 
   // 返回登录页面

@@ -88,6 +88,7 @@ import {
   Bell,
   LayoutGrid,
   Boxes,
+  KeyRound,
 } from 'lucide-react';
 import {
   SiAtlassian,
@@ -176,6 +177,8 @@ export function getLucideIcon(key, selected = false) {
       return <LayoutGrid {...commonProps} color={iconColor} />;
     case 'service-manage':
       return <Boxes {...commonProps} color={iconColor} />;
+    case 'oauth-apps':
+      return <KeyRound {...commonProps} color={iconColor} />;
     default:
       return <CircleUser {...commonProps} color={iconColor} />;
   }

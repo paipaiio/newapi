@@ -23,6 +23,7 @@ import (
 	"github.com/QuantumNous/new-api/relay"
 	"github.com/QuantumNous/new-api/router"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/service/oauthprovider"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
@@ -294,6 +295,13 @@ func InitResources() error {
 
 	// Initialize options, should after model.InitDB()
 	model.InitOptionMap()
+
+	// 初始化 OAuth Provider 签名密钥（首次启动自动生成并持久化），需在 InitOptionMap 之后
+	if common.IsMasterNode {
+		if err := oauthprovider.InitSigningKey(); err != nil {
+			common.SysError("failed to init oauth provider signing key: " + err.Error())
+		}
+	}
 
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()

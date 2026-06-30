@@ -60,6 +60,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     'token-lookup': true,
     'alert-setting': true,
     'service-manage': true,
+    'oauth-apps': true,
     setting: true,
   },
 };

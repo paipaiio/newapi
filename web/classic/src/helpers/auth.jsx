@@ -33,10 +33,26 @@ export function authHeader() {
   }
 }
 
+// 仅允许站内相对路径（且非协议相对 //host），避免开放重定向。
+export function safeInternalRedirect(target) {
+  return (
+    typeof target === 'string' &&
+    target.startsWith('/') &&
+    !target.startsWith('//')
+  );
+}
+
 export const AuthRedirect = ({ children }) => {
   const user = localStorage.getItem('user');
 
   if (user) {
+    // 已登录用户若带 redirect（如 OAuth 授权回跳到 /oauth2/authorize 后端端点），
+    // 用整页跳转交给后端处理（后端路由非 SPA 路由，不能用 client 端 Navigate）。
+    const redirect = new URLSearchParams(window.location.search).get('redirect');
+    if (safeInternalRedirect(redirect)) {
+      window.location.href = redirect;
+      return null;
+    }
     return <Navigate to='/console' replace />;
   }
 

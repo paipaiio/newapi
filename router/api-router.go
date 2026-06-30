@@ -359,6 +359,25 @@ func SetApiRouter(router *gin.Engine) {
 			otherServiceRoute.DELETE("/:id", middleware.AdminAuth(), controller.DeleteOtherService)
 		}
 
+		// OAuth Provider（本系统作为身份提供方）——管理端：注册/管理第三方接入应用
+		oauthClientRoute := apiRouter.Group("/oauth_client")
+		oauthClientRoute.Use(middleware.AdminAuth())
+		{
+			oauthClientRoute.GET("/", controller.GetAllOAuthClients)
+			oauthClientRoute.POST("/", controller.CreateOAuthClient)
+			oauthClientRoute.PUT("/:id", controller.UpdateOAuthClient)
+			oauthClientRoute.DELETE("/:id", controller.DeleteOAuthClient)
+			oauthClientRoute.POST("/:id/rotate_secret", controller.RotateOAuthClientSecret)
+		}
+
+		// OAuth Provider——用户侧：授权同意页数据与决策（登录态）
+		oauthConsentRoute := apiRouter.Group("/oauth/consent")
+		oauthConsentRoute.Use(middleware.UserAuth())
+		{
+			oauthConsentRoute.GET("/:request_id", controller.GetOAuthConsent)
+			oauthConsentRoute.POST("/:request_id", controller.PostOAuthConsent)
+		}
+
 		prefillGroupRoute := apiRouter.Group("/prefill_group")
 		prefillGroupRoute.Use(middleware.AdminAuth())
 		{

@@ -47,6 +47,7 @@ const routerMap = {
   task: '/console/task',
   'other-services': '/console/other-services',
   'service-manage': '/console/service-manage',
+  'oauth-apps': '/console/oauth-apps',
   models: '/console/models',
   deployment: '/console/deployment',
   'session-logs': '/console/session-logs',
@@ -236,6 +237,12 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         text: t('服务管理'),
         itemKey: 'service-manage',
         to: '/service-manage',
+        className: isAdmin() ? '' : 'tableHiddle',
+      },
+      {
+        text: t('OAuth 应用'),
+        itemKey: 'oauth-apps',
+        to: '/oauth-apps',
         className: isAdmin() ? '' : 'tableHiddle',
       },
       {
