@@ -96,6 +96,7 @@ const EditUserModal = (props) => {
     remark: '',
     rpm: 0,
     tpm: 0,
+    topup_discount: 1,
   });
 
   const fetchGroups = async () => {
@@ -388,6 +389,19 @@ const EditUserModal = (props) => {
                           min={0}
                           step={1}
                           extraText={t('每分钟最大 token 数，0=不限')}
+                        />
+                      </Col>
+
+                      <Col span={12}>
+                        <Form.InputNumber
+                          field='topup_discount'
+                          label={t('充值折扣')}
+                          placeholder='1'
+                          min={0.01}
+                          max={1}
+                          step={0.01}
+                          precision={4}
+                          extraText={t('充值折扣率(0-1)，1=不打折，0.9=9折。与全局折扣取更优价')}
                         />
                       </Col>
 

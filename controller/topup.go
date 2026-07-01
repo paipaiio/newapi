@@ -42,8 +42,12 @@ func GetTopUpInfo(c *gin.Context) {
 	// 检查用户充值权限
 	id := c.GetInt("id")
 	allowTopup := true
+	userTopupDiscount := 1.0
 	if user, err := model.GetUserById(id, false); err == nil && user != nil {
 		allowTopup = user.AllowTopup
+		if user.TopupDiscount > 0 && user.TopupDiscount <= 1 {
+			userTopupDiscount = user.TopupDiscount
+		}
 	}
 
 	// 获取支付方式
@@ -119,6 +123,7 @@ func GetTopUpInfo(c *gin.Context) {
 
 	data := gin.H{
 		"allow_topup":                      allowTopup,
+		"user_topup_discount":              userTopupDiscount,
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
@@ -169,7 +174,7 @@ func GetEpayClient() *epay.Client {
 	return withUrl
 }
 
-func getPayMoney(amount int64, group string) float64 {
+func getPayMoney(userId int, amount int64, group string) float64 {
 	dAmount := decimal.NewFromInt(amount)
 	// 充值金额以“展示类型”为准：
 	// - USD/CNY: 前端传 amount 为金额单位；TOKENS: 前端传 tokens，需要换成 USD 金额
@@ -185,18 +190,32 @@ func getPayMoney(amount int64, group string) float64 {
 
 	dTopupGroupRatio := decimal.NewFromFloat(topupGroupRatio)
 	dPrice := decimal.NewFromFloat(operation_setting.Price)
-	// apply optional preset discount by the original request amount (if configured), default 1.0
-	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(amount)]; ok {
-		if ds > 0 {
-			discount = ds
-		}
-	}
+	// 全局档位折扣与用户专属折扣取更优(更低)价
+	discount := resolveTopupDiscount(userId, int(amount))
 	dDiscount := decimal.NewFromFloat(discount)
 
 	payMoney := dAmount.Mul(dPrice).Mul(dTopupGroupRatio).Mul(dDiscount)
 
 	return payMoney.InexactFloat64()
+}
+
+// resolveTopupDiscount 返回该用户在该档位金额下的最终充值折扣率(0-1,越小越便宜,1=不打折)。
+// 全局档位折扣(payment_setting.AmountDiscount)与用户专属折扣(User.TopupDiscount)取更优(更低)价。
+func resolveTopupDiscount(userId int, amount int) float64 {
+	discount := 1.0
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[amount]; ok {
+		if ds > 0 {
+			discount = ds
+		}
+	}
+	if userId > 0 {
+		if u, err := model.GetUserById(userId, false); err == nil && u != nil {
+			if u.TopupDiscount > 0 && u.TopupDiscount < discount {
+				discount = u.TopupDiscount
+			}
+		}
+	}
+	return discount
 }
 
 func getMinTopup() int64 {
@@ -230,7 +249,7 @@ func RequestEpay(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "获取用户分组失败"})
 		return
 	}
-	payMoney := getPayMoney(req.Amount, group)
+	payMoney := getPayMoney(id, req.Amount, group)
 	if payMoney < 0.01 {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return
@@ -455,7 +474,7 @@ func RequestAmount(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "获取用户分组失败"})
 		return
 	}
-	payMoney := getPayMoney(req.Amount, group)
+	payMoney := getPayMoney(id, req.Amount, group)
 	if payMoney <= 0.01 {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return

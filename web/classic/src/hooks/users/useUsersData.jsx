@@ -204,6 +204,26 @@ export const useUsersData = () => {
     }
   };
 
+  const setTopupDiscount = async (userId, discount) => {
+    const res = await API.post('/api/user/manage', {
+      id: userId,
+      action: 'set_topup_discount',
+      discount_value: discount,
+    });
+    const { success, message } = res.data;
+    if (success) {
+      showSuccess(t('操作成功完成！'));
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId ? { ...u, topup_discount: discount } : u,
+        ),
+      );
+      return true;
+    }
+    showError(message);
+    return false;
+  };
+
   const batchToggleTopup = async (selectedIds, allowTopup) => {
     const res = await API.post('/api/user/manage/batch_topup', {
       ids: selectedIds,
@@ -401,6 +421,7 @@ export const useUsersData = () => {
     searchUsers,
     manageUser,
     toggleTopup,
+    setTopupDiscount,
     batchToggleTopup,
     batchSetGroup,
     batchManageQuota,

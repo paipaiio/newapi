@@ -255,6 +255,7 @@ const renderOperations = (
     toggleTopup,
     manageUser,
     openVisibleModal,
+    openDiscountModal,
     t,
   },
 ) => {
@@ -287,6 +288,11 @@ const renderOperations = (
       node: 'item',
       name: t('设置可见分组'),
       onClick: () => openVisibleModal([record.id], record),
+    },
+    {
+      node: 'item',
+      name: t('设置充值折扣'),
+      onClick: () => openDiscountModal(record),
     },
     {
       node: 'divider',
@@ -378,6 +384,7 @@ export const getUsersColumns = ({
   toggleTopup,
   manageUser,
   openVisibleModal,
+  openDiscountModal,
 }) => {
   return [
     {
@@ -453,6 +460,7 @@ export const getUsersColumns = ({
           toggleTopup,
           manageUser,
           openVisibleModal,
+          openDiscountModal,
           t,
         }),
     },

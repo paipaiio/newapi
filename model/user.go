@@ -55,6 +55,7 @@ type User struct {
 	LoginDisabled    bool           `json:"login_disabled" gorm:"type:tinyint(1);default:0;column:login_disabled"` // 禁止登录 Web 控制台（不影响已创建的 API key 调用）
 	Rpm              int            `json:"rpm" gorm:"type:int;default:0;column:rpm"` // 该用户每分钟最大请求数，0=不限
 	Tpm              int            `json:"tpm" gorm:"type:int;default:0;column:tpm"` // 该用户每分钟最大 token 数，0=不限
+	TopupDiscount    float64        `json:"topup_discount" gorm:"type:decimal(6,4);default:1;column:topup_discount"` // 该用户专属充值折扣率(0-1,越小越便宜)，1=不打折。与全局折扣取更优(更低)价
 	CreatedAt        int64          `json:"created_at" gorm:"autoCreateTime;column:created_at"`
 	LastLoginAt      int64          `json:"last_login_at" gorm:"default:0;column:last_login_at"`
 }
@@ -545,6 +546,10 @@ func (user *User) Edit(updatePassword bool) error {
 	}
 	if updatePassword {
 		updates["password"] = newUser.Password
+	}
+	// 充值折扣率仅在传入有效值(>0 且 <=1)时更新，避免前端未回传时被零值覆盖成"0折免费"
+	if newUser.TopupDiscount > 0 && newUser.TopupDiscount <= 1 {
+		updates["topup_discount"] = newUser.TopupDiscount
 	}
 
 	DB.First(&user, user.Id)

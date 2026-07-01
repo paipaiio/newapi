@@ -53,6 +53,7 @@ const UsersTable = (usersData) => {
     setShowEditUser,
     manageUser,
     toggleTopup,
+    setTopupDiscount,
     batchToggleTopup,
     batchSetGroup,
     batchManageQuota,
@@ -97,6 +98,12 @@ const UsersTable = (usersData) => {
   const [visibleTargetIds, setVisibleTargetIds] = useState([]);
   const [visibleTargetName, setVisibleTargetName] = useState('');
 
+  // 充值折扣弹窗（单用户）
+  const [showDiscount, setShowDiscount] = useState(false);
+  const [discountTargetId, setDiscountTargetId] = useState(0);
+  const [discountTargetName, setDiscountTargetName] = useState('');
+  const [discountValue, setDiscountValue] = useState(1);
+
   const QUOTA_PER_UNIT = 500000;
 
   const doBatchGroup = async () => {
@@ -133,6 +140,24 @@ const UsersTable = (usersData) => {
     setVisibleTargetName(record ? (record.username || '') : '');
     setBatchVisibleGroups(record ? parseVisibleGroups(record) : []);
     setShowBatchVisible(true);
+  };
+
+  // 打开「设置充值折扣」弹窗（单用户），预填当前折扣
+  const openDiscountModal = (record) => {
+    setDiscountTargetId(record.id);
+    setDiscountTargetName(record.username || '');
+    const d = Number(record.topup_discount);
+    setDiscountValue(d > 0 && d <= 1 ? d : 1);
+    setShowDiscount(true);
+  };
+
+  const doSetDiscount = async () => {
+    const v = Number(discountValue);
+    if (!(v > 0 && v <= 1)) {
+      return;
+    }
+    const ok = await setTopupDiscount(discountTargetId, v);
+    if (ok) setShowDiscount(false);
   };
 
   const doBatchVisible = async () => {
@@ -236,6 +261,7 @@ const UsersTable = (usersData) => {
       toggleTopup,
       manageUser,
       openVisibleModal,
+      openDiscountModal,
     });
   }, [
     t,
@@ -490,6 +516,28 @@ const UsersTable = (usersData) => {
               value: g.value !== undefined ? g.value : g,
             }))
             .filter((o) => o.value !== 'auto')}
+        />
+      </Modal>
+
+      <Modal
+        title={t('设置充值折扣')}
+        visible={showDiscount}
+        onOk={doSetDiscount}
+        onCancel={() => setShowDiscount(false)}
+        motion={modalAnimation}
+      >
+        <Typography.Text type='tertiary'>
+          {`${t('为用户')} ${discountTargetName} ${t('设置充值折扣率（0-1，1=不打折，0.9=9折；与全局折扣取更优价）：')}`}
+        </Typography.Text>
+        <InputNumber
+          style={{ width: '100%', marginTop: 12 }}
+          min={0.01}
+          max={1}
+          step={0.01}
+          precision={4}
+          value={discountValue}
+          onChange={setDiscountValue}
+          placeholder='1'
         />
       </Modal>
 

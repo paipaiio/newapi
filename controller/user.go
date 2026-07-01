@@ -942,10 +942,11 @@ func CreateUser(c *gin.Context) {
 }
 
 type ManageRequest struct {
-	Id     int    `json:"id"`
-	Action string `json:"action"`
-	Value  int    `json:"value"`
-	Mode   string `json:"mode"`
+	Id            int     `json:"id"`
+	Action        string  `json:"action"`
+	Value         int     `json:"value"`
+	DiscountValue float64 `json:"discount_value"` // set_topup_discount 用：充值折扣率(0-1)
+	Mode          string  `json:"mode"`
 }
 
 // ManageUser Only admin user can do this
@@ -1098,6 +1099,20 @@ func ManageUser(c *gin.Context) {
 		}
 		_ = model.InvalidateUserCache(user.Id)
 		recordManageAuditFor(c, user.Id, "user.enable_login", map[string]interface{}{"username": user.Username, "id": user.Id})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
+	case "set_topup_discount":
+		// 充值折扣率:0-1 之间(越小越便宜),1=不打折。超范围拒绝，避免误设成 0 折免费或负数
+		if req.DiscountValue <= 0 || req.DiscountValue > 1 {
+			common.ApiErrorMsg(c, "充值折扣率必须在 0 到 1 之间（1=不打折）")
+			return
+		}
+		if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).Update("topup_discount", req.DiscountValue).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		_ = model.InvalidateUserCache(user.Id)
+		recordManageAuditFor(c, user.Id, "user.set_topup_discount", map[string]interface{}{"username": user.Username, "id": user.Id, "discount": req.DiscountValue})
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 		return
 	}
