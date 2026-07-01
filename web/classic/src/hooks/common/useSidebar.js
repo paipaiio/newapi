@@ -88,6 +88,8 @@ export const mergeAdminConfig = (savedConfig) => {
 export const useSidebar = () => {
   const [statusState] = useContext(StatusContext);
   const [userConfig, setUserConfig] = useState(null);
+  // 用户是否被允许充值。默认 true，仅当后端明确返回 allow_topup === false 时才隐藏充值入口
+  const [allowTopup, setAllowTopup] = useState(true);
   const [loading, setLoading] = useState(true);
   const instanceIdRef = useRef(null);
   const hasLoadedOnceRef = useRef(false);
@@ -123,6 +125,10 @@ export const useSidebar = () => {
       }
 
       const res = await API.get('/api/user/self');
+      // 同步用户充值权限（root/admin 后端始终返回 true）
+      if (res.data.success && res.data.data) {
+        setAllowTopup(res.data.data.allow_topup !== false);
+      }
       if (res.data.success && res.data.data.sidebar_modules) {
         let config;
         // 检查sidebar_modules是字符串还是对象
@@ -302,6 +308,7 @@ export const useSidebar = () => {
     adminConfig,
     userConfig,
     finalConfig,
+    allowTopup,
     isModuleVisible,
     hasSectionVisibleModules,
     getVisibleModules,

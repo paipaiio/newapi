@@ -66,6 +66,7 @@ const SiderBar = ({ onNavigate = () => {} }) => {
   const {
     isModuleVisible,
     hasSectionVisibleModules,
+    allowTopup,
     loading: sidebarLoading,
   } = useSidebar();
 
@@ -153,11 +154,15 @@ const SiderBar = ({ onNavigate = () => {} }) => {
     // 根据配置过滤项目
     const filteredItems = items.filter((item) => {
       const configVisible = isModuleVisible('personal', item.itemKey);
+      // 被管理员禁止充值的用户，直接隐藏「钱包管理」入口
+      if (item.itemKey === 'topup' && !allowTopup) {
+        return false;
+      }
       return configVisible;
     });
 
     return filteredItems;
-  }, [t, isModuleVisible]);
+  }, [t, isModuleVisible, allowTopup]);
 
   const adminItems = useMemo(() => {
     const items = [

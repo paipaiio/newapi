@@ -130,6 +130,7 @@ const TopUp = () => {
     userDiscount: 1.0,
     enable_redemption: true,
     payment_compliance_confirmed: true,
+    allow_topup: true,
   });
 
   const confirmPayMethods = [
@@ -606,6 +607,7 @@ const TopUp = () => {
             data.user_topup_discount > 0 && data.user_topup_discount <= 1
               ? data.user_topup_discount
               : 1.0,
+          allow_topup: data.allow_topup !== false,
         });
 
         // 处理支付方式
@@ -908,6 +910,22 @@ const TopUp = () => {
       value: minAmount * multiplier,
     }));
   };
+
+  // 被管理员关闭充值权限的用户：不展示任何充值界面（防止直接访问 URL）
+  if (!statusLoading && topupInfo.allow_topup === false) {
+    return (
+      <div className='w-full max-w-7xl mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
+        <div className='flex flex-col items-center justify-center text-center py-24 gap-3'>
+          <div className='text-lg font-semibold'>
+            {t('充值功能不可用')}
+          </div>
+          <div className='text-sm text-gray-500 max-w-md'>
+            {t('管理员已关闭您的充值权限，如有疑问请联系管理员。')}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='w-full max-w-7xl mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
