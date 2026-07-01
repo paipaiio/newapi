@@ -391,6 +391,19 @@ const RegisterForm = () => {
     }
   };
 
+  // Turnstile 验证框：放在每个视图主操作按钮的正上方
+  const renderTurnstile = () =>
+    turnstileEnabled && (
+      <div className='flex justify-center my-3'>
+        <Turnstile
+          sitekey={turnstileSiteKey}
+          onVerify={(token) => {
+            setTurnstileToken(token);
+          }}
+        />
+      </div>
+    );
+
   const renderOAuthOptions = () => {
     return (
       <div className='flex flex-col items-center'>
@@ -523,6 +536,8 @@ const RegisterForm = () => {
                 <Divider margin='12px' align='center'>
                   {t('或')}
                 </Divider>
+
+                {renderTurnstile()}
 
                 <Button
                   theme='solid'
@@ -675,6 +690,8 @@ const RegisterForm = () => {
                   </div>
                 )}
 
+                {renderTurnstile()}
+
                 <div className='space-y-2 pt-2'>
                   <Button
                     theme='solid'
@@ -786,17 +803,6 @@ const RegisterForm = () => {
           ? renderEmailRegisterForm()
           : renderOAuthOptions()}
         {renderWeChatLoginModal()}
-
-        {turnstileEnabled && (
-          <div className='flex justify-center mt-6'>
-            <Turnstile
-              sitekey={turnstileSiteKey}
-              onVerify={(token) => {
-                setTurnstileToken(token);
-              }}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

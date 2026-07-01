@@ -514,6 +514,19 @@ const LoginForm = () => {
     setInputs({ username: '', password: '', wechat_verification_code: '' });
   };
 
+  // Turnstile 验证框：放在每个视图主操作按钮的正上方
+  const renderTurnstile = () =>
+    turnstileEnabled && (
+      <div className='flex justify-center my-3'>
+        <Turnstile
+          sitekey={turnstileSiteKey}
+          onVerify={(token) => {
+            setTurnstileToken(token);
+          }}
+        />
+      </div>
+    );
+
   const renderOAuthOptions = () => {
     return (
       <div className='flex flex-col items-center'>
@@ -659,6 +672,8 @@ const LoginForm = () => {
                 <Divider margin='12px' align='center'>
                   {t('或')}
                 </Divider>
+
+                {renderTurnstile()}
 
                 <Button
                   theme='solid'
@@ -815,6 +830,8 @@ const LoginForm = () => {
                     </Checkbox>
                   </div>
                 )}
+
+                {renderTurnstile()}
 
                 <div className='space-y-2 pt-2'>
                   <Button
@@ -978,17 +995,6 @@ const LoginForm = () => {
           : renderOAuthOptions()}
         {renderWeChatLoginModal()}
         {render2FAModal()}
-
-        {turnstileEnabled && (
-          <div className='flex justify-center mt-6'>
-            <Turnstile
-              sitekey={turnstileSiteKey}
-              onVerify={(token) => {
-                setTurnstileToken(token);
-              }}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
