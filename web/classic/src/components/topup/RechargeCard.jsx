@@ -240,6 +240,27 @@ const RechargeCard = ({
             initValues={{ topUpCount: topUpCount }}
           >
             <div className='space-y-6'>
+              {topupInfo?.userDiscount > 0 &&
+                topupInfo?.userDiscount < 1 && (
+                  <Banner
+                    type='success'
+                    bordered
+                    closeIcon={null}
+                    description={
+                      <div className='flex items-center gap-2'>
+                        <Tag color='green' size='large'>
+                          {(topupInfo.userDiscount * 10).toFixed(1)}
+                          {t('折')}
+                        </Tag>
+                        <span>
+                          {t('您有专属充值折扣，实付金额已按')}
+                          {(topupInfo.userDiscount * 10).toFixed(1)}
+                          {t('折优惠计算')}
+                        </span>
+                      </div>
+                    }
+                  />
+                )}
               {(enableOnlineTopUp ||
                 enableStripeTopUp ||
                 enableWaffoTopUp ||
@@ -437,10 +458,15 @@ const RechargeCard = ({
                 >
                   <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2'>
                     {presetAmounts.map((preset, index) => {
-                      const discount =
+                      // 全局档位折扣与用户专属折扣取更优(更低)价，与后端 resolveTopupDiscount 一致
+                      const tierDiscount =
                         preset.discount ||
                         topupInfo?.discount?.[preset.value] ||
                         1.0;
+                      const discount = Math.min(
+                        tierDiscount,
+                        topupInfo?.userDiscount || 1.0,
+                      );
                       const originalPrice = preset.value * priceRatio;
                       const discountedPrice = originalPrice * discount;
                       const hasDiscount = discount < 1.0;

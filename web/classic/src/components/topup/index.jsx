@@ -127,6 +127,7 @@ const TopUp = () => {
   const [topupInfo, setTopupInfo] = useState({
     amount_options: [],
     discount: {},
+    userDiscount: 1.0,
     enable_redemption: true,
     payment_compliance_confirmed: true,
   });
@@ -601,6 +602,10 @@ const TopUp = () => {
         setTopupInfo({
           amount_options: data.amount_options || [],
           discount: data.discount || {},
+          userDiscount:
+            data.user_topup_discount > 0 && data.user_topup_discount <= 1
+              ? data.user_topup_discount
+              : 1.0,
         });
 
         // 处理支付方式
@@ -883,8 +888,10 @@ const TopUp = () => {
     setTopUpCount(preset.value);
     setSelectedPreset(preset.value);
 
-    // 计算实际支付金额，考虑折扣
-    const discount = preset.discount || topupInfo.discount[preset.value] || 1.0;
+    // 计算实际支付金额，考虑折扣（全局档位折扣与用户专属折扣取更优/更低价）
+    const tierDiscount =
+      preset.discount || topupInfo.discount[preset.value] || 1.0;
+    const discount = Math.min(tierDiscount, topupInfo.userDiscount || 1.0);
     const discountedAmount = preset.value * priceRatio * discount;
     setAmount(discountedAmount);
   };
@@ -931,7 +938,10 @@ const TopUp = () => {
         payWay={payWay}
         payMethods={confirmPayMethods}
         amountNumber={amount}
-        discountRate={topupInfo?.discount?.[topUpCount] || 1.0}
+        discountRate={Math.min(
+          topupInfo?.discount?.[topUpCount] || 1.0,
+          topupInfo?.userDiscount || 1.0,
+        )}
       />
 
       {/* 充值账单模态框 */}
