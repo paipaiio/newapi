@@ -268,6 +268,12 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	if affCode != nil {
 		inviterId, _ = model.GetUserIdByAffCode(affCode.(string))
 	}
+	// Persist the inviter relationship (parity with password registration path).
+	// Without this, OAuth-registered users end up with inviter_id=0 even though
+	// invite rewards are still granted in FinalizeOAuthUserCreation.
+	if inviterId != 0 {
+		user.InviterId = inviterId
+	}
 
 	// Use transaction to ensure user creation and OAuth binding are atomic
 	if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {
