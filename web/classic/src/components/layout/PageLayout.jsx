@@ -32,6 +32,7 @@ import {
   API,
   getLogo,
   getSystemName,
+  setFavicon,
   showError,
   setStatusData,
 } from '../../helpers';
@@ -94,6 +95,12 @@ const PageLayout = () => {
       if (success) {
         statusDispatch({ type: 'set', payload: data });
         setStatusData(data);
+        // status 返回后再设 favicon,用最新 logo(回退品牌 logo),
+        // 避免挂载时 localStorage 尚无 logo 而回退成默认 /logo.png
+        setFavicon(data.logo || getLogo());
+        if (data.system_name) {
+          document.title = data.system_name;
+        }
       } else {
         showError('Unable to connect to server');
       }
@@ -109,12 +116,11 @@ const PageLayout = () => {
     if (systemName) {
       document.title = systemName;
     }
-    let logo = getLogo();
+    // 挂载时先用 localStorage 里已有的 logo 尽力设一次(有值才设);
+    // 真正的权威设置在 loadStatus() 拿到 /api/status 后执行,消除竞态。
+    let logo = localStorage.getItem('logo');
     if (logo) {
-      let linkElement = document.querySelector("link[rel~='icon']");
-      if (linkElement) {
-        linkElement.href = logo;
-      }
+      setFavicon(logo);
     }
   }, []);
 

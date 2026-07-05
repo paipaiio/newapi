@@ -58,6 +58,15 @@ export function getLogo() {
   return logo;
 }
 
+// 设置浏览器标签页 favicon。传入的 logo 为空时不改动(避免竞态下回退成默认图标)。
+export function setFavicon(logo) {
+  if (!logo) return;
+  const linkElement = document.querySelector("link[rel~='icon']");
+  if (linkElement) {
+    linkElement.href = logo;
+  }
+}
+
 export function getUserIdFromLocalStorage() {
   let user = localStorage.getItem('user');
   if (!user) return -1;
