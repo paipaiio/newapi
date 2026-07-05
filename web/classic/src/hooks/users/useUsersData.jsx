@@ -35,6 +35,7 @@ export const useUsersData = () => {
   const [searching, setSearching] = useState(false);
   const [groupOptions, setGroupOptions] = useState([]);
   const [userCount, setUserCount] = useState(0);
+  const [flaggedOnly, setFlaggedOnly] = useState(false); // 只看疑似邀请滥用
 
   // Modal states
   const [showAddUser, setShowAddUser] = useState(false);
@@ -70,9 +71,13 @@ export const useUsersData = () => {
   };
 
   // Load users data
-  const loadUsers = async (startIdx, pageSize) => {
+  const loadUsers = async (startIdx, pageSize, flaggedOverride = null) => {
     setLoading(true);
-    const res = await API.get(`/api/user/?p=${startIdx}&page_size=${pageSize}`);
+    const useFlagged = flaggedOverride === null ? flaggedOnly : flaggedOverride;
+    const flaggedParam = useFlagged ? '&flagged_only=true' : '';
+    const res = await API.get(
+      `/api/user/?p=${startIdx}&page_size=${pageSize}${flaggedParam}`,
+    );
     const { success, message, data } = res.data;
     if (success) {
       const newPageData = data.items;
@@ -398,6 +403,8 @@ export const useUsersData = () => {
     userCount,
     searching,
     groupOptions,
+    flaggedOnly,
+    setFlaggedOnly,
 
     // Modal state
     showAddUser,

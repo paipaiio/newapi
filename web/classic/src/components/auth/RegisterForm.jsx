@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { getBrowserFingerprint } from '../../helpers/fingerprint';
 import {
   API,
   getLogo,
@@ -235,6 +236,12 @@ const RegisterForm = () => {
           affCode = localStorage.getItem('aff');
         }
         inputs.aff_code = affCode;
+        // 采集浏览器指纹用于邀请注册滥用检测(失败不阻断注册)
+        try {
+          inputs.fingerprint = await getBrowserFingerprint();
+        } catch (e) {
+          inputs.fingerprint = '';
+        }
         const res = await API.post(
           `/api/user/register?turnstile=${turnstileToken}`,
           inputs,

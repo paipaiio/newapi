@@ -236,6 +236,17 @@ func Register(c *gin.Context) {
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
 	}
+	// 邀请注册滥用检测:记录注册 IP/指纹,带邀请码时判定是否为疑似小号刷返利。
+	// 软处理——始终允许注册,疑似时不发返利并打标记待管理员复核(见 Insert 返利门控)。
+	cleanUser.RegisterIP = c.ClientIP()
+	cleanUser.RegisterFingerprint = model.HashFingerprint(user.Fingerprint)
+	if inviterId != 0 {
+		if res := model.DetectInviteAbuse(inviterId, cleanUser.RegisterIP, cleanUser.RegisterFingerprint, cleanUser.Email); res.Flagged {
+			cleanUser.InviteAbuseFlagged = true
+			cleanUser.InviteAbuseReason = res.Reason
+			common.SysLog(fmt.Sprintf("疑似邀请滥用注册: username=%s inviter=%d ip=%s reason=%s", cleanUser.Username, inviterId, cleanUser.RegisterIP, res.Reason))
+		}
+	}
 	if err := cleanUser.Insert(inviterId); err != nil {
 		common.ApiError(c, err)
 		return
@@ -285,6 +296,18 @@ func Register(c *gin.Context) {
 
 func GetAllUsers(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
+	// flagged_only=true 时只返回疑似邀请滥用的用户(后台复核用)
+	if c.Query("flagged_only") == "true" {
+		users, total, err := model.GetFlaggedUsers(pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		pageInfo.SetTotal(int(total))
+		pageInfo.SetItems(users)
+		common.ApiSuccess(c, pageInfo)
+		return
+	}
 	users, total, err := model.GetAllUsers(pageInfo)
 	if err != nil {
 		common.ApiError(c, err)
@@ -1100,6 +1123,17 @@ func ManageUser(c *gin.Context) {
 		}
 		_ = model.InvalidateUserCache(user.Id)
 		recordManageAuditFor(c, user.Id, "user.enable_login", map[string]interface{}{"username": user.Username, "id": user.Id})
+		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
+		return
+	case "clear_invite_abuse":
+		// 解除疑似邀请滥用标记(管理员复核后确认为误判)。仅清标记与原因,不补发返利。
+		if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).
+			Updates(map[string]interface{}{"invite_abuse_flagged": false, "invite_abuse_reason": ""}).Error; err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		_ = model.InvalidateUserCache(user.Id)
+		recordManageAuditFor(c, user.Id, "user.clear_invite_abuse", map[string]interface{}{"username": user.Username, "id": user.Id})
 		c.JSON(http.StatusOK, gin.H{"success": true, "message": ""})
 		return
 	case "set_topup_discount":

@@ -3896,6 +3896,23 @@
     "请求访问你的账号": "is requesting access to your account",
     "该应用将获得以下权限：": "This app will be granted the following permissions:",
     "拒绝": "Deny",
-    "同意授权": "Authorize"
-  }
+    "同意授权": "Authorize",
+    "疑似邀请滥用": "Suspected invite abuse",
+    "解除疑似滥用标记": "Clear abuse flag",
+    "疑似滥用": "Suspected abuse",
+    "邀请注册滥用检测": "Invite registration abuse detection",
+    "开启邀请注册滥用检测": "Enable invite registration abuse detection",
+    "开启后,带邀请码注册若被判定为疑似小号,将不发放邀请返利并在用户列表打标记(不阻断注册)": "When enabled, invite-code registrations judged as suspected sock puppets receive no invite reward and are flagged in the user list (registration is not blocked)",
+    "同 IP/指纹 注册数上限": "Max registrations per IP/fingerprint",
+    "时间窗内同一 IP 或指纹注册数达到该值即判定疑似": "Flag as suspected when registrations from the same IP or fingerprint within the window reach this value",
+    "计数时间窗": "Counting time window",
+    "检测邀请人与被邀请人同 IP": "Detect same IP for inviter and invitee",
+    "检测邮箱别名/一次性邮箱": "Detect email aliases / disposable email",
+    "检测浏览器指纹": "Detect browser fingerprint",
+    "一次性邮箱域名黑名单": "Disposable email domain blocklist",
+    "一行一个域名，例如 mailinator.com": "One domain per line, e.g. mailinator.com",
+    "命中黑名单域名的注册直接判定为疑似滥用": "Registrations matching a blocklisted domain are flagged as suspected abuse"
+  },
+  "导出成功": "Export successful",
+  "导出失败": "Export failed"
 }

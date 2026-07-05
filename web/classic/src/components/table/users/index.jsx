@@ -53,6 +53,8 @@ const UsersPage = () => {
     groupOptions,
     loading,
     searching,
+    flaggedOnly,
+    setFlaggedOnly,
 
     // Description state
     compactMode,
@@ -100,6 +102,8 @@ const UsersPage = () => {
               groupOptions={groupOptions}
               loading={loading}
               searching={searching}
+              flaggedOnly={flaggedOnly}
+              setFlaggedOnly={setFlaggedOnly}
               t={t}
             />
           </div>

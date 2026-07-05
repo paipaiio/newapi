@@ -129,6 +129,13 @@ const renderStatistics = (text, record, showEnableDisableModal, t) => {
           {t('禁止登录')}
         </Tag>
       ) : null}
+      {!isDeleted && record.invite_abuse_flagged ? (
+        <Tooltip content={record.invite_abuse_reason || t('疑似邀请滥用')} position='top'>
+          <Tag color='red' shape='circle' size='small'>
+            {t('疑似邀请滥用')}
+          </Tag>
+        </Tooltip>
+      ) : null}
     </span>
   );
 
@@ -284,6 +291,15 @@ const renderOperations = (
           record,
         ),
     },
+    ...(record.invite_abuse_flagged
+      ? [
+          {
+            node: 'item',
+            name: t('解除疑似滥用标记'),
+            onClick: () => manageUser(record.id, 'clear_invite_abuse', record),
+          },
+        ]
+      : []),
     {
       node: 'item',
       name: t('设置可见分组'),

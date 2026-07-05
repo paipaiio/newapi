@@ -31,6 +31,8 @@ const UsersFilters = ({
   groupOptions,
   loading,
   searching,
+  flaggedOnly,
+  setFlaggedOnly,
   t,
 }) => {
   const formApiRef = useRef(null);
@@ -38,8 +40,19 @@ const UsersFilters = ({
   const handleReset = () => {
     if (!formApiRef.current) return;
     formApiRef.current.reset();
+    if (setFlaggedOnly) setFlaggedOnly(false);
     setTimeout(() => {
-      loadUsers(1, pageSize);
+      loadUsers(1, pageSize, false);
+    }, 100);
+  };
+
+  const toggleFlagged = () => {
+    const next = !flaggedOnly;
+    if (setFlaggedOnly) setFlaggedOnly(next);
+    // 切到「只看疑似滥用」时先清空关键词/分组,走 loadUsers(flagged) 路径
+    if (formApiRef.current) formApiRef.current.reset();
+    setTimeout(() => {
+      loadUsers(1, pageSize, next);
     }, 100);
   };
 
@@ -89,6 +102,15 @@ const UsersFilters = ({
           />
         </div>
         <div className='flex gap-2 w-full md:w-auto'>
+          <Button
+            type={flaggedOnly ? 'danger' : 'tertiary'}
+            theme={flaggedOnly ? 'solid' : 'light'}
+            onClick={toggleFlagged}
+            className='flex-1 md:flex-initial md:w-auto'
+            size='small'
+          >
+            {t('疑似滥用')}
+          </Button>
           <Button
             type='tertiary'
             htmlType='submit'

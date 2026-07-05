@@ -36,6 +36,7 @@ type User struct {
 	WeChatId         string         `json:"wechat_id" gorm:"column:wechat_id;index"`
 	TelegramId       string         `json:"telegram_id" gorm:"column:telegram_id;index"`
 	VerificationCode string         `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
+	Fingerprint      string         `json:"fingerprint" gorm:"-:all"`                               // transient: 注册时前端上报的浏览器指纹,不入库(入库的是 RegisterFingerprint 哈希)
 	AccessToken      *string        `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
 	Quota            int            `json:"quota" gorm:"type:int;default:0"`
 	UsedQuota        int            `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
@@ -58,6 +59,10 @@ type User struct {
 	TopupDiscount    float64        `json:"topup_discount" gorm:"type:decimal(6,4);default:1;column:topup_discount"` // 该用户专属充值折扣率(0-1,越小越便宜)，1=不打折。与全局折扣取更优(更低)价
 	CreatedAt        int64          `json:"created_at" gorm:"autoCreateTime;column:created_at"`
 	LastLoginAt      int64          `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	RegisterIP       string         `json:"register_ip" gorm:"type:varchar(64);default:'';column:register_ip;index"`             // 注册时的客户端 IP（滥用检测用）
+	RegisterFingerprint string      `json:"register_fingerprint" gorm:"type:varchar(64);default:'';column:register_fingerprint;index"` // 注册时的浏览器指纹哈希（滥用检测用）
+	InviteAbuseFlagged  bool        `json:"invite_abuse_flagged" gorm:"type:tinyint(1);default:0;column:invite_abuse_flagged"`   // 疑似邀请滥用（小号刷返利）；true 时不发邀请返利，待管理员复核
+	InviteAbuseReason   string      `json:"invite_abuse_reason" gorm:"type:varchar(255);default:'';column:invite_abuse_reason"`  // 判定为疑似滥用的原因（供后台展示）
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -227,6 +232,21 @@ func GetAllUsers(pageInfo *common.PageInfo) (users []*User, total int64, err err
 		return nil, 0, err
 	}
 
+	return users, total, nil
+}
+
+// GetFlaggedUsers 返回被标记为疑似邀请滥用的用户(分页,含软删除)。供后台「只看疑似滥用」过滤用。
+func GetFlaggedUsers(startIdx int, num int) ([]*User, int64, error) {
+	var users []*User
+	var total int64
+	query := DB.Unscoped().Model(&User{}).Where("invite_abuse_flagged = ?", true)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	err := query.Omit("password").Order("id desc").Limit(num).Offset(startIdx).Find(&users).Error
+	if err != nil {
+		return nil, 0, err
+	}
 	return users, total, nil
 }
 
@@ -437,7 +457,7 @@ func (user *User) Insert(inviterId int) error {
 	if common.QuotaForNewUser > 0 {
 		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
-	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() {
+	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && !user.InviteAbuseFlagged {
 		if common.QuotaForInvitee > 0 {
 			_ = IncreaseUserQuota(user.Id, common.QuotaForInvitee, true)
 			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", logger.LogQuota(common.QuotaForInvitee)))
@@ -498,7 +518,7 @@ func (user *User) FinalizeOAuthUserCreation(inviterId int) {
 	if common.QuotaForNewUser > 0 {
 		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
-	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() {
+	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && !user.InviteAbuseFlagged {
 		if common.QuotaForInvitee > 0 {
 			_ = IncreaseUserQuota(user.Id, common.QuotaForInvitee, true)
 			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", logger.LogQuota(common.QuotaForInvitee)))

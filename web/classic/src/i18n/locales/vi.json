@@ -4246,6 +4246,23 @@
     "用于分组展示，可选（如：开发工具）": "Dùng để hiển thị theo nhóm, tùy chọn (vd: Công cụ)",
     "简短介绍这个服务的用途（可选）": "Mô tả ngắn gọn công dụng của dịch vụ (tùy chọn)",
     "维护「其他服务」页面展示的服务条目，所有登录用户都能在侧边栏看到已启用的服务": "Quản lý các mục hiển thị trên trang \"Dịch vụ khác\". Tất cả người dùng đã đăng nhập đều thấy các dịch vụ được kích hoạt trong thanh bên.",
-    "这里汇集了我们提供的其他服务与工具，点击卡片即可前往": "Đây là các dịch vụ và công cụ khác chúng tôi cung cấp. Nhấn vào thẻ để truy cập."
-  }
+    "这里汇集了我们提供的其他服务与工具，点击卡片即可前往": "Đây là các dịch vụ và công cụ khác chúng tôi cung cấp. Nhấn vào thẻ để truy cập.",
+    "疑似邀请滥用": "Nghi ngờ lạm dụng lời mời",
+    "解除疑似滥用标记": "Gỡ đánh dấu lạm dụng",
+    "疑似滥用": "Nghi ngờ lạm dụng",
+    "邀请注册滥用检测": "Phát hiện lạm dụng đăng ký qua lời mời",
+    "开启邀请注册滥用检测": "Bật phát hiện lạm dụng đăng ký qua lời mời",
+    "开启后,带邀请码注册若被判定为疑似小号,将不发放邀请返利并在用户列表打标记(不阻断注册)": "Khi bật, đăng ký bằng mã mời bị coi là nghi ngờ sẽ không nhận thưởng và bị đánh dấu trong danh sách người dùng (không chặn đăng ký)",
+    "同 IP/指纹 注册数上限": "Số đăng ký tối đa mỗi IP/vân tay",
+    "时间窗内同一 IP 或指纹注册数达到该值即判定疑似": "Đánh dấu nghi ngờ khi số đăng ký từ cùng IP hoặc vân tay trong khung thời gian đạt giá trị này",
+    "计数时间窗": "Khung thời gian đếm",
+    "检测邀请人与被邀请人同 IP": "Phát hiện cùng IP giữa người mời và người được mời",
+    "检测邮箱别名/一次性邮箱": "Phát hiện bí danh email / email dùng một lần",
+    "检测浏览器指纹": "Phát hiện vân tay trình duyệt",
+    "一次性邮箱域名黑名单": "Danh sách chặn tên miền email dùng một lần",
+    "一行一个域名，例如 mailinator.com": "Mỗi dòng một tên miền, ví dụ mailinator.com",
+    "命中黑名单域名的注册直接判定为疑似滥用": "Đăng ký khớp tên miền trong danh sách chặn bị đánh dấu nghi ngờ lạm dụng"
+  },
+  "导出成功": "Xuất thành công",
+  "导出失败": "Xuất thất bại"
 }

@@ -28,6 +28,7 @@ import SettingsMonitoring from '../../pages/Setting/Operation/SettingsMonitoring
 import SettingsCreditLimit from '../../pages/Setting/Operation/SettingsCreditLimit';
 import SettingsCheckin from '../../pages/Setting/Operation/SettingsCheckin';
 import SettingsStorage from '../../pages/Setting/Operation/SettingsStorage';
+import SettingsInviteAbuse from '../../pages/Setting/Operation/SettingsInviteAbuse';
 import { API, showError, toBoolean } from '../../helpers';
 
 const OperationSetting = () => {
@@ -150,6 +151,10 @@ const OperationSetting = () => {
         {/* 额度设置 */}
         <Card style={{ marginTop: '10px' }}>
           <SettingsCreditLimit options={inputs} refresh={onRefresh} />
+        </Card>
+        {/* 邀请注册滥用检测 */}
+        <Card style={{ marginTop: '10px' }}>
+          <SettingsInviteAbuse options={inputs} refresh={onRefresh} />
         </Card>
         {/* 签到设置 */}
         <Card style={{ marginTop: '10px' }}>
