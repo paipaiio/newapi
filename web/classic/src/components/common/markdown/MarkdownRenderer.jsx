@@ -36,6 +36,25 @@ import { copy, rehypeSplitWordsIntoSpans } from '../../../helpers';
 import { IconCopy } from '@douyinfe/semi-icons';
 import { useTranslation } from 'react-i18next';
 
+// rehype-highlight 遇到 highlight.js 内部抛错（如 "Could not highlight"，
+// 某些畸形代码块会触发）时会 `throw`，直接把整棵 markdown 渲染树带崩，
+// 导致会话详情等页面整个报错。这里包一层：高亮失败时降级为不高亮（纯文本），
+// 绝不让单个代码块的高亮异常拖垮整条消息的渲染。
+function RehypeHighlightSafe(options) {
+  const transformer = RehypeHighlight.call(this, options);
+  return (tree, file) => {
+    try {
+      return transformer(tree, file);
+    } catch (e) {
+      // 静默降级：保留已处理部分，剩余代码块不高亮，页面照常渲染。
+      if (typeof console !== 'undefined') {
+        console.warn('rehype-highlight failed, rendering code without highlight:', e?.message || e);
+      }
+      return tree;
+    }
+  };
+}
+
 mermaid.initialize({
   startOnLoad: false,
   theme: 'default',
@@ -397,7 +416,7 @@ function _MarkdownContent(props) {
     const base = [
       RehypeKatex,
       [
-        RehypeHighlight,
+        RehypeHighlightSafe,
         {
           detect: false,
           ignoreMissing: true,
