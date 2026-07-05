@@ -130,9 +130,9 @@ const renderStatistics = (text, record, showEnableDisableModal, t) => {
         </Tag>
       ) : null}
       {!isDeleted && record.invite_abuse_flagged ? (
-        <Tooltip content={record.invite_abuse_reason || t('疑似邀请滥用')} position='top'>
+        <Tooltip content={record.invite_abuse_reason || t('疑似滥用')} position='top'>
           <Tag color='red' shape='circle' size='small'>
-            {t('疑似邀请滥用')}
+            {t('疑似滥用')}
           </Tag>
         </Tooltip>
       ) : null}

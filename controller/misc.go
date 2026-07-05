@@ -240,6 +240,9 @@ func SendEmailVerification(c *gin.Context) {
 		})
 		return
 	}
+	// 邮箱统一小写化:域名部分大小写不敏感(RFC),各主流邮箱 local part 也不敏感。
+	// 统一后域名白名单/别名/唯一性/验证码 key 全部一致,避免 Gmail.com 绕过。
+	email = strings.ToLower(email)
 	parts := strings.Split(email, "@")
 	if len(parts) != 2 {
 		c.JSON(http.StatusOK, gin.H{
@@ -252,8 +255,9 @@ func SendEmailVerification(c *gin.Context) {
 	domainPart := parts[1]
 	if common.EmailDomainRestrictionEnabled {
 		allowed := false
+		// email 已小写化;白名单条目也归一化小写,兼容管理员配置了大小写混合的域名。
 		for _, domain := range common.EmailDomainWhitelist {
-			if domainPart == domain {
+			if domainPart == strings.ToLower(domain) {
 				allowed = true
 				break
 			}

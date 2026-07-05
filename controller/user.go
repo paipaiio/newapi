@@ -204,6 +204,8 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
 		return
 	}
+	// 邮箱统一小写化,与 SendEmailVerification 一致(验证码 key、唯一性、邀请滥用检测都按小写)
+	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
 	if common.EmailVerificationEnabled {
 		if user.Email == "" || user.VerificationCode == "" {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
@@ -236,16 +238,15 @@ func Register(c *gin.Context) {
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
 	}
-	// 邀请注册滥用检测:记录注册 IP/指纹,带邀请码时判定是否为疑似小号刷返利。
-	// 软处理——始终允许注册,疑似时不发返利并打标记待管理员复核(见 Insert 返利门控)。
+	// 注册滥用检测:记录注册 IP/指纹,对所有注册判定(带邀请码=防刷返利小号;
+	// 无邀请码=防同 IP/指纹批量注册)。软处理——始终允许注册,疑似时不发放
+	// 注册赠额/邀请返利并打标记待管理员复核(见 model.Insert 门控)。
 	cleanUser.RegisterIP = c.ClientIP()
 	cleanUser.RegisterFingerprint = model.HashFingerprint(user.Fingerprint)
-	if inviterId != 0 {
-		if res := model.DetectInviteAbuse(inviterId, cleanUser.RegisterIP, cleanUser.RegisterFingerprint, cleanUser.Email); res.Flagged {
-			cleanUser.InviteAbuseFlagged = true
-			cleanUser.InviteAbuseReason = res.Reason
-			common.SysLog(fmt.Sprintf("疑似邀请滥用注册: username=%s inviter=%d ip=%s reason=%s", cleanUser.Username, inviterId, cleanUser.RegisterIP, res.Reason))
-		}
+	if res := model.DetectInviteAbuse(inviterId, cleanUser.RegisterIP, cleanUser.RegisterFingerprint, cleanUser.Email); res.Flagged {
+		cleanUser.InviteAbuseFlagged = true
+		cleanUser.InviteAbuseReason = res.Reason
+		common.SysLog(fmt.Sprintf("疑似滥用注册: username=%s inviter=%d ip=%s reason=%s", cleanUser.Username, inviterId, cleanUser.RegisterIP, res.Reason))
 	}
 	if err := cleanUser.Insert(inviterId); err != nil {
 		common.ApiError(c, err)

@@ -275,15 +275,14 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		user.InviterId = inviterId
 	}
 
-	// 邀请注册滥用检测(OAuth 路径):记录注册 IP,带邀请码时判定疑似小号。
-	// OAuth 回调拿不到浏览器指纹,故只用 IP + 邮箱信号;疑似时打标记并抑制返利(见 FinalizeOAuthUserCreation)。
+	// 注册滥用检测(OAuth 路径):记录注册 IP,对所有 OAuth 注册判定。
+	// OAuth 回调拿不到浏览器指纹,故只用 IP + 邮箱信号;疑似时打标记并抑制
+	// 注册赠额/邀请返利(见 FinalizeOAuthUserCreation 与 InsertWithTx 门控)。
 	user.RegisterIP = c.ClientIP()
-	if inviterId != 0 {
-		if res := model.DetectInviteAbuse(inviterId, user.RegisterIP, "", user.Email); res.Flagged {
-			user.InviteAbuseFlagged = true
-			user.InviteAbuseReason = res.Reason
-			common.SysLog(fmt.Sprintf("疑似邀请滥用注册(OAuth): username=%s inviter=%d ip=%s reason=%s", user.Username, inviterId, user.RegisterIP, res.Reason))
-		}
+	if res := model.DetectInviteAbuse(inviterId, user.RegisterIP, "", user.Email); res.Flagged {
+		user.InviteAbuseFlagged = true
+		user.InviteAbuseReason = res.Reason
+		common.SysLog(fmt.Sprintf("疑似滥用注册(OAuth): username=%s inviter=%d ip=%s reason=%s", user.Username, inviterId, user.RegisterIP, res.Reason))
 	}
 
 	// Use transaction to ensure user creation and OAuth binding are atomic

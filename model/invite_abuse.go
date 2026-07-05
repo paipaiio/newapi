@@ -148,12 +148,15 @@ func emailAliasCollision(rawEmail string) bool {
 	return false
 }
 
-// DetectInviteAbuse 对一次「带邀请码」的注册做疑似小号判定。
-// 仅当总开关开启且 inviterId != 0 时才判定;否则返回未标记(但调用方仍应记录 ip/fp)。
+// DetectInviteAbuse 对一次注册做疑似滥用判定,覆盖两类滥用:
+//   - 邀请刷号(inviterId != 0):与邀请人同 IP/指纹、邮箱别名撞库等
+//   - 无邀请码的批量注册(inviterId == 0):同 IP/指纹短时间内连续注册、一次性邮箱
+//
+// 仅当总开关开启时判定。inviterId==0 时跳过「邀请人专属」检测,只跑速率/邮箱检测。
 // registrantIP / fingerprint 已由调用方处理(fingerprint 建议先 HashFingerprint)。
 func DetectInviteAbuse(inviterId int, registrantIP, fingerprint, rawEmail string) InviteAbuseResult {
 	s := operation_setting.GetInviteAbuseSetting()
-	if !s.Enabled || inviterId == 0 {
+	if !s.Enabled {
 		return InviteAbuseResult{}
 	}
 

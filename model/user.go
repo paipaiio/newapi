@@ -424,6 +424,9 @@ func (user *User) Insert(inviterId int) error {
 		}
 	}
 	user.Quota = common.QuotaForNewUser
+	if user.InviteAbuseFlagged {
+		user.Quota = 0 // 疑似滥用:不发放注册赠额
+	}
 	//user.SetAccessToken(common.GetUUID())
 	user.AffCode = common.GetRandomString(4)
 
@@ -454,7 +457,7 @@ func (user *User) Insert(inviterId int) error {
 		}
 	}
 
-	if common.QuotaForNewUser > 0 {
+	if common.QuotaForNewUser > 0 && !user.InviteAbuseFlagged {
 		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
 	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && !user.InviteAbuseFlagged {
@@ -483,6 +486,9 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 		}
 	}
 	user.Quota = common.QuotaForNewUser
+	if user.InviteAbuseFlagged {
+		user.Quota = 0 // 疑似滥用:不发放注册赠额
+	}
 	user.AffCode = common.GetRandomString(4)
 
 	// 初始化用户设置
@@ -515,7 +521,7 @@ func (user *User) FinalizeOAuthUserCreation(inviterId int) {
 		}
 	}
 
-	if common.QuotaForNewUser > 0 {
+	if common.QuotaForNewUser > 0 && !user.InviteAbuseFlagged {
 		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
 	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && !user.InviteAbuseFlagged {
