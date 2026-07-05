@@ -124,6 +124,13 @@ func updatePricing() {
 	for i := range allMeta {
 		m := &allMeta[i]
 		if m.NameRule == NameRuleExact {
+			// 同名精确元数据可能存在多条重复记录（历史脏数据），
+			// 优先保留启用(status==1)的那条，避免被禁用记录覆盖后模型从模型广场消失
+			if existing, ok := metaMap[m.ModelName]; ok {
+				if existing.Status == 1 && m.Status != 1 {
+					continue
+				}
+			}
 			metaMap[m.ModelName] = m
 		} else {
 			switch m.NameRule {

@@ -796,6 +796,59 @@ export const useLogsData = () => {
     await loadLogs(1, pageSize);
   };
 
+  // 导出当前筛选条件下的使用记录为 CSV
+  const [exporting, setExporting] = useState(false);
+  const exportLogs = async () => {
+    const {
+      username,
+      token_name,
+      model_name,
+      start_timestamp,
+      end_timestamp,
+      channel,
+      group,
+      request_id,
+      logType: formLogType,
+    } = getFormValues();
+
+    const currentLogType =
+      formLogType !== undefined ? formLogType : logType;
+    const localStartTimestamp = Date.parse(start_timestamp) / 1000;
+    const localEndTimestamp = Date.parse(end_timestamp) / 1000;
+
+    let url = '';
+    if (isAdminUser) {
+      url = `/api/log/export?type=${currentLogType}&username=${username}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}&channel=${channel}&group=${group}&request_id=${request_id}`;
+    } else {
+      url = `/api/log/self/export?type=${currentLogType}&token_name=${token_name}&model_name=${model_name}&start_timestamp=${localStartTimestamp}&end_timestamp=${localEndTimestamp}&group=${group}&request_id=${request_id}`;
+    }
+    url = encodeURI(url);
+
+    setExporting(true);
+    try {
+      const res = await API.get(url, { responseType: 'blob' });
+      const blob = new Blob([res.data], {
+        type: 'text/csv;charset=utf-8;',
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `usage_logs_${new Date()
+        .toISOString()
+        .slice(0, 19)
+        .replace(/[:T]/g, '')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+      showSuccess(t('导出成功'));
+    } catch (e) {
+      showError(t('导出失败'));
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Copy text function
   const copyText = async (e, text) => {
     e.stopPropagation();
@@ -887,6 +940,8 @@ export const useLogsData = () => {
     handlePageChange,
     handlePageSizeChange,
     refresh,
+    exportLogs,
+    exporting,
     copyText,
     handleEyeClick,
     setLogsFormat,

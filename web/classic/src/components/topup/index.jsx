@@ -911,21 +911,9 @@ const TopUp = () => {
     }));
   };
 
-  // 被管理员关闭充值权限的用户：不展示任何充值界面（防止直接访问 URL）
-  if (!statusLoading && topupInfo.allow_topup === false) {
-    return (
-      <div className='w-full max-w-7xl mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
-        <div className='flex flex-col items-center justify-center text-center py-24 gap-3'>
-          <div className='text-lg font-semibold'>
-            {t('充值功能不可用')}
-          </div>
-          <div className='text-sm text-gray-500 max-w-md'>
-            {t('管理员已关闭您的充值权限，如有疑问请联系管理员。')}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // 被管理员关闭充值权限的用户：把在线充值视为「未开启」，
+  // 充值区域会渲染成系统未开启充值时的界面，邀请链接等其它内容照常显示。
+  const topupBlocked = topupInfo.allow_topup === false;
 
   return (
     <div className='w-full max-w-7xl mx-auto relative min-h-screen lg:min-h-0 mt-[60px] px-2'>
@@ -1001,13 +989,15 @@ const TopUp = () => {
       <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
         <RechargeCard
           t={t}
-          enableOnlineTopUp={enableOnlineTopUp}
-          enableStripeTopUp={enableStripeTopUp}
-          enableCreemTopUp={enableCreemTopUp}
+          enableOnlineTopUp={topupBlocked ? false : enableOnlineTopUp}
+          enableStripeTopUp={topupBlocked ? false : enableStripeTopUp}
+          enableCreemTopUp={topupBlocked ? false : enableCreemTopUp}
           creemProducts={creemProducts}
           creemPreTopUp={creemPreTopUp}
-          enableWaffoTopUp={enableWaffoTopUp}
-          enableWaffoPancakeTopUp={enableWaffoPancakeTopUp}
+          enableWaffoTopUp={topupBlocked ? false : enableWaffoTopUp}
+          enableWaffoPancakeTopUp={
+            topupBlocked ? false : enableWaffoPancakeTopUp
+          }
           presetAmounts={presetAmounts}
           selectedPreset={selectedPreset}
           selectPresetAmount={selectPresetAmount}
@@ -1037,7 +1027,7 @@ const TopUp = () => {
           topupInfo={topupInfo}
           onOpenHistory={handleOpenHistory}
           subscriptionLoading={subscriptionLoading}
-          subscriptionPlans={subscriptionPlans}
+          subscriptionPlans={topupBlocked ? [] : subscriptionPlans}
           billingPreference={billingPreference}
           onChangeBillingPreference={updateBillingPreference}
           activeSubscriptions={activeSubscriptions}
