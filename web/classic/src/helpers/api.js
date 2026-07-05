@@ -211,12 +211,14 @@ export const processModelsData = (data, currentModel) => {
 
 // 处理分组数据
 export const processGroupsData = (data, userGroup) => {
+  // label 用分组名本身（选中标签取 label；空描述会导致标签空白）；
+  // 描述放 desc 字段由 renderGroupOption 作副标题。
   let groupOptions = Object.entries(data).map(([group, info]) => ({
-    label:
-      info.desc.length > 20 ? info.desc.substring(0, 20) + '...' : info.desc,
+    label: group,
     value: group,
     ratio: info.ratio,
-    fullLabel: info.desc,
+    desc: info.desc || '',
+    fullLabel: info.desc || '',
   }));
 
   if (groupOptions.length === 0) {

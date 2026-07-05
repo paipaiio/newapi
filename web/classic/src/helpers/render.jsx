@@ -1004,9 +1004,17 @@ export const renderGroupOption = (item) => {
           <Typography.Text strong type={disabled ? 'tertiary' : undefined}>
             {value}
           </Typography.Text>
-          <Typography.Text type='secondary' size='small'>
-            {label}
-          </Typography.Text>
+          {/* 副标题优先用 desc（分组描述）；老调用方仍传 label 时回退到 label。
+              value===副标题 时不重复展示。 */}
+          {(() => {
+            const sub = item.desc !== undefined ? item.desc : label;
+            if (!sub || sub === value) return null;
+            return (
+              <Typography.Text type='secondary' size='small'>
+                {sub}
+              </Typography.Text>
+            );
+          })()}
         </div>
         {item.ratio && renderRatio(item.ratio)}
       </div>

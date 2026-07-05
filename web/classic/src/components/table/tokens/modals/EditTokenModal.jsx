@@ -139,9 +139,12 @@ const EditTokenModal = (props) => {
     let res = await API.get(`/api/user/self/groups`);
     const { success, message, data } = res.data;
     if (success) {
+      // label 用分组名本身（多选模式下选中标签取 label，若用描述则空描述分组会显示为空白）；
+      // 描述放到 desc 字段，由 renderGroupOption 作为副标题展示。
       let localGroupOptions = Object.entries(data).map(([group, info]) => ({
-        label: info.desc,
+        label: group,
         value: group,
+        desc: info.desc,
         ratio: info.ratio,
       }));
       if (statusState?.status?.default_use_auto_group) {
