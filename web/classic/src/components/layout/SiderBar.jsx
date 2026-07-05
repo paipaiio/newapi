@@ -46,6 +46,7 @@ const routerMap = {
   pricing: '/pricing',
   task: '/console/task',
   'other-services': '/console/other-services',
+  status: '/console/status',
   'service-manage': '/console/service-manage',
   'oauth-apps': '/console/oauth-apps',
   models: '/console/models',
@@ -118,6 +119,11 @@ const SiderBar = ({ onNavigate = () => {} }) => {
         text: t('其他服务'),
         itemKey: 'other-services',
         to: '/other-services',
+      },
+      {
+        text: t('服务状态'),
+        itemKey: 'status',
+        to: '/console/status',
       },
     ];
 

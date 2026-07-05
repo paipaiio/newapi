@@ -24,6 +24,7 @@ import (
 	"github.com/QuantumNous/new-api/router"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/oauthprovider"
+	"github.com/QuantumNous/new-api/service/statusmonitor"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
@@ -125,6 +126,9 @@ func main() {
 
 	// Email alert task (abnormal usage + daily report)
 	service.StartAlertTask()
+
+	// Service status monitor (probes gateway + groups, powers the status page)
+	statusmonitor.Start()
 
 	// Wire task polling adaptor factory (breaks service -> relay import cycle)
 	service.GetTaskAdaptorFunc = func(platform constant.TaskPlatform) service.TaskPollingAdaptor {

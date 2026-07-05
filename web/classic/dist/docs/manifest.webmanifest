@@ -1,0 +1,21 @@
+{
+  "name": "TUFTech 文档",
+  "short_name": "TUFTech",
+  "start_url": "/docs/",
+  "scope": "/docs/",
+  "display": "standalone",
+  "background_color": "#0A0C10",
+  "theme_color": "#0A0C10",
+  "icons": [
+    {
+      "src": "/tuftech-theme/tuftech-logo.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    },
+    {
+      "src": "/tuftech-theme/tuftech-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

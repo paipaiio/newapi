@@ -404,6 +404,9 @@ func migrateLOGDB() error {
 	if err = LOG_DB.AutoMigrate(&ConversationGroup{}); err != nil {
 		return err
 	}
+	if err = LOG_DB.AutoMigrate(&MonitorSample{}); err != nil {
+		return err
+	}
 	return nil
 }
 

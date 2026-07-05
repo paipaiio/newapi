@@ -2,6 +2,7 @@ package router
 
 import (
 	"embed"
+	"io/fs"
 	"net/http"
 	"strings"
 
@@ -25,6 +26,20 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 	defaultFS := common.EmbedFolder(assets.DefaultBuildFS, "web/default/dist")
 	classicFS := common.EmbedFolder(assets.ClassicBuildFS, "web/classic/dist")
 	themeFS := common.NewThemeAwareFS(defaultFS, classicFS)
+
+	// Serve /docs/* directly from the embedded classic dist, bypassing the
+	// gin-contrib/static middleware which has trouble with embedded directories.
+	docsSubFS, err := fs.Sub(assets.ClassicBuildFS, "web/classic/dist/docs")
+	if err == nil {
+		docsHandler := http.FileServerFS(docsSubFS)
+		router.GET("/docs", func(c *gin.Context) {
+			http.Redirect(c.Writer, c.Request, "/docs/", http.StatusMovedPermanently)
+		})
+		router.GET("/docs/*filepath", func(c *gin.Context) {
+			c.Request.URL.Path = c.Param("filepath")
+			docsHandler.ServeHTTP(c.Writer, c.Request)
+		})
+	}
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())

@@ -29,6 +29,7 @@ import ApiInfoPanel from './ApiInfoPanel';
 import AnnouncementsPanel from './AnnouncementsPanel';
 import FaqPanel from './FaqPanel';
 import UptimePanel from './UptimePanel';
+import CacheHitCard from './CacheHitCard';
 import SearchModal from './modals/SearchModal';
 
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
@@ -181,6 +182,9 @@ const Dashboard = () => {
         CARD_PROPS={CARD_PROPS}
         CHART_CONFIG={CHART_CONFIG}
       />
+
+      {/* 缓存命中率卡片（每用户只看自己的数据） */}
+      <CacheHitCard />
 
       {/* API信息和图表面板 */}
       <div className='mb-4'>

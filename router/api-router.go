@@ -361,6 +361,23 @@ func SetApiRouter(router *gin.Engine) {
 			otherServiceRoute.DELETE("/:id", middleware.AdminAuth(), controller.DeleteOtherService)
 		}
 
+		// 服务状态监控（迁移自旧 python 服务 tt-monitor）。
+		// public：status/meta/events（非敏感可用性 + 公开指标）；
+		// user：whoami/usercache；admin：groups/metrics/config/annotation。
+		statusMonitorRoute := apiRouter.Group("/tt-status/api")
+		{
+			statusMonitorRoute.GET("/status", controller.StatusMonitorStatus)
+			statusMonitorRoute.GET("/meta", controller.StatusMonitorMeta)
+			statusMonitorRoute.GET("/events", controller.StatusMonitorEvents)
+			statusMonitorRoute.GET("/whoami", middleware.TryUserAuth(), controller.StatusMonitorWhoami)
+			statusMonitorRoute.GET("/usercache", middleware.UserAuth(), controller.StatusMonitorUserCache)
+			statusMonitorRoute.GET("/groups", middleware.AdminAuth(), controller.StatusMonitorGroups)
+			statusMonitorRoute.GET("/metrics", middleware.AdminAuth(), controller.StatusMonitorMetrics)
+			statusMonitorRoute.POST("/config", middleware.AdminAuth(), controller.StatusMonitorConfig)
+			statusMonitorRoute.POST("/annotation", middleware.AdminAuth(), controller.StatusMonitorAnnotation)
+			statusMonitorRoute.POST("/annotation/delete", middleware.AdminAuth(), controller.StatusMonitorAnnotationDelete)
+		}
+
 		// OAuth Provider（本系统作为身份提供方）——管理端：注册/管理第三方接入应用
 		oauthClientRoute := apiRouter.Group("/oauth_client")
 		oauthClientRoute.Use(middleware.AdminAuth())

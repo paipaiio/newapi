@@ -39,6 +39,7 @@ export const DEFAULT_ADMIN_CONFIG = {
     midjourney: true,
     task: true,
     'other-services': true,
+    status: true,
   },
   personal: {
     enabled: true,

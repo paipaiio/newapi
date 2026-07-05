@@ -89,6 +89,7 @@ import {
   LayoutGrid,
   Boxes,
   KeyRound,
+  Activity,
 } from 'lucide-react';
 import {
   SiAtlassian,
@@ -175,6 +176,8 @@ export function getLucideIcon(key, selected = false) {
       return <Settings {...commonProps} color={iconColor} />;
     case 'other-services':
       return <LayoutGrid {...commonProps} color={iconColor} />;
+    case 'status':
+      return <Activity {...commonProps} color={iconColor} />;
     case 'service-manage':
       return <Boxes {...commonProps} color={iconColor} />;
     case 'oauth-apps':
