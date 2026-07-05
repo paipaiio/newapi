@@ -21,6 +21,15 @@ export default defineConfig(({ envMode }) => {
     clientServerUrl ||
     'http://localhost:3000'
   const isProd = envMode === 'production'
+  // 生产构建时静态资源走 CDN（Bitiful 回源镜像）。可用 VITE_ASSET_PREFIX 覆盖；
+  // 设为 'none' 可关闭（回退到同源 /）。dev 模式始终同源以便本地代理调试。
+  const assetPrefixEnv =
+    process.env.VITE_ASSET_PREFIX || env.rawPublicVars.VITE_ASSET_PREFIX
+  const assetPrefix =
+    assetPrefixEnv === 'none'
+      ? undefined
+      : assetPrefixEnv ||
+        (isProd ? 'https://static.paipaiio.com/' : undefined)
   const devProxy = Object.fromEntries(
     (['/api', '/mj', '/pg'] as const).map((key) => [
       key,
@@ -60,6 +69,7 @@ export default defineConfig(({ envMode }) => {
     output: {
       minify: isProd,
       target: 'web',
+      assetPrefix,
       distPath: {
         root: 'dist',
       },
