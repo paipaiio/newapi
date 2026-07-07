@@ -15,6 +15,10 @@ import (
 //
 // The dummy dialector is used because SQLite drivers strip locking clauses
 // from the generated SQL, which would mask what the helper itself does.
+//
+// NOTE: this fork tracks the main database via common.UsingSQLite rather than
+// upstream's DatabaseType enum (which arrived with the ClickHouse feature this
+// fork does not carry), so the toggle here drives that flag directly.
 func TestLockForUpdateEmitsRowLock(t *testing.T) {
 	dummyDB, err := gorm.Open(tests.DummyDialector{}, &gorm.Config{DryRun: true})
 	require.NoError(t, err)
@@ -23,16 +27,14 @@ func TestLockForUpdateEmitsRowLock(t *testing.T) {
 		return lockForUpdate(dummyDB).Where("id = ?", 1).Find(&rows).Statement.SQL.String()
 	}
 
+	original := common.UsingSQLite
 	t.Cleanup(func() {
-		common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
+		common.UsingSQLite = original
 	})
 
-	common.SetDatabaseTypes(common.DatabaseTypeMySQL, common.DatabaseTypeSQLite)
+	common.UsingSQLite = false
 	assert.Contains(t, buildSQL(), "FOR UPDATE")
 
-	common.SetDatabaseTypes(common.DatabaseTypePostgreSQL, common.DatabaseTypeSQLite)
-	assert.Contains(t, buildSQL(), "FOR UPDATE")
-
-	common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
+	common.UsingSQLite = true
 	assert.NotContains(t, buildSQL(), "FOR UPDATE")
 }
