@@ -48,10 +48,19 @@ type OpenAICreditGrants struct {
 }
 
 type OpenAIUsageResponse struct {
-	Object     string  `json:"object"`
-	TotalUsage float64 `json:"total_usage"`   // 已使用（单位：0.01 dollar）
-	Remaining  float64 `json:"remaining"`     // 剩余额度（单位：0.01 dollar）
-	TotalQuota float64 `json:"total_quota"`   // 总额度（单位：0.01 dollar）
+	Object     string             `json:"object"`
+	TotalUsage float64            `json:"total_usage"`            // 已使用（单位：0.01 dollar）
+	Remaining  float64            `json:"remaining"`              // 剩余额度（单位：0.01 dollar）
+	TotalQuota float64            `json:"total_quota"`            // 总额度（单位：0.01 dollar）
+	ModelUsage []ModelUsageDetail `json:"model_usage,omitempty"`  // 按模型消耗明细（累计），与 total_usage 同口径
+}
+
+// ModelUsageDetail 单个模型的累计消耗明细，Usage 与 total_usage 同口径（0.01 dollar）。
+type ModelUsageDetail struct {
+	ModelName string  `json:"model_name"`
+	Usage     float64 `json:"usage"`  // 消耗额度（单位：0.01 dollar）
+	Count     int64   `json:"count"`  // 调用次数
+	Tokens    int64   `json:"tokens"` // prompt+completion tokens
 }
 
 type OpenAISBUsageResponse struct {

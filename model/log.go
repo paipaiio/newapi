@@ -634,6 +634,33 @@ type ChannelGroupStat struct {
 	Count     int64  `json:"count"`
 }
 
+// ModelUsageStat 按 model_name 聚合的消费统计行（原始 quota，未做倍率/单位换算）。
+type ModelUsageStat struct {
+	ModelName string `json:"model_name"`
+	Quota     int64  `json:"quota"`
+	Tokens    int64  `json:"tokens"`
+	Count     int64  `json:"count"`
+}
+
+// GetModelUsageStats 返回消费日志(type=2)按 model_name 分组的 quota/token/次数统计，
+// 用于 /dashboard/billing/usage 的按模型消耗明细。
+// userId>0 时按账户过滤（无限额度令牌/账户级口径）；tokenId>0 时按令牌过滤（普通令牌口径）。
+// 两者都为 0 不做过滤（谨慎使用）。按 quota 降序返回。
+func GetModelUsageStats(userId int, tokenId int) ([]ModelUsageStat, error) {
+	var rows []ModelUsageStat
+	tx := LOG_DB.Table("logs").
+		Select("model_name, sum(quota) quota, sum(prompt_tokens)+sum(completion_tokens) tokens, count(*) count").
+		Where("type = ?", LogTypeConsume)
+	if userId > 0 {
+		tx = tx.Where("user_id = ?", userId)
+	}
+	if tokenId > 0 {
+		tx = tx.Where("token_id = ?", tokenId)
+	}
+	err := tx.Group("model_name").Order("quota desc").Scan(&rows).Error
+	return rows, err
+}
+
 // GetChannelGroupStats 返回指定时间段内、类型为消费(type=2)的日志
 // 按 (channel_id, group) 分组的 quota/token/次数统计，用于渠道成本分析。
 func GetChannelGroupStats(startTimestamp, endTimestamp int64) ([]ChannelGroupStat, error) {
