@@ -39,6 +39,7 @@
   "The token routes across the primary group and these additional groups in order.": "The token routes across the primary group and these additional groups in order.",
   "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.": "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.",
   "This secret cannot be retrieved again. If lost, rotate the secret to generate a new one.": "This secret cannot be retrieved again. If lost, rotate the secret to generate a new one.",
+  "Top-up is disabled for your account. Please contact an administrator.": "Top-up is disabled for your account. Please contact an administrator.",
   "View the stored request and response bodies.": "View the stored request and response bodies.",
   "With attachments": "With attachments",
   "is requesting access to your account": "is requesting access to your account"

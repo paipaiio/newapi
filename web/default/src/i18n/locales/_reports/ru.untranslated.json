@@ -221,6 +221,7 @@
   "Tool result (error)": "Tool result (error)",
   "Top-up disabled for user": "Top-up disabled for user",
   "Top-up enabled for user": "Top-up enabled for user",
+  "Top-up is disabled for your account. Please contact an administrator.": "Top-up is disabled for your account. Please contact an administrator.",
   "Total balance": "Total balance",
   "Total profit": "Total profit",
   "Total revenue": "Total revenue",
@@ -230,6 +231,7 @@
   "View the stored request and response bodies.": "View the stored request and response bodies.",
   "Visible groups": "Visible groups",
   "With attachments": "With attachments",
+  "You have an exclusive recharge discount: {{pct}}% off": "You have an exclusive recharge discount: {{pct}}% off",
   "e.g. Monitoring dashboard": "e.g. Monitoring dashboard",
   "is requesting access to your account": "is requesting access to your account"
 }
