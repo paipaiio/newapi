@@ -16,24 +16,28 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { type ManageUserAction } from '../types'
+import type { ManageUserAction } from "../types";
 
 // ============================================================================
 // User Action Messages
 // ============================================================================
 
 const ACTION_MESSAGES: Record<ManageUserAction, string> = {
-  enable: 'User enabled successfully',
-  disable: 'User disabled successfully',
-  promote: 'User promoted to admin successfully',
-  demote: 'User demoted to regular user successfully',
-  delete: 'User deleted successfully',
-  add_quota: 'Quota adjusted successfully',
-}
+  enable: "User enabled successfully",
+  disable: "User disabled successfully",
+  promote: "User promoted to admin successfully",
+  demote: "User demoted to regular user successfully",
+  delete: "User deleted successfully",
+  add_quota: "Quota adjusted successfully",
+  allow_topup: "Top-up enabled for user",
+  disallow_topup: "Top-up disabled for user",
+  enable_login: "Console login enabled for user",
+  disable_login: "Console login disabled for user",
+};
 
 /**
  * Get success message for user management action
  */
 export function getUserActionMessage(action: ManageUserAction): string {
-  return ACTION_MESSAGES[action]
+  return ACTION_MESSAGES[action];
 }

@@ -16,21 +16,21 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { z } from 'zod'
+import { z } from "zod";
 
-import type { AdminPermissionMatrix } from '@/lib/admin-permissions'
+import type { AdminPermissionMatrix } from "@/lib/admin-permissions";
 
 // ============================================================================
 // User Schema & Types
 // ============================================================================
 
 /** User status: 1 = enabled, 2 = disabled, 3+ = other states */
-export const userStatusSchema = z.number()
-export type UserStatus = z.infer<typeof userStatusSchema>
+export const userStatusSchema = z.number();
+export type UserStatus = z.infer<typeof userStatusSchema>;
 
 /** User role: 1 = common user, 10 = admin, 100 = root */
-export const userRoleSchema = z.number()
-export type UserRole = z.infer<typeof userRoleSchema>
+export const userRoleSchema = z.number();
+export type UserRole = z.infer<typeof userRoleSchema>;
 
 export const userSchema = z.object({
   id: z.number(),
@@ -62,10 +62,16 @@ export const userSchema = z.object({
   admin_permissions: z
     .record(z.string(), z.record(z.string(), z.boolean()))
     .optional(),
-})
-export type User = z.infer<typeof userSchema>
+  // Fork customizations: recharge switch, per-user discount, and web-console
+  // login gate. `login_disabled` blocks console login without affecting the
+  // user's existing API keys.
+  allow_topup: z.boolean().optional(),
+  login_disabled: z.boolean().optional(),
+  topup_discount: z.number().optional(),
+});
+export type User = z.infer<typeof userSchema>;
 
-export const userListSchema = z.array(userSchema)
+export const userListSchema = z.array(userSchema);
 
 // ============================================================================
 // API Request/Response Types
@@ -73,66 +79,70 @@ export const userListSchema = z.array(userSchema)
 
 /** Generic API response */
 export interface ApiResponse<T = unknown> {
-  success: boolean
-  message?: string
-  data?: T
+  success: boolean;
+  message?: string;
+  data?: T;
 }
 
 export interface GetUsersParams {
-  p?: number
-  page_size?: number
+  p?: number;
+  page_size?: number;
 }
 
 export interface GetUsersResponse {
-  success: boolean
-  message?: string
+  success: boolean;
+  message?: string;
   data?: {
-    items: User[]
-    total: number
-    page: number
-    page_size: number
-  }
+    items: User[];
+    total: number;
+    page: number;
+    page_size: number;
+  };
 }
 
 export interface SearchUsersParams {
-  keyword?: string
-  group?: string
-  role?: string
-  status?: string
-  p?: number
-  page_size?: number
+  keyword?: string;
+  group?: string;
+  role?: string;
+  status?: string;
+  p?: number;
+  page_size?: number;
 }
 
 export interface UserFormData {
-  username: string
-  display_name: string
-  password?: string
-  role?: number // Only used when creating user
-  quota?: number // Only used when updating user
-  group?: string // Only used when updating user
-  remark?: string // Only used when updating user
-  admin_permissions?: AdminPermissionMatrix
+  username: string;
+  display_name: string;
+  password?: string;
+  role?: number; // Only used when creating user
+  quota?: number; // Only used when updating user
+  group?: string; // Only used when updating user
+  remark?: string; // Only used when updating user
+  admin_permissions?: AdminPermissionMatrix;
 }
 
 export type ManageUserAction =
-  | 'promote'
-  | 'demote'
-  | 'enable'
-  | 'disable'
-  | 'delete'
-  | 'add_quota'
+  | "promote"
+  | "demote"
+  | "enable"
+  | "disable"
+  | "delete"
+  | "add_quota"
+  | "allow_topup"
+  | "disallow_topup"
+  | "enable_login"
+  | "disable_login";
 
-export type QuotaAdjustMode = 'add' | 'subtract' | 'override'
+export type QuotaAdjustMode = "add" | "subtract" | "override";
 
 export interface ManageUserQuotaPayload {
-  id: number
-  action: 'add_quota'
-  mode: QuotaAdjustMode
-  value: number
+  id: number;
+  action: "add_quota";
+  mode: QuotaAdjustMode;
+  value: number;
 }
 
 // ============================================================================
 // Dialog Types
 // ============================================================================
 
-export type UsersDialogType = 'create' | 'update' | 'delete'
+export type UsersDialogType = "create" | "update" | "delete";
