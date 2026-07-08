@@ -27,6 +27,7 @@ import {
   FileText,
   FlaskConical,
   Key,
+  KeyRound,
   LayoutDashboard,
   LayoutGrid,
   ListTodo,
@@ -171,6 +172,11 @@ export function useSidebarData(): SidebarData {
             title: t("Channel Cost"),
             url: "/channel-cost",
             icon: BarChart3,
+          },
+          {
+            title: t("OAuth Applications"),
+            url: "/oauth-apps",
+            icon: KeyRound,
           },
           {
             title: t("Redemption Codes"),
