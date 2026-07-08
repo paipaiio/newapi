@@ -4,6 +4,8 @@
   "Click to collapse": "Click to collapse",
   "Click to expand": "Click to expand",
   "Emoji or image URL": "Emoji or image URL",
+  "Enter an API key, username, or batch id": "Enter an API key, username, or batch id",
+  "Enter an API key, username, or batch id to find the owning account. Useful for recovering accounts when an export sheet is lost.": "Enter an API key, username, or batch id to find the owning account. Useful for recovering accounts when an export sheet is lost.",
   "Failed to load conversations": "Failed to load conversations",
   "Failed to load session record": "Failed to load session record",
   "Failed to load session records": "Failed to load session records",
@@ -16,6 +18,7 @@
   "Select a group to make exclusive": "Select a group to make exclusive",
   "Select users, or type to search": "Select users, or type to search",
   "Service URL must start with http:// or https://": "Service URL must start with http:// or https://",
+  "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.": "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.",
   "View the stored request and response bodies.": "View the stored request and response bodies.",
   "With attachments": "With attachments"
 }

@@ -31,6 +31,7 @@ import {
   Lock,
   MessageSquare,
   Radio,
+  Search,
   ServerCog,
   Settings,
   Tag,
@@ -158,6 +159,11 @@ export function useSidebarData(): SidebarData {
             title: t("Exclusive Groups"),
             url: "/group-exclusive",
             icon: Lock,
+          },
+          {
+            title: t("Token Lookup"),
+            url: "/token-lookup",
+            icon: Search,
           },
           {
             title: t("Redemption Codes"),
