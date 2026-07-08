@@ -160,10 +160,10 @@ type SubscriptionPlan struct {
 	Enabled   bool `json:"enabled" gorm:"default:true"`
 	SortOrder int  `json:"sort_order" gorm:"type:int;default:0"`
 
-	AllowBalancePay *bool `json:"allow_balance_pay" gorm:"default:true"`
+	AllowBalancePay *bool `json:"allow_balance_pay"`
 
 	// Allow falling back to wallet balance after subscription quota is exhausted (empty = true)
-	AllowWalletOverflow *bool `json:"allow_wallet_overflow" gorm:"default:true"`
+	AllowWalletOverflow *bool `json:"allow_wallet_overflow"`
 
 	StripePriceId         string `json:"stripe_price_id" gorm:"type:varchar(128);default:''"`
 	CreemProductId        string `json:"creem_product_id" gorm:"type:varchar(128);default:''"`
@@ -274,7 +274,7 @@ type UserSubscription struct {
 	DowngradeGroup string `json:"downgrade_group" gorm:"type:varchar(64);default:''"`
 
 	// Whether wallet fallback is allowed after this subscription's quota is exhausted (snapshot from plan)
-	AllowWalletOverflow bool `json:"allow_wallet_overflow" gorm:"default:true"`
+	AllowWalletOverflow bool `json:"allow_wallet_overflow"`
 
 	CreatedAt int64 `json:"created_at" gorm:"bigint"`
 	UpdatedAt int64 `json:"updated_at" gorm:"bigint"`
@@ -294,6 +294,16 @@ func (s *UserSubscription) BeforeUpdate(tx *gorm.DB) error {
 
 type SubscriptionSummary struct {
 	Subscription *UserSubscription `json:"subscription"`
+}
+
+type SubscriptionResetResult struct {
+	PlanId           int    `json:"plan_id"`
+	MatchedCount     int    `json:"matched_count"`
+	ResetCount       int    `json:"reset_count"`
+	UserCount        int    `json:"user_count"`
+	AdvanceResetTime bool   `json:"advance_reset_time"`
+	PlanTitle        string `json:"-"`
+	AffectedUserIds  []int  `json:"-"`
 }
 
 func calcPlanEndTime(start time.Time, plan *SubscriptionPlan) (int64, error) {
@@ -555,7 +565,7 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string, expectedP
 		return errors.New("tradeNo is empty")
 	}
 	refCol := "`trade_no`"
-	if common.UsingPostgreSQL {
+	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 		refCol = `"trade_no"`
 	}
 	var logUserId int
@@ -663,7 +673,7 @@ func ExpireSubscriptionOrder(tradeNo string, expectedPaymentProvider string) err
 		return errors.New("tradeNo is empty")
 	}
 	refCol := "`trade_no`"
-	if common.UsingPostgreSQL {
+	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 		refCol = `"trade_no"`
 	}
 	return DB.Transaction(func(tx *gorm.DB) error {
@@ -972,6 +982,125 @@ func AdminDeleteUserSubscription(userSubscriptionId int) (string, error) {
 		return fmt.Sprintf("用户分组将回退到 %s", downgradeGroup), nil
 	}
 	return "", nil
+}
+
+func resetUserSubscriptionTx(tx *gorm.DB, sub *UserSubscription, plan *SubscriptionPlan, now int64, advanceResetTime bool) error {
+	if tx == nil || sub == nil || plan == nil {
+		return errors.New("invalid reset args")
+	}
+	sub.AmountUsed = 0
+	if advanceResetTime {
+		nextReset := calcNextResetTime(time.Unix(now, 0), plan, sub.EndTime)
+		sub.NextResetTime = nextReset
+		if nextReset > 0 {
+			sub.LastResetTime = now
+		} else {
+			sub.LastResetTime = 0
+		}
+	}
+	return tx.Save(sub).Error
+}
+
+func buildSubscriptionResetResult(plan *SubscriptionPlan, subs []UserSubscription, advanceResetTime bool) *SubscriptionResetResult {
+	userIds := make([]int, 0, len(subs))
+	seenUsers := make(map[int]struct{}, len(subs))
+	for _, sub := range subs {
+		if _, ok := seenUsers[sub.UserId]; ok {
+			continue
+		}
+		seenUsers[sub.UserId] = struct{}{}
+		userIds = append(userIds, sub.UserId)
+	}
+	return &SubscriptionResetResult{
+		PlanId:           plan.Id,
+		MatchedCount:     len(subs),
+		ResetCount:       len(subs),
+		UserCount:        len(userIds),
+		AdvanceResetTime: advanceResetTime,
+		PlanTitle:        plan.Title,
+		AffectedUserIds:  userIds,
+	}
+}
+
+func adminResetUserSubscriptionsByPlanTx(tx *gorm.DB, userId int, plan *SubscriptionPlan, now int64, advanceResetTime bool) (*SubscriptionResetResult, error) {
+	if tx == nil || plan == nil {
+		return nil, errors.New("invalid reset args")
+	}
+	var subs []UserSubscription
+	if err := tx.Set("gorm:query_option", "FOR UPDATE").
+		Where("user_id = ? AND plan_id = ? AND status = ? AND end_time > ?", userId, plan.Id, "active", now).
+		Order("end_time asc, id asc").
+		Find(&subs).Error; err != nil {
+		return nil, err
+	}
+	if len(subs) == 0 {
+		return nil, errors.New("该用户没有有效的此套餐订阅")
+	}
+	for i := range subs {
+		if err := resetUserSubscriptionTx(tx, &subs[i], plan, now, advanceResetTime); err != nil {
+			return nil, err
+		}
+	}
+	return buildSubscriptionResetResult(plan, subs, advanceResetTime), nil
+}
+
+func adminResetPlanSubscriptionsTx(tx *gorm.DB, plan *SubscriptionPlan, now int64, advanceResetTime bool) (*SubscriptionResetResult, error) {
+	if tx == nil || plan == nil {
+		return nil, errors.New("invalid reset args")
+	}
+	var subs []UserSubscription
+	if err := tx.Set("gorm:query_option", "FOR UPDATE").
+		Where("plan_id = ? AND status = ? AND end_time > ?", plan.Id, "active", now).
+		Order("user_id asc, end_time asc, id asc").
+		Find(&subs).Error; err != nil {
+		return nil, err
+	}
+	for i := range subs {
+		if err := resetUserSubscriptionTx(tx, &subs[i], plan, now, advanceResetTime); err != nil {
+			return nil, err
+		}
+	}
+	return buildSubscriptionResetResult(plan, subs, advanceResetTime), nil
+}
+
+func AdminResetUserSubscriptionsByPlan(userId int, planId int, advanceResetTime bool) (*SubscriptionResetResult, error) {
+	if userId <= 0 || planId <= 0 {
+		return nil, errors.New("invalid userId or planId")
+	}
+	var result *SubscriptionResetResult
+	now := GetDBTimestamp()
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		plan, err := getSubscriptionPlanByIdTx(tx, planId)
+		if err != nil {
+			return err
+		}
+		result, err = adminResetUserSubscriptionsByPlanTx(tx, userId, plan, now, advanceResetTime)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+func AdminResetPlanSubscriptions(planId int, advanceResetTime bool) (*SubscriptionResetResult, error) {
+	if planId <= 0 {
+		return nil, errors.New("invalid planId")
+	}
+	var result *SubscriptionResetResult
+	now := GetDBTimestamp()
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		plan, err := getSubscriptionPlanByIdTx(tx, planId)
+		if err != nil {
+			return err
+		}
+		result, err = adminResetPlanSubscriptionsTx(tx, plan, now, advanceResetTime)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 type SubscriptionPreConsumeResult struct {
