@@ -1,10 +1,16 @@
 {
+  "A collection of other services and tools we provide. Click a card to open.": "A collection of other services and tools we provide. Click a card to open.",
+  "Are you sure you want to delete \"{{name}}\"? This cannot be undone.": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
   "Click to collapse": "Click to collapse",
   "Click to expand": "Click to expand",
+  "Emoji or image URL": "Emoji or image URL",
   "Failed to load conversations": "Failed to load conversations",
   "Failed to load session record": "Failed to load session record",
   "Failed to load session records": "Failed to load session records",
+  "Manage the service entries shown on the Other Services page. All signed-in users can see enabled services.": "Manage the service entries shown on the Other Services page. All signed-in users can see enabled services.",
+  "No services yet. Click \"Add service\" in the top right.": "No services yet. Click \"Add service\" in the top right.",
   "Rebuild the full-text search index for legacy records (fetches bodies from storage, run once).": "Rebuild the full-text search index for legacy records (fetches bodies from storage, run once).",
+  "Service URL must start with http:// or https://": "Service URL must start with http:// or https://",
   "View the stored request and response bodies.": "View the stored request and response bodies.",
   "With attachments": "With attachments"
 }
