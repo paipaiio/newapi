@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   Activity,
+  BarChart3,
   Box,
   Boxes,
   CreditCard,
@@ -164,6 +165,11 @@ export function useSidebarData(): SidebarData {
             title: t("Token Lookup"),
             url: "/token-lookup",
             icon: Search,
+          },
+          {
+            title: t("Channel Cost"),
+            url: "/channel-cost",
+            icon: BarChart3,
           },
           {
             title: t("Redemption Codes"),

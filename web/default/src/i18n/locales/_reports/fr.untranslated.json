@@ -15,6 +15,7 @@
   "Please select a group": "Please select a group",
   "Rebuild the full-text search index for legacy records (fetches bodies from storage, run once).": "Rebuild the full-text search index for legacy records (fetches bodies from storage, run once).",
   "Remove the exclusivity of group \"{{name}}\"? Default visibility rules will be restored.": "Remove the exclusivity of group \"{{name}}\"? Default visibility rules will be restored.",
+  "Revenue, cost and profit by channel. The cost ratio is configured under a channel’s advanced settings.": "Revenue, cost and profit by channel. The cost ratio is configured under a channel’s advanced settings.",
   "Select a group to make exclusive": "Select a group to make exclusive",
   "Select users, or type to search": "Select users, or type to search",
   "Service URL must start with http:// or https://": "Service URL must start with http:// or https://",
