@@ -16,182 +16,255 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Check, Copy } from 'lucide-react'
-import { useTranslation } from 'react-i18next'
-import { formatTimestamp } from '@/lib/format'
-import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Dialog } from '@/components/dialog'
-import { StatusBadge } from '@/components/status-badge'
-import { getSessionLog } from '../../api'
-import type { SessionLog, SessionLogPayload } from '../../types'
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Braces, MessageSquare } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { formatTimestamp } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog } from "@/components/dialog";
+import { StatusBadge } from "@/components/status-badge";
+import { getSessionLog } from "../../api";
+import {
+  normalizeRequest,
+  parseConversation,
+} from "../../lib/conversation-parser";
+import type {
+  ConversationBlock,
+  SessionLog,
+  SessionLogPayload,
+} from "../../types";
+import { ConversationBlockView } from "../conversation-blocks";
 
 interface SessionDetailDialogProps {
-  record: SessionLog | null
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  record: SessionLog | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  keyword?: string;
 }
 
-/** Normalize the stored `request` field (object or string) into displayable text. */
-function stringifyBody(value: unknown): string {
-  if (value === undefined || value === null) return ''
-  if (typeof value === 'string') return value
-  try {
-    return JSON.stringify(value, null, 2)
-  } catch {
-    return String(value)
-  }
+function fmtQuota(q: number | undefined): string {
+  return q ? (q / 500000).toFixed(6) : "0";
 }
 
-function CopyableBlock({ label, value }: { label: string; value: string }) {
-  const { t } = useTranslation()
-  const { copiedText, copyToClipboard } = useCopyToClipboard({ notify: false })
-
-  return (
-    <div className='space-y-2'>
-      <Label className='text-sm font-semibold'>{label}</Label>
-      <div className='bg-muted/50 relative rounded-md border p-3'>
-        <Button
-          variant='ghost'
-          size='sm'
-          className='absolute top-2 right-2 h-8 w-8 p-0'
-          onClick={() => copyToClipboard(value)}
-          title={t('Copy to clipboard')}
-        >
-          {copiedText === value ? (
-            <Check className='size-4 text-green-600' />
-          ) : (
-            <Copy className='size-4' />
-          )}
-        </Button>
-        <pre className='max-h-[280px] overflow-auto pr-10 text-xs leading-relaxed break-words whitespace-pre-wrap'>
-          {value || '-'}
-        </pre>
-      </div>
-    </div>
-  )
-}
+const CONVERSATION_KINDS = new Set<ConversationBlock["kind"]>([
+  "real-user",
+  "real-assistant",
+  "error",
+]);
 
 export function SessionDetailDialog({
   record,
   open,
   onOpenChange,
+  keyword,
 }: SessionDetailDialogProps) {
-  const { t } = useTranslation()
+  const { t } = useTranslation();
+  const [rawMode, setRawMode] = useState(false);
+  const [hideNoise, setHideNoise] = useState(false);
 
-  const recordId = record?.id
+  const recordId = record?.id;
+
+  // Reset view toggles whenever a new record is opened.
+  useEffect(() => {
+    if (open) {
+      setRawMode(false);
+      setHideNoise(false);
+    }
+  }, [open, recordId]);
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['session-log', recordId],
+    queryKey: ["session-log", recordId],
     queryFn: () => getSessionLog(recordId as number),
     enabled: open && recordId != null,
-  })
+  });
+
+  const rawContent = data?.data?.content ?? "";
 
   const payload = useMemo<SessionLogPayload | null>(() => {
-    const content = data?.data?.content
-    if (!content) return null
+    if (!rawContent) return null;
     try {
-      return JSON.parse(content) as SessionLogPayload
+      return JSON.parse(rawContent) as SessionLogPayload;
     } catch {
-      return null
+      return null;
     }
-  }, [data])
+  }, [rawContent]);
 
-  const meta = data?.data?.meta ?? record ?? null
+  const blocks = useMemo<ConversationBlock[]>(() => {
+    if (!payload) return [];
+    const requestObj = normalizeRequest(payload.request);
+    return parseConversation(requestObj, payload.response, payload.error);
+  }, [payload]);
+
+  const visibleBlocks = useMemo(() => {
+    const filtered = hideNoise
+      ? blocks.filter((b) => CONVERSATION_KINDS.has(b.kind))
+      : blocks;
+    // Content-derived, dedup-counted keys (blocks carry no id and never reorder).
+    const seen = new Map<string, number>();
+    return filtered.map((block) => {
+      const base = `${block.kind}:${(block.text ?? block.name ?? "").slice(0, 24)}`;
+      const n = seen.get(base) ?? 0;
+      seen.set(base, n + 1);
+      return { block, key: `${base}#${n}` };
+    });
+  }, [blocks, hideNoise]);
+
+  const meta = data?.data?.meta ?? record ?? null;
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t('Session Record Details')}
-      description={t('View the stored request and response bodies.')}
-      contentClassName='sm:max-w-3xl'
-      contentHeight='auto'
-      bodyClassName='space-y-4'
+      title={
+        <div className="flex flex-wrap items-center gap-2">
+          <span>{t("Session Record Details")}</span>
+          {meta?.redacted && (
+            <Badge
+              variant="outline"
+              className="border-amber-500/40 text-[10px] text-amber-600 dark:text-amber-300"
+            >
+              {t("Redacted")}
+            </Badge>
+          )}
+          {!isLoading && payload && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1 text-xs"
+                onClick={() => setRawMode((m) => !m)}
+              >
+                {rawMode ? (
+                  <>
+                    <MessageSquare className="size-3.5" /> {t("Chat view")}
+                  </>
+                ) : (
+                  <>
+                    <Braces className="size-3.5" /> {t("Raw data")}
+                  </>
+                )}
+              </Button>
+              {!rawMode && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setHideNoise((h) => !h)}
+                >
+                  {hideNoise ? t("Show all") : t("Conversation only")}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      }
+      description={t("View the stored request and response bodies.")}
+      contentClassName="sm:max-w-4xl"
+      contentHeight="auto"
+      bodyClassName="space-y-4"
     >
-      <ScrollArea className='max-h-[600px] pr-4'>
-        <div className='space-y-4 py-2'>
+      <ScrollArea className="max-h-[640px] pr-4">
+        <div className="space-y-4 py-2">
           {meta && (
-            <div className='grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border p-3 text-sm md:grid-cols-3'>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2 rounded-md border p-3 text-sm md:grid-cols-3">
               <div>
-                <span className='text-muted-foreground'>{t('Time')}: </span>
-                {meta.created_at ? formatTimestamp(meta.created_at) : '-'}
+                <span className="text-muted-foreground">{t("Time")}: </span>
+                {meta.created_at ? formatTimestamp(meta.created_at) : "-"}
               </div>
               <div>
-                <span className='text-muted-foreground'>
-                  {t('Username')}:{' '}
+                <span className="text-muted-foreground">{t("Username")}: </span>
+                {meta.username || "-"}
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t("Model")}: </span>
+                {meta.model_name || "-"}
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t("Group")}: </span>
+                {meta.group || "-"}
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t("Type")}: </span>
+                {meta.is_stream ? t("Stream") : t("Non-stream")}
+              </div>
+              <div>
+                <span className="text-muted-foreground">
+                  {t("Status code")}:{" "}
                 </span>
-                {meta.username || '-'}
+                {meta.status_code || "-"}
               </div>
               <div>
-                <span className='text-muted-foreground'>{t('Model')}: </span>
-                {meta.model_name || '-'}
+                <span className="text-muted-foreground">{t("Tokens")}: </span>
+                {`${meta.prompt_tokens ?? 0} / ${meta.completion_tokens ?? 0}`}
               </div>
               <div>
-                <span className='text-muted-foreground'>{t('Group')}: </span>
-                {meta.group || '-'}
+                <span className="text-muted-foreground">{t("Quota")}: </span>${" "}
+                {fmtQuota(meta.quota)}
               </div>
-              <div>
-                <span className='text-muted-foreground'>{t('Type')}: </span>
-                {meta.is_stream ? t('Stream') : t('Non-stream')}
-              </div>
-              <div>
-                <span className='text-muted-foreground'>
-                  {t('Status code')}:{' '}
-                </span>
-                {meta.status_code || '-'}
-              </div>
-              <div className='flex items-center gap-1'>
-                <span className='text-muted-foreground'>{t('Result')}: </span>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">{t("Result")}: </span>
                 <StatusBadge
-                  variant={meta.is_success ? 'success' : 'danger'}
+                  variant={meta.is_success ? "success" : "danger"}
                   copyable={false}
                 >
-                  {meta.is_success ? t('Success') : t('Failed')}
+                  {meta.is_success ? t("Success") : t("Failed")}
                 </StatusBadge>
               </div>
-              <div className='col-span-2 md:col-span-3'>
-                <span className='text-muted-foreground'>
-                  {t('Request ID')}:{' '}
+              <div className="col-span-2 md:col-span-3">
+                <span className="text-muted-foreground">
+                  {t("Request ID")}:{" "}
                 </span>
-                <span className='font-mono text-xs'>
-                  {meta.request_id || '-'}
+                <span className="font-mono text-xs">
+                  {meta.request_id || "-"}
                 </span>
               </div>
             </div>
           )}
 
           {isLoading && (
-            <p className='text-muted-foreground text-sm'>{t('Loading...')}</p>
+            <p className="text-muted-foreground text-sm">{t("Loading...")}</p>
           )}
 
           {isError && (
-            <p className='text-destructive text-sm'>
-              {t('Failed to load session record')}
+            <p className="text-destructive text-sm">
+              {t("Failed to load session record")}
             </p>
           )}
 
-          {payload && (
-            <>
-              {payload.error && (
-                <CopyableBlock label={t('Error')} value={payload.error} />
-              )}
-              <CopyableBlock
-                label={t('Request body')}
-                value={stringifyBody(payload.request)}
-              />
-              <CopyableBlock
-                label={t('Response body')}
-                value={stringifyBody(payload.response)}
-              />
-            </>
+          {!isLoading &&
+            payload &&
+            (rawMode ? (
+              <pre className="bg-muted/60 max-h-[520px] overflow-auto rounded-md border p-3 text-[11px] break-all whitespace-pre-wrap">
+                {rawContent}
+              </pre>
+            ) : (
+              <div className="bg-muted/30 flex flex-col gap-2 rounded-lg border p-3">
+                {visibleBlocks.length === 0 ? (
+                  <div className="text-muted-foreground py-6 text-center text-sm">
+                    {t("No displayable content")}
+                  </div>
+                ) : (
+                  visibleBlocks.map(({ block, key }) => (
+                    <ConversationBlockView
+                      key={key}
+                      block={block}
+                      keyword={keyword}
+                    />
+                  ))
+                )}
+              </div>
+            ))}
+
+          {!isLoading && !payload && !isError && (
+            <p className="text-muted-foreground text-sm">
+              {t("No displayable content")}
+            </p>
           )}
         </div>
       </ScrollArea>
     </Dialog>
-  )
+  );
 }

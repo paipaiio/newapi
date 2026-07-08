@@ -16,34 +16,40 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import z from 'zod'
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
-import { SessionRecords } from '@/features/session-records'
+import z from "zod";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useAuthStore } from "@/stores/auth-store";
+import { ROLE } from "@/lib/roles";
+import { SessionRecords } from "@/features/session-records";
 
 const sessionRecordsSearchSchema = z.object({
+  tab: z.enum(["requests", "conversations"]).optional().catch("requests"),
   page: z.number().optional().catch(1),
   pageSize: z.number().optional().catch(undefined),
-  user_id: z.string().optional().catch(''),
-  username: z.string().optional().catch(''),
-  model_name: z.string().optional().catch(''),
-  request_id: z.string().optional().catch(''),
+  user_id: z.string().optional().catch(""),
+  username: z.string().optional().catch(""),
+  model_name: z.string().optional().catch(""),
+  request_id: z.string().optional().catch(""),
+  keyword: z.string().optional().catch(""),
   only_failed: z.boolean().optional().catch(false),
+  only_media: z.boolean().optional().catch(false),
   start_timestamp: z.number().optional().catch(undefined),
   end_timestamp: z.number().optional().catch(undefined),
-})
+  // conversation groups tab
+  date_from: z.string().optional().catch(""),
+  date_to: z.string().optional().catch(""),
+});
 
-export const Route = createFileRoute('/_authenticated/session-records/')({
+export const Route = createFileRoute("/_authenticated/session-records/")({
   beforeLoad: () => {
-    const { auth } = useAuthStore.getState()
+    const { auth } = useAuthStore.getState();
 
     if (!auth.user || auth.user.role < ROLE.ADMIN) {
       throw redirect({
-        to: '/403',
-      })
+        to: "/403",
+      });
     }
   },
   validateSearch: sessionRecordsSearchSchema,
   component: SessionRecords,
-})
+});

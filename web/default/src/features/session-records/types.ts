@@ -41,6 +41,27 @@ export type SessionLog = {
   ip: string
   object_key: string
   object_size: number
+  content_text?: string
+  has_media?: boolean
+  redacted?: boolean
+}
+
+/** A daily-aggregated conversation record (mirrors backend model.ConversationGroup). */
+export type ConversationGroup = {
+  id: number
+  date: string
+  group_key: string
+  user_id: number
+  username: string
+  model_name: string
+  turn_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  started_at: number
+  ended_at: number
+  created_at: number
+  object_key: string
+  last_session_id: number
 }
 
 /** Generic API envelope. */
@@ -57,13 +78,30 @@ export interface GetSessionLogsParams {
   username?: string
   model_name?: string
   request_id?: string
+  keyword?: string
   only_failed?: boolean
+  only_media?: boolean
   start_timestamp?: number
   end_timestamp?: number
 }
 
 export type GetSessionLogsResponse = ApiResponse<{
   items: SessionLog[]
+  total: number
+  page: number
+}>
+
+export interface GetConversationGroupsParams {
+  p?: number
+  page_size?: number
+  username?: string
+  model_name?: string
+  date_from?: string
+  date_to?: string
+}
+
+export type GetConversationGroupsResponse = ApiResponse<{
+  items: ConversationGroup[]
   total: number
   page: number
 }>
@@ -94,3 +132,54 @@ export type SessionLogDetail = {
 }
 
 export type GetSessionLogResponse = ApiResponse<SessionLogDetail>
+
+export type BackfillResult = {
+  scanned: number
+  updated: number
+  skipped: number
+  failed: number
+}
+
+export type GetSessionAttachmentResponse = ApiResponse<{
+  base64: string
+  media_type: string
+  r2_key: string
+}>
+
+// ============================================================================
+// Conversation block model (parsed from the stored request/response bodies)
+// ============================================================================
+
+export type ConversationBlockKind =
+  | 'real-user'
+  | 'real-assistant'
+  | 'thinking'
+  | 'tool-call'
+  | 'web-search'
+  | 'tool-result'
+  | 'image-block'
+  | 'file-block'
+  | 'system-reminder'
+  | 'system-note'
+  | 'system-prompt'
+  | 'error'
+
+export interface ConversationBlock {
+  kind: ConversationBlockKind
+  text?: string
+  /** assistant final reply (rendered with a distinct avatar). */
+  final?: boolean
+  /** tool-call / web-search */
+  name?: string
+  input?: unknown
+  query?: string
+  /** tool-result */
+  isError?: boolean
+  /** image-block */
+  dataUrl?: string | null
+  r2Key?: string | null
+  mediaType?: string
+  /** file-block */
+  title?: string
+  mimeType?: string
+}

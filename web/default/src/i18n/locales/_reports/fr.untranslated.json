@@ -1,12 +1,10 @@
 {
-  "Capture conversation request/response bodies and store them in an S3-compatible bucket (such as Cloudflare R2).": "Capture conversation request/response bodies and store them in an S3-compatible bucket (such as Cloudflare R2).",
-  "Enter new value to update": "Enter new value to update",
+  "Click to collapse": "Click to collapse",
+  "Click to expand": "Click to expand",
+  "Failed to load conversations": "Failed to load conversations",
   "Failed to load session record": "Failed to load session record",
   "Failed to load session records": "Failed to load session records",
-  "Leave blank to keep the existing value.": "Leave blank to keep the existing value.",
-  "Name of the bucket to store records in.": "Name of the bucket to store records in.",
-  "Persist conversation bodies to object storage.": "Persist conversation bodies to object storage.",
-  "S3-compatible endpoint URL for the storage provider.": "S3-compatible endpoint URL for the storage provider.",
-  "Save your changes before testing the connection.": "Save your changes before testing the connection.",
-  "View the stored request and response bodies.": "View the stored request and response bodies."
+  "Rebuild the full-text search index for legacy records (fetches bodies from storage, run once).": "Rebuild the full-text search index for legacy records (fetches bodies from storage, run once).",
+  "View the stored request and response bodies.": "View the stored request and response bodies.",
+  "With attachments": "With attachments"
 }
