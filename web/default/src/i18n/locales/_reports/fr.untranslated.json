@@ -3,6 +3,8 @@
   "Are you sure you want to delete \"{{name}}\"? This cannot be undone.": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
   "Click to collapse": "Click to collapse",
   "Click to expand": "Click to expand",
+  "Email when a single top-up exceeds the threshold.": "Email when a single top-up exceeds the threshold.",
+  "Email when a single user spends over the threshold within 5 minutes (anti-abuse).": "Email when a single user spends over the threshold within 5 minutes (anti-abuse).",
   "Emoji or image URL": "Emoji or image URL",
   "Enter an API key, username, or batch id": "Enter an API key, username, or batch id",
   "Enter an API key, username, or batch id to find the owning account. Useful for recovering accounts when an export sheet is lost.": "Enter an API key, username, or batch id to find the owning account. Useful for recovering accounts when an export sheet is lost.",
@@ -18,7 +20,9 @@
   "Revenue, cost and profit by channel. The cost ratio is configured under a channel’s advanced settings.": "Revenue, cost and profit by channel. The cost ratio is configured under a channel’s advanced settings.",
   "Select a group to make exclusive": "Select a group to make exclusive",
   "Select users, or type to search": "Select users, or type to search",
+  "Send alerts to the super admin email via the site SMTP. Configure SMTP under System Settings first.": "Send alerts to the super admin email via the site SMTP. Configure SMTP under System Settings first.",
   "Service URL must start with http:// or https://": "Service URL must start with http:// or https://",
+  "Some settings failed to save, please retry": "Some settings failed to save, please retry",
   "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.": "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.",
   "View the stored request and response bodies.": "View the stored request and response bodies.",
   "With attachments": "With attachments"

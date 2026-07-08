@@ -56,6 +56,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChannelCostIndexRouteImport } from './routes/_authenticated/channel-cost/index'
 import { Route as AuthenticatedApiSaleIndexRouteImport } from './routes/_authenticated/api-sale/index'
+import { Route as AuthenticatedAlertSettingsIndexRouteImport } from './routes/_authenticated/alert-settings/index'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -329,6 +330,12 @@ const AuthenticatedApiSaleIndexRoute =
     path: '/api-sale/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAlertSettingsIndexRoute =
+  AuthenticatedAlertSettingsIndexRouteImport.update({
+    id: '/alert-settings/',
+    path: '/alert-settings/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedUsageLogsSectionRoute =
   AuthenticatedUsageLogsSectionRouteImport.update({
     id: '/usage-logs/$section',
@@ -479,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/alert-settings/': typeof AuthenticatedAlertSettingsIndexRoute
   '/api-sale/': typeof AuthenticatedApiSaleIndexRoute
   '/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -545,6 +553,7 @@ export interface FileRoutesByTo {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/alert-settings': typeof AuthenticatedAlertSettingsIndexRoute
   '/api-sale': typeof AuthenticatedApiSaleIndexRoute
   '/channel-cost': typeof AuthenticatedChannelCostIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
@@ -615,6 +624,7 @@ export interface FileRoutesById {
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/_authenticated/alert-settings/': typeof AuthenticatedAlertSettingsIndexRoute
   '/_authenticated/api-sale/': typeof AuthenticatedApiSaleIndexRoute
   '/_authenticated/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
@@ -684,6 +694,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/alert-settings/'
     | '/api-sale/'
     | '/channel-cost/'
     | '/channels/'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/alert-settings'
     | '/api-sale'
     | '/channel-cost'
     | '/channels'
@@ -819,6 +831,7 @@ export interface FileRouteTypes {
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
+    | '/_authenticated/alert-settings/'
     | '/_authenticated/api-sale/'
     | '/_authenticated/channel-cost/'
     | '/_authenticated/channels/'
@@ -1208,6 +1221,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedApiSaleIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/alert-settings/': {
+      id: '/_authenticated/alert-settings/'
+      path: '/alert-settings'
+      fullPath: '/alert-settings/'
+      preLoaderRoute: typeof AuthenticatedAlertSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/usage-logs/$section': {
       id: '/_authenticated/usage-logs/$section'
       path: '/usage-logs/$section'
@@ -1442,6 +1462,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
+  AuthenticatedAlertSettingsIndexRoute: typeof AuthenticatedAlertSettingsIndexRoute
   AuthenticatedApiSaleIndexRoute: typeof AuthenticatedApiSaleIndexRoute
   AuthenticatedChannelCostIndexRoute: typeof AuthenticatedChannelCostIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
@@ -1472,6 +1493,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
+  AuthenticatedAlertSettingsIndexRoute: AuthenticatedAlertSettingsIndexRoute,
   AuthenticatedApiSaleIndexRoute: AuthenticatedApiSaleIndexRoute,
   AuthenticatedChannelCostIndexRoute: AuthenticatedChannelCostIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,

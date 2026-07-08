@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import {
   Activity,
   BarChart3,
+  Bell,
   Box,
   Boxes,
   CreditCard,
@@ -185,6 +186,12 @@ export function useSidebarData(): SidebarData {
             title: t("System Info"),
             url: "/system-info",
             icon: ServerCog,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+          {
+            title: t("Email Alerts"),
+            url: "/alert-settings",
+            icon: Bell,
             requiredRole: ROLE.SUPER_ADMIN,
           },
           {
