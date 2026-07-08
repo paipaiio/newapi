@@ -16,23 +16,49 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { api } from '@/lib/api'
-import type { ApiResponse, ApiSaleItem, ApiSaleResult } from './types'
+import { api } from "@/lib/api";
+import type {
+  ApiResponse,
+  ApiSaleItem,
+  ApiSaleResult,
+  BatchStat,
+  TokenLookupItem,
+} from "./types";
 
 /**
  * Batch create user accounts with API keys (admin only).
  */
 export async function batchCreateApiSale(
-  items: ApiSaleItem[]
+  items: ApiSaleItem[],
 ): Promise<ApiResponse<ApiSaleResult[]>> {
-  const res = await api.post('/api/user/api-sale/batch', items)
-  return res.data
+  const res = await api.post("/api/user/api-sale/batch", items);
+  return res.data;
 }
 
 /**
  * Get all available groups.
  */
 export async function getGroups(): Promise<ApiResponse<string[]>> {
-  const res = await api.get('/api/group/')
-  return res.data
+  const res = await api.get("/api/group/");
+  return res.data;
+}
+
+/**
+ * Get aggregated statistics for all sale batches (admin only).
+ */
+export async function getBatchStats(): Promise<ApiResponse<BatchStat[]>> {
+  const res = await api.get("/api/user/batch/stats");
+  return res.data;
+}
+
+/**
+ * Look up tokens by keyword (batch id) to build a per-batch CSV export.
+ */
+export async function lookupBatchTokens(
+  batchId: string,
+): Promise<ApiResponse<{ items: TokenLookupItem[] }>> {
+  const res = await api.get(
+    `/api/user/token/lookup?keyword=${encodeURIComponent(batchId)}&p=1&page_size=1000`,
+  );
+  return res.data;
 }
