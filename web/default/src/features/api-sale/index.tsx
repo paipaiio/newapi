@@ -273,7 +273,7 @@ function ApiSaleContent() {
 
         <div className='space-y-1'>
           <Label>{t('Default group')}</Label>
-          <Select value={defGroup} onValueChange={setDefGroup}>
+          <Select value={defGroup} onValueChange={(value) => setDefGroup(value ?? '')}>
             <SelectTrigger className='w-36'>
               <SelectValue />
             </SelectTrigger>

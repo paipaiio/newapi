@@ -16,13 +16,13 @@ type InviteAbuseResult struct {
 	Reason  string
 }
 
-// NormalizeEmail 归一化邮箱用于「同一个人」判定:
+// normalizeEmailForAbuse 归一化邮箱用于「同一个人」判定:
 //   - 统一小写
 //   - 去掉 local part 的 `+别名` 后缀
 //   - Gmail 系(gmail.com / googlemail.com)去掉 local part 中的所有点号
 //
 // 返回归一化后的邮箱与其域名(小写)。非法邮箱原样返回、域名为空。
-func NormalizeEmail(email string) (normalized string, domain string) {
+func normalizeEmailForAbuse(email string) (normalized string, domain string) {
 	email = strings.TrimSpace(strings.ToLower(email))
 	at := strings.LastIndex(email, "@")
 	if at <= 0 || at == len(email)-1 {
@@ -125,7 +125,7 @@ func inviterUsesFingerprint(inviterId int, fp string) bool {
 // emailAliasCollision 归一化邮箱后是否撞已有(含软删除)用户。
 // rawEmail 为本次注册邮箱。只在有 email 时有意义。
 func emailAliasCollision(rawEmail string) bool {
-	norm, _ := NormalizeEmail(rawEmail)
+	norm, _ := normalizeEmailForAbuse(rawEmail)
 	if norm == "" || !strings.Contains(norm, "@") {
 		return false
 	}
@@ -134,13 +134,13 @@ func emailAliasCollision(rawEmail string) bool {
 		return false
 	}
 	// 拉取所有同域名候选做归一化比对(域名量级可控;Gmail 点号无法用 SQL 直接匹配)。
-	_, domain := NormalizeEmail(rawEmail)
+	_, domain := normalizeEmailForAbuse(rawEmail)
 	var emails []string
 	DB.Unscoped().Model(&User{}).
 		Where("email LIKE ?", "%@"+domain).
 		Pluck("email", &emails)
 	for _, e := range emails {
-		en, _ := NormalizeEmail(e)
+		en, _ := normalizeEmailForAbuse(e)
 		if en == norm {
 			return true
 		}
@@ -164,7 +164,7 @@ func DetectInviteAbuse(inviterId int, registrantIP, fingerprint, rawEmail string
 
 	// 1. 邮箱别名归一化撞库 + 一次性邮箱域名黑名单
 	if s.CheckEmailAlias && rawEmail != "" {
-		_, domain := NormalizeEmail(rawEmail)
+		_, domain := normalizeEmailForAbuse(rawEmail)
 		if s.IsBlockedEmailDomain(domain) {
 			reasons = append(reasons, fmt.Sprintf("一次性邮箱域名(%s)", domain))
 		} else if emailAliasCollision(rawEmail) {
