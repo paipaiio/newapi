@@ -68,6 +68,8 @@ export const userSchema = z.object({
   allow_topup: z.boolean().optional(),
   login_disabled: z.boolean().optional(),
   topup_discount: z.number().optional(),
+  // Raw user setting JSON blob; holds the visible-group whitelist among others.
+  setting: z.string().optional(),
 });
 export type User = z.infer<typeof userSchema>;
 
@@ -118,6 +120,7 @@ export interface UserFormData {
   group?: string; // Only used when updating user
   remark?: string; // Only used when updating user
   admin_permissions?: AdminPermissionMatrix;
+  topup_discount?: number; // Only used when updating user
 }
 
 export type ManageUserAction =
