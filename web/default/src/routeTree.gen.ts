@@ -54,6 +54,7 @@ import { Route as AuthenticatedOtherServicesIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedOauthAppsIndexRouteImport } from './routes/_authenticated/oauth-apps/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
+import { Route as AuthenticatedInviteAbuseIndexRouteImport } from './routes/_authenticated/invite-abuse/index'
 import { Route as AuthenticatedGroupExclusiveIndexRouteImport } from './routes/_authenticated/group-exclusive/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
@@ -320,6 +321,12 @@ const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
   path: '/keys/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInviteAbuseIndexRoute =
+  AuthenticatedInviteAbuseIndexRouteImport.update({
+    id: '/invite-abuse/',
+    path: '/invite-abuse/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGroupExclusiveIndexRoute =
   AuthenticatedGroupExclusiveIndexRouteImport.update({
     id: '/group-exclusive/',
@@ -513,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
+  '/invite-abuse/': typeof AuthenticatedInviteAbuseIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/oauth-apps/': typeof AuthenticatedOauthAppsIndexRoute
@@ -583,6 +591,7 @@ export interface FileRoutesByTo {
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/group-exclusive': typeof AuthenticatedGroupExclusiveIndexRoute
+  '/invite-abuse': typeof AuthenticatedInviteAbuseIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/oauth-apps': typeof AuthenticatedOauthAppsIndexRoute
@@ -657,6 +666,7 @@ export interface FileRoutesById {
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
+  '/_authenticated/invite-abuse/': typeof AuthenticatedInviteAbuseIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/oauth-apps/': typeof AuthenticatedOauthAppsIndexRoute
@@ -730,6 +740,7 @@ export interface FileRouteTypes {
     | '/channels/'
     | '/dashboard/'
     | '/group-exclusive/'
+    | '/invite-abuse/'
     | '/keys/'
     | '/models/'
     | '/oauth-apps/'
@@ -800,6 +811,7 @@ export interface FileRouteTypes {
     | '/channels'
     | '/dashboard'
     | '/group-exclusive'
+    | '/invite-abuse'
     | '/keys'
     | '/models'
     | '/oauth-apps'
@@ -873,6 +885,7 @@ export interface FileRouteTypes {
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/group-exclusive/'
+    | '/_authenticated/invite-abuse/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/oauth-apps/'
@@ -1246,6 +1259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKeysIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/invite-abuse/': {
+      id: '/_authenticated/invite-abuse/'
+      path: '/invite-abuse'
+      fullPath: '/invite-abuse/'
+      preLoaderRoute: typeof AuthenticatedInviteAbuseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/group-exclusive/': {
       id: '/_authenticated/group-exclusive/'
       path: '/group-exclusive'
@@ -1528,6 +1548,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedGroupExclusiveIndexRoute: typeof AuthenticatedGroupExclusiveIndexRoute
+  AuthenticatedInviteAbuseIndexRoute: typeof AuthenticatedInviteAbuseIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedOauthAppsIndexRoute: typeof AuthenticatedOauthAppsIndexRoute
@@ -1561,6 +1582,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedGroupExclusiveIndexRoute: AuthenticatedGroupExclusiveIndexRoute,
+  AuthenticatedInviteAbuseIndexRoute: AuthenticatedInviteAbuseIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedOauthAppsIndexRoute: AuthenticatedOauthAppsIndexRoute,

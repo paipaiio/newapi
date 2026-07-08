@@ -33,6 +33,7 @@ const ACTION_MESSAGES: Record<ManageUserAction, string> = {
   disallow_topup: "Top-up disabled for user",
   enable_login: "Console login enabled for user",
   disable_login: "Console login disabled for user",
+  clear_invite_abuse: "Invite-abuse flag cleared",
 };
 
 /**

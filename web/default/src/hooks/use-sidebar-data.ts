@@ -37,6 +37,7 @@ import {
   Search,
   ServerCog,
   Settings,
+  ShieldAlert,
   Tag,
   Ticket,
   User,
@@ -203,6 +204,12 @@ export function useSidebarData(): SidebarData {
             title: t("Email Alerts"),
             url: "/alert-settings",
             icon: Bell,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
+          {
+            title: t("Invite-abuse Detection"),
+            url: "/invite-abuse",
+            icon: ShieldAlert,
             requiredRole: ROLE.SUPER_ADMIN,
           },
           {

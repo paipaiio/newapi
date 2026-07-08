@@ -30,6 +30,7 @@ import {
   CreditCard,
   LogIn,
   Wallet,
+  ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -231,6 +232,15 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             {t("Disallow top-up")}
             <DropdownMenuShortcut>
               <Wallet size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+
+        {user.invite_abuse_flagged && (
+          <DropdownMenuItem onClick={() => handleManage("clear_invite_abuse")}>
+            {t("Clear invite-abuse flag")}
+            <DropdownMenuShortcut>
+              <ShieldCheck size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         )}

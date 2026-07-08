@@ -70,6 +70,10 @@ export const userSchema = z.object({
   topup_discount: z.number().optional(),
   // Raw user setting JSON blob; holds the visible-group whitelist among others.
   setting: z.string().optional(),
+  // Fork: suspected invite-reward abuse; flagged accounts receive no reward
+  // until an admin clears the flag.
+  invite_abuse_flagged: z.boolean().optional(),
+  invite_abuse_reason: z.string().optional(),
 });
 export type User = z.infer<typeof userSchema>;
 
@@ -133,7 +137,8 @@ export type ManageUserAction =
   | "allow_topup"
   | "disallow_topup"
   | "enable_login"
-  | "disable_login";
+  | "disable_login"
+  | "clear_invite_abuse";
 
 export type QuotaAdjustMode = "add" | "subtract" | "override";
 
