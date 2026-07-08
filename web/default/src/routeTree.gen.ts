@@ -50,6 +50,7 @@ import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedOtherServicesIndexRouteImport } from './routes/_authenticated/other-services/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
+import { Route as AuthenticatedGroupExclusiveIndexRouteImport } from './routes/_authenticated/group-exclusive/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedApiSaleIndexRouteImport } from './routes/_authenticated/api-sale/index'
@@ -290,6 +291,12 @@ const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
   path: '/keys/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGroupExclusiveIndexRoute =
+  AuthenticatedGroupExclusiveIndexRouteImport.update({
+    id: '/group-exclusive/',
+    path: '/group-exclusive/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/dashboard/',
@@ -461,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/api-sale/': typeof AuthenticatedApiSaleIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
   '/other-services/': typeof AuthenticatedOtherServicesIndexRoute
@@ -524,6 +532,7 @@ export interface FileRoutesByTo {
   '/api-sale': typeof AuthenticatedApiSaleIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/group-exclusive': typeof AuthenticatedGroupExclusiveIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
   '/other-services': typeof AuthenticatedOtherServicesIndexRoute
@@ -591,6 +600,7 @@ export interface FileRoutesById {
   '/_authenticated/api-sale/': typeof AuthenticatedApiSaleIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
   '/_authenticated/other-services/': typeof AuthenticatedOtherServicesIndexRoute
@@ -657,6 +667,7 @@ export interface FileRouteTypes {
     | '/api-sale/'
     | '/channels/'
     | '/dashboard/'
+    | '/group-exclusive/'
     | '/keys/'
     | '/models/'
     | '/other-services/'
@@ -720,6 +731,7 @@ export interface FileRouteTypes {
     | '/api-sale'
     | '/channels'
     | '/dashboard'
+    | '/group-exclusive'
     | '/keys'
     | '/models'
     | '/other-services'
@@ -786,6 +798,7 @@ export interface FileRouteTypes {
     | '/_authenticated/api-sale/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/group-exclusive/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
     | '/_authenticated/other-services/'
@@ -1127,6 +1140,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedKeysIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/group-exclusive/': {
+      id: '/_authenticated/group-exclusive/'
+      path: '/group-exclusive'
+      fullPath: '/group-exclusive/'
+      preLoaderRoute: typeof AuthenticatedGroupExclusiveIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/dashboard'
@@ -1385,6 +1405,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedApiSaleIndexRoute: typeof AuthenticatedApiSaleIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedGroupExclusiveIndexRoute: typeof AuthenticatedGroupExclusiveIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
   AuthenticatedOtherServicesIndexRoute: typeof AuthenticatedOtherServicesIndexRoute
@@ -1412,6 +1433,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedApiSaleIndexRoute: AuthenticatedApiSaleIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedGroupExclusiveIndexRoute: AuthenticatedGroupExclusiveIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
   AuthenticatedOtherServicesIndexRoute: AuthenticatedOtherServicesIndexRoute,

@@ -28,6 +28,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   ListTodo,
+  Lock,
   MessageSquare,
   Radio,
   ServerCog,
@@ -152,6 +153,11 @@ export function useSidebarData(): SidebarData {
             title: t("API Sales"),
             url: "/api-sale",
             icon: Tag,
+          },
+          {
+            title: t("Exclusive Groups"),
+            url: "/group-exclusive",
+            icon: Lock,
           },
           {
             title: t("Redemption Codes"),
