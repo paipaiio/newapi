@@ -34,6 +34,7 @@
   "The authorization request is invalid or expired": "The authorization request is invalid or expired",
   "The client secret is shown only once. Store it somewhere safe now.": "The client secret is shown only once. Store it somewhere safe now.",
   "The gateway and all group routes are operating normally.": "The gateway and all group routes are operating normally.",
+  "The token routes across the primary group and these additional groups in order.": "The token routes across the primary group and these additional groups in order.",
   "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.": "This is a per-API-key limit. It stacks with user- and channel-level limits; the strictest applies.",
   "This secret cannot be retrieved again. If lost, rotate the secret to generate a new one.": "This secret cannot be retrieved again. If lost, rotate the secret to generate a new one.",
   "View the stored request and response bodies.": "View the stored request and response bodies.",
