@@ -44,6 +44,7 @@ import { Route as AuthenticatedTokenLookupIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
+import { Route as AuthenticatedStatusIndexRouteImport } from './routes/_authenticated/status/index'
 import { Route as AuthenticatedSessionRecordsIndexRouteImport } from './routes/_authenticated/session-records/index'
 import { Route as AuthenticatedServiceManagementIndexRouteImport } from './routes/_authenticated/service-management/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
@@ -258,6 +259,12 @@ const AuthenticatedSubscriptionsIndexRoute =
   AuthenticatedSubscriptionsIndexRouteImport.update({
     id: '/subscriptions/',
     path: '/subscriptions/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStatusIndexRoute =
+  AuthenticatedStatusIndexRouteImport.update({
+    id: '/status/',
+    path: '/status/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSessionRecordsIndexRoute =
@@ -515,6 +522,7 @@ export interface FileRoutesByFullPath {
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
+  '/status/': typeof AuthenticatedStatusIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -584,6 +592,7 @@ export interface FileRoutesByTo {
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/service-management': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records': typeof AuthenticatedSessionRecordsIndexRoute
+  '/status': typeof AuthenticatedStatusIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
@@ -657,6 +666,7 @@ export interface FileRoutesById {
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/_authenticated/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
+  '/_authenticated/status/': typeof AuthenticatedStatusIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -729,6 +739,7 @@ export interface FileRouteTypes {
     | '/redemption-codes/'
     | '/service-management/'
     | '/session-records/'
+    | '/status/'
     | '/subscriptions/'
     | '/system-info/'
     | '/system-settings/'
@@ -798,6 +809,7 @@ export interface FileRouteTypes {
     | '/redemption-codes'
     | '/service-management'
     | '/session-records'
+    | '/status'
     | '/subscriptions'
     | '/system-info'
     | '/system-settings'
@@ -870,6 +882,7 @@ export interface FileRouteTypes {
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/service-management/'
     | '/_authenticated/session-records/'
+    | '/_authenticated/status/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
@@ -1161,6 +1174,13 @@ declare module '@tanstack/react-router' {
       path: '/subscriptions'
       fullPath: '/subscriptions/'
       preLoaderRoute: typeof AuthenticatedSubscriptionsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/status/': {
+      id: '/_authenticated/status/'
+      path: '/status'
+      fullPath: '/status/'
+      preLoaderRoute: typeof AuthenticatedStatusIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/session-records/': {
@@ -1517,6 +1537,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedServiceManagementIndexRoute: typeof AuthenticatedServiceManagementIndexRoute
   AuthenticatedSessionRecordsIndexRoute: typeof AuthenticatedSessionRecordsIndexRoute
+  AuthenticatedStatusIndexRoute: typeof AuthenticatedStatusIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
   AuthenticatedTokenLookupIndexRoute: typeof AuthenticatedTokenLookupIndexRoute
@@ -1551,6 +1572,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedServiceManagementIndexRoute:
     AuthenticatedServiceManagementIndexRoute,
   AuthenticatedSessionRecordsIndexRoute: AuthenticatedSessionRecordsIndexRoute,
+  AuthenticatedStatusIndexRoute: AuthenticatedStatusIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
   AuthenticatedTokenLookupIndexRoute: AuthenticatedTokenLookupIndexRoute,

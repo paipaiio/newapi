@@ -85,6 +85,11 @@ export function useSidebarData(): SidebarData {
             icon: Activity,
           },
           {
+            title: t("Service Status"),
+            url: "/status",
+            icon: Radio,
+          },
+          {
             title: t("Dashboard"),
             url: "/dashboard/models",
             icon: LayoutDashboard,
