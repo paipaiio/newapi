@@ -79,7 +79,7 @@ var channelAffinitySetting = ChannelAffinitySetting{
 	SwitchOnSuccess:       true,
 	KeepOnChannelDisabled: false,
 	MaxEntries:            100_000,
-	DefaultTTLSeconds:     3600,
+	DefaultTTLSeconds:     1800,
 	Rules: []ChannelAffinityRule{
 		{
 			Name:       "codex cli trace",
@@ -91,7 +91,7 @@ var channelAffinitySetting = ChannelAffinitySetting{
 			ValueRegex:            "",
 			TTLSeconds:            0,
 			ParamOverrideTemplate: buildPassHeaderTemplate(codexCliPassThroughHeaders),
-			SkipRetryOnFailure:    true,
+			SkipRetryOnFailure:    false,
 			IncludeUsingGroup:     true,
 			IncludeRuleName:       true,
 			UserAgentInclude:      nil,
@@ -106,7 +106,7 @@ var channelAffinitySetting = ChannelAffinitySetting{
 			ValueRegex:            "",
 			TTLSeconds:            0,
 			ParamOverrideTemplate: buildPassHeaderTemplate(claudeCliPassThroughHeaders),
-			SkipRetryOnFailure:    true,
+			SkipRetryOnFailure:    false,
 			IncludeUsingGroup:     true,
 			IncludeRuleName:       true,
 			UserAgentInclude:      nil,
