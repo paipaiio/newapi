@@ -189,6 +189,30 @@ func main() {
 			},
 		})
 	}))
+	// 设置可信代理，防止 X-Forwarded-For 伪造。
+	// gin 从 XFF 最右往左跳过可信代理，返回首个不可信地址=真实客户端；
+	// 伪造值只能加在左侧，扫到真客户端即停，够不到 → 防伪造。
+	// 默认信任回环 + 私网段；额外经 env TRUSTED_PROXIES（逗号分隔，支持 CIDR）追加。
+	// ⚠️ 链路上所有基础设施节点出口 IP（如香港中转、源站公网）必须列入 TRUSTED_PROXIES，
+	// 否则境内用户会塌缩成中转节点单一 IP。节点 IP 变更改环境变量即可，无需重编译。
+	{
+		trustedProxies := []string{
+			"127.0.0.1/32", "::1/128",
+			"172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16",
+		}
+		if extra := os.Getenv("TRUSTED_PROXIES"); extra != "" {
+			for _, p := range strings.Split(extra, ",") {
+				if p = strings.TrimSpace(p); p != "" {
+					trustedProxies = append(trustedProxies, p)
+				}
+			}
+		}
+		if err := server.SetTrustedProxies(trustedProxies); err != nil {
+			common.SysError(fmt.Sprintf("设置可信代理失败 / failed to set trusted proxies: %v", err))
+		} else {
+			common.SysLog(fmt.Sprintf("可信代理已设置 / trusted proxies configured: %v", trustedProxies))
+		}
+	}
 	// This will cause SSE not to work!!!
 	//server.Use(gzip.Gzip(gzip.DefaultCompression))
 	server.Use(middleware.RequestId())
