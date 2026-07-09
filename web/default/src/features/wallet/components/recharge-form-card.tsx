@@ -80,6 +80,8 @@ interface RechargeFormCardProps {
   waffoMinTopup?: number
   onWaffoMethodSelect?: (method: WaffoPayMethod, index: number) => void
   enableWaffoPancakeTopup?: boolean
+  /** Unit price multiplier: display-currency amount × this = actual USD charged */
+  waffoPancakeUnitPrice?: number
 }
 
 export function RechargeFormCard({
@@ -110,6 +112,7 @@ export function RechargeFormCard({
   waffoMinTopup,
   onWaffoMethodSelect,
   enableWaffoPancakeTopup,
+  waffoPancakeUnitPrice,
 }: RechargeFormCardProps) {
   const { t } = useTranslation()
   const [localAmount, setLocalAmount] = useState(topupAmount.toString())
@@ -304,6 +307,17 @@ export function RechargeFormCard({
                     )}
                   </div>
                 </div>
+                {enableWaffoPancakeTopup &&
+                  waffoPancakeUnitPrice &&
+                  waffoPancakeUnitPrice > 0 &&
+                  topupAmount > 0 && (
+                    <p className='text-muted-foreground text-xs'>
+                      {t('Waffo Pancake payment hint', {
+                        cny: topupAmount,
+                        usd: (topupAmount * waffoPancakeUnitPrice).toFixed(2),
+                      })}
+                    </p>
+                  )}
               </div>
 
               <div className='space-y-2.5 sm:space-y-3'>

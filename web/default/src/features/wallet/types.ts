@@ -150,6 +150,8 @@ export interface TopupInfo {
   enable_waffo_pancake_topup?: boolean;
   /** Minimum topup amount for Waffo Pancake */
   waffo_pancake_min_topup?: number;
+  /** Unit price multiplier for Waffo Pancake (display currency → actual USD) */
+  waffo_pancake_unit_price?: number;
   /** Whether redemption code usage is enabled */
   enable_redemption?: boolean;
   /** Whether compliance confirmation has been completed */

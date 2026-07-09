@@ -5468,6 +5468,7 @@
     "Set the group for {{n}} selected user(s).": "为选中的 {{n}} 个用户设置分组。",
     "Display-only whitelist for {{n}} selected user(s). Empty = all groups visible.": "为选中的 {{n}} 个用户设置可见分组白名单(仅影响展示)。留空 = 可见全部分组。",
     "Adjust quota for {{n}} selected user(s).": "为选中的 {{n}} 个用户调整额度。",
-    "Invite abuse": "疑似滥用"
+    "Invite abuse": "疑似滥用",
+    "Waffo Pancake payment hint": "通过 Waffo Pancake 支付：¥{{cny}} CNY ≈ ${{usd}} USD"
   }
 }
