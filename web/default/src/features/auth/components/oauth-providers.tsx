@@ -138,7 +138,7 @@ export function OAuthProviders({
   if (providerButtons.length === 0) return null;
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("space-y-2.5", className)}>
       {/* Flex-row divider: no solid background needed, works on any backdrop */}
       <div className="flex items-center gap-2">
         <div className="border-border/50 h-px flex-1 border-t" />
@@ -148,7 +148,9 @@ export function OAuthProviders({
         <div className="border-border/50 h-px flex-1 border-t" />
       </div>
 
-      <div className="flex flex-col gap-2">
+      {/* 2-column grid on mobile keeps all options visible without scrolling;
+          single column on sm+ where there is more room. */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
         {providerButtons.map(
           ({ key, label, onClick, icon, disabled: extraDisabled }) => (
             <Button
@@ -157,10 +159,10 @@ export function OAuthProviders({
               type="button"
               disabled={disabled || isLoading || extraDisabled}
               onClick={onClick}
-              className="h-11 w-full justify-center gap-2 rounded-lg"
+              className="h-9 w-full justify-center gap-1.5 rounded-lg text-sm"
             >
               {icon}
-              {label}
+              <span className="truncate">{label}</span>
             </Button>
           ),
         )}

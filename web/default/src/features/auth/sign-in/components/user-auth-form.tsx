@@ -294,13 +294,13 @@ export function UserAuthForm({
   const alternativeLoginMethods = (
     <>
       {passkeyLoginEnabled && (
-        <div className="mt-2 space-y-1">
+        <div className="space-y-1">
           <Button
             type="button"
             variant="outline"
             disabled={passkeyButtonDisabled}
             onClick={handlePasskeyLogin}
-            className="h-11 w-full justify-center gap-2 rounded-lg"
+            className="h-9 w-full justify-center gap-1.5 rounded-lg text-sm"
           >
             {isPasskeyLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -331,7 +331,7 @@ export function UserAuthForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className={cn("grid gap-4", className)}
+        className={cn("grid gap-3", className)}
         {...props}
       >
         {hasAlternativeLogin && alternativeLoginMethods}
@@ -383,7 +383,7 @@ export function UserAuthForm({
             {/* Submit Button */}
             <Button
               type="submit"
-              className="mt-2 w-full justify-center gap-2"
+              className="w-full justify-center gap-2"
               disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
             >
               {isLoading ? <Loader2 className="animate-spin" /> : <LogIn />}
