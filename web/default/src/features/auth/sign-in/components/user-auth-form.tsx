@@ -380,6 +380,16 @@ export function UserAuthForm({
               )}
             />
 
+            {/* Turnstile — centred, sits between inputs and the submit button */}
+            {isTurnstileEnabled && (
+              <div className="flex justify-center">
+                <Turnstile
+                  siteKey={turnstileSiteKey}
+                  onVerify={setTurnstileToken}
+                />
+              </div>
+            )}
+
             {/* Submit Button */}
             <Button
               type="submit"
@@ -389,16 +399,6 @@ export function UserAuthForm({
               {isLoading ? <Loader2 className="animate-spin" /> : <LogIn />}
               {t("Sign in")}
             </Button>
-
-            {/* Turnstile */}
-            {isTurnstileEnabled && (
-              <div className="mt-2">
-                <Turnstile
-                  siteKey={turnstileSiteKey}
-                  onVerify={setTurnstileToken}
-                />
-              </div>
-            )}
           </>
         )}
 

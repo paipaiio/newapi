@@ -340,9 +340,9 @@ export function SignUpForm({
           </>
         )}
 
-        {/* Turnstile */}
+        {/* Turnstile — centred, sits between inputs and the submit button */}
         {isTurnstileEnabled && (
-          <div className="mt-2">
+          <div className="flex justify-center">
             <Turnstile
               siteKey={turnstileSiteKey}
               onVerify={setTurnstileToken}

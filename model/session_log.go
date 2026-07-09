@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/QuantumNous/new-api/common"
 )
 
 // SessionLog 是会话正文记录的索引表(存于 LOG_DB,与 Log 同库)。
@@ -80,9 +82,11 @@ func (SessionLog) TableName() string {
 
 // EnsureSessionLogFulltextIndex 在 session_logs.content_text 上建立 ngram 全文索引。
 // 幂等:已存在则忽略错误。在主库迁移完成后调用一次(session_logs 建在主库)。
+// FULLTEXT INDEX 是 MySQL/InnoDB 专属语法，SQLite/PostgreSQL 跳过。
 func EnsureSessionLogFulltextIndex() {
-	// session_logs 表随主库迁移创建,故用 DB(LOG_DB 在未配独立日志库时等于 DB,
-	// 但 InitDB 早于 InitLogDB,此处用 DB 保证非空)。
+	if !common.UsingMainDatabase(common.DatabaseTypeMySQL) {
+		return
+	}
 	DB.Exec(`ALTER TABLE session_logs ADD FULLTEXT INDEX idx_sl_content (content_text) WITH PARSER ngram`)
 	// 忽略 "Duplicate key name" 之类错误。
 }
