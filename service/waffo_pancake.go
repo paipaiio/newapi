@@ -354,7 +354,7 @@ func CreateWaffoPancakePrimaryProduct(ctx context.Context, merchantID, privateKe
 		},
 	}); err != nil {
 		// Non-fatal: product still usable in test mode without a test version.
-		logger.SysLog(fmt.Sprintf("Waffo Pancake product update (test version) skipped: %v", err))
+		fmt.Printf("[SYS] Waffo Pancake product update (test version) skipped: %v\n", err)
 	}
 	if err := func() error {
 		_, e := client.OnetimeProducts.Publish(ctx, pancake.PublishOnetimeProductParams{ID: productID})
@@ -363,7 +363,7 @@ func CreateWaffoPancakePrimaryProduct(ctx context.Context, merchantID, privateKe
 		// Non-fatal in test environments where manual dashboard publish is
 		// required first. Return the product ID so the operator can save the
 		// config and publish from the Waffo Pancake dashboard separately.
-		logger.SysLog(fmt.Sprintf("Waffo Pancake product publish skipped (test env?): %v", err))
+		fmt.Printf("[SYS] Waffo Pancake product publish skipped (test env?): %v\n", err)
 	}
 	return productID, nil
 }
