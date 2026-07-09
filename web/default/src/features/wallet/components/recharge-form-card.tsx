@@ -310,14 +310,23 @@ export function RechargeFormCard({
                 {enableWaffoPancakeTopup &&
                   waffoPancakeUnitPrice &&
                   waffoPancakeUnitPrice > 0 &&
-                  topupAmount > 0 && (
-                    <p className='text-muted-foreground text-xs'>
-                      {t('Waffo Pancake payment hint', {
-                        cny: topupAmount,
-                        usd: (topupAmount * waffoPancakeUnitPrice).toFixed(2),
-                      })}
-                    </p>
-                  )}
+                  topupAmount > 0 && (() => {
+                    // Apply the same discount logic as the backend resolveTopupDiscount:
+                    // take the better (lower) of the tier discount and user-specific discount.
+                    const tierDiscount = topupInfo?.discount?.[topupAmount] || 1
+                    const userDiscount = topupInfo?.user_topup_discount || 1
+                    const effectiveDiscount = Math.min(tierDiscount, userDiscount)
+                    const actualCny = topupAmount * effectiveDiscount
+                    const usdAmount = (actualCny * waffoPancakeUnitPrice).toFixed(2)
+                    return (
+                      <p className='text-muted-foreground text-xs'>
+                        {t('Waffo Pancake payment hint', {
+                          cny: actualCny,
+                          usd: usdAmount,
+                        })}
+                      </p>
+                    )
+                  })()}
               </div>
 
               <div className='space-y-2.5 sm:space-y-3'>
