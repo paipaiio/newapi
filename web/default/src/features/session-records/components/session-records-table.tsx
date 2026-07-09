@@ -16,23 +16,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import { useMediaQuery } from '@/hooks'
-import { useTableUrlState } from '@/hooks/use-table-url-state'
-import { DataTablePage, useDataTable } from '@/components/data-table'
-import { getSessionLogs } from '../api'
-import { useSessionRecordsColumns } from './session-records-columns'
+import { useQuery } from "@tanstack/react-query";
+import { getRouteApi } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { useMediaQuery } from "@/hooks";
+import { useTableUrlState } from "@/hooks/use-table-url-state";
+import { DataTablePage, useDataTable } from "@/components/data-table";
+import { getSessionLogs } from "../api";
+import { useSessionRecordsColumns } from "./session-records-columns";
+import { SessionRecordsFilterBar } from "./session-records-filter-bar";
 
-const route = getRouteApi('/_authenticated/session-records/')
+const route = getRouteApi("/_authenticated/session-records/");
 
 export function SessionRecordsTable() {
-  const { t } = useTranslation()
-  const columns = useSessionRecordsColumns()
-  const isMobile = useMediaQuery('(max-width: 640px)')
-  const search = route.useSearch()
+  const { t } = useTranslation();
+  const columns = useSessionRecordsColumns();
+  const isMobile = useMediaQuery("(max-width: 640px)");
+  const search = route.useSearch();
 
   const { pagination, onPaginationChange, ensurePageInRange } =
     useTableUrlState({
@@ -40,18 +41,20 @@ export function SessionRecordsTable() {
       navigate: route.useNavigate(),
       pagination: { defaultPage: 1, defaultPageSize: isMobile ? 10 : 20 },
       globalFilter: { enabled: false },
-    })
+    });
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: [
-      'session-logs',
+      "session-logs",
       pagination.pageIndex + 1,
       pagination.pageSize,
       search.user_id,
       search.username,
       search.model_name,
       search.request_id,
+      search.keyword,
       search.only_failed,
+      search.only_media,
       search.start_timestamp,
       search.end_timestamp,
     ],
@@ -63,25 +66,27 @@ export function SessionRecordsTable() {
         username: search.username,
         model_name: search.model_name,
         request_id: search.request_id,
+        keyword: search.keyword,
         only_failed: search.only_failed,
+        only_media: search.only_media,
         start_timestamp: search.start_timestamp,
         end_timestamp: search.end_timestamp,
-      })
+      });
 
       if (!result.success) {
-        toast.error(result.message || t('Failed to load session records'))
-        return { items: [], total: 0 }
+        toast.error(result.message || t("Failed to load session records"));
+        return { items: [], total: 0 };
       }
 
       return {
         items: result.data?.items || [],
         total: result.data?.total || 0,
-      }
+      };
     },
     placeholderData: (previousData) => previousData,
-  })
+  });
 
-  const records = data?.items || []
+  const records = data?.items || [];
 
   const { table } = useDataTable({
     data: records,
@@ -92,7 +97,7 @@ export function SessionRecordsTable() {
     manualFiltering: true,
     totalCount: data?.total || 0,
     ensurePageInRange,
-  })
+  });
 
   return (
     <DataTablePage
@@ -100,13 +105,13 @@ export function SessionRecordsTable() {
       columns={columns}
       isLoading={isLoading}
       isFetching={isFetching}
-      emptyTitle={t('No Session Records Found')}
+      emptyTitle={t("No Session Records Found")}
       emptyDescription={t(
-        'No session records available. Try adjusting your filters.'
+        "No session records available. Try adjusting your filters.",
       )}
-      skeletonKeyPrefix='session-records-skeleton'
+      skeletonKeyPrefix="session-records-skeleton"
       applyHeaderSize
-      toolbarProps={null}
+      toolbar={<SessionRecordsFilterBar />}
     />
-  )
+  );
 }

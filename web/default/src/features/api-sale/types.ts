@@ -17,25 +17,43 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 export interface ApiResponse<T = unknown> {
-  success: boolean
-  message?: string
-  data?: T
+  success: boolean;
+  message?: string;
+  data?: T;
 }
 
 export interface ApiSaleItem {
-  username: string
-  password: string
-  custom_key: string
-  group: string
-  quota: number
-  unlimited: boolean
+  username: string;
+  password: string;
+  custom_key: string;
+  group: string;
+  quota: number;
+  unlimited: boolean;
 }
 
 export interface ApiSaleResult {
-  username: string
-  password: string
-  api_key: string
-  group: string
-  quota: number
-  error?: string
+  username: string;
+  password: string;
+  api_key: string;
+  group: string;
+  quota: number;
+  error?: string;
+}
+
+/** Aggregated statistics for a sale batch (mirrors backend batch/stats). */
+export interface BatchStat {
+  batch_id: string;
+  user_count: number;
+  total_remain: number;
+  total_used: number;
+  created: number;
+}
+
+/** A single token row returned by the admin token lookup (used for CSV export). */
+export interface TokenLookupItem {
+  username?: string;
+  email?: string;
+  full_key?: string;
+  group?: string;
+  batch_id?: string;
 }

@@ -16,7 +16,10 @@ version: '3.4' # For compatibility with older Docker versions
 
 services:
   new-api:
-    image: calciumion/new-api:rc13-tgfix-sessionlog
+    # Build the TUFTech fork locally from the repo Dockerfile instead of pulling
+    # the upstream prebuilt image. Deploy with: docker compose up -d --build
+    build: .
+    image: tuftech-api:rc20-sync-sessionlog
     container_name: new-api
     restart: always
     command: --log-dir /app/logs

@@ -158,7 +158,7 @@ func probeGroup(group, mdl string) (status string, ms int, sample bool) {
 
 // ---------- 样本窗口 ----------
 func insertSample(component string, ts int64, up, ms int) {
-	if common.UsingSQLite {
+	if common.UsingMainDatabase(common.DatabaseTypeSQLite) {
 		_ = model.InsertMonitorSampleSQLite(component, ts, up, ms)
 	} else {
 		_ = model.InsertMonitorSample(component, ts, up, ms)

@@ -16,8 +16,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { SectionPageLayout } from '@/components/layout'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ConversationGroupsView } from './components/conversation-groups-view'
 import { SessionDetailDialog } from './components/dialogs/session-detail-dialog'
 import {
   SessionRecordsProvider,
@@ -25,9 +28,14 @@ import {
 } from './components/session-records-provider'
 import { SessionRecordsTable } from './components/session-records-table'
 
+const route = getRouteApi('/_authenticated/session-records/')
+
 function SessionRecordsContent() {
   const { t } = useTranslation()
   const { open, setOpen, currentRow } = useSessionRecords()
+  const search = route.useSearch()
+  const navigate = route.useNavigate()
+  const tab = search.tab ?? 'requests'
 
   return (
     <>
@@ -36,7 +44,33 @@ function SessionRecordsContent() {
           {t('Session Records')}
         </SectionPageLayout.Title>
         <SectionPageLayout.Content>
-          <SessionRecordsTable />
+          <div className='mb-3'>
+            <Tabs
+              value={tab}
+              onValueChange={(value) =>
+                navigate({
+                  search: {
+                    tab: value as 'requests' | 'conversations',
+                    page: 1,
+                  },
+                })
+              }
+            >
+              <TabsList>
+                <TabsTrigger value='requests'>
+                  {t('Request records')}
+                </TabsTrigger>
+                <TabsTrigger value='conversations'>
+                  {t('Conversation groups')}
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          {tab === 'conversations' ? (
+            <ConversationGroupsView />
+          ) : (
+            <SessionRecordsTable />
+          )}
         </SectionPageLayout.Content>
       </SectionPageLayout>
 
@@ -44,6 +78,7 @@ function SessionRecordsContent() {
         record={currentRow}
         open={open === 'detail'}
         onOpenChange={(isOpen) => !isOpen && setOpen(null)}
+        keyword={search.keyword || undefined}
       />
     </>
   )
