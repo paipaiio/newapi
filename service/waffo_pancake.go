@@ -343,9 +343,18 @@ func CreateWaffoPancakePrimaryProduct(ctx context.Context, merchantID, privateKe
 		return "", fmt.Errorf("create Waffo Pancake product: %w", err)
 	}
 	productID := prodRes.Product.ID
-	// Update creates an immutable version (required in test environment before Publish).
+	// Update with the same name creates an immutable test version (required
+	// by Waffo Pancake test environment before Publish can be called).
+	productName := defaultWaffoPancakeProductName
 	if _, err := client.OnetimeProducts.Update(ctx, pancake.UpdateOnetimeProductParams{
-		ID: productID,
+		ID:   productID,
+		Name: &productName,
+		Prices: pancake.Prices{
+			"USD": {
+				Amount:      "1.00",
+				TaxCategory: pancake.TaxCategory("saas"),
+			},
+		},
 	}); err != nil {
 		return "", fmt.Errorf("update Waffo Pancake product (create test version): %w", err)
 	}
