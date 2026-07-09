@@ -143,6 +143,63 @@ export async function setVisibleGroups(
 }
 
 /**
+ * Batch enable / disable / delete / enable_login / disable_login for many users.
+ * POST /api/user/manage/batch_action  body: { ids, action }
+ */
+export async function batchManageUser(
+  ids: number[],
+  action: "enable" | "disable" | "delete" | "enable_login" | "disable_login",
+): Promise<ApiResponse> {
+  const res = await api.post("/api/user/manage/batch_action", { ids, action });
+  return res.data;
+}
+
+/**
+ * Batch toggle online top-up permission.
+ * POST /api/user/manage/batch_topup  body: { ids, allow_topup }
+ */
+export async function batchSetTopup(
+  ids: number[],
+  allowTopup: boolean,
+): Promise<ApiResponse> {
+  const res = await api.post("/api/user/manage/batch_topup", {
+    ids,
+    allow_topup: allowTopup,
+  });
+  return res.data;
+}
+
+/**
+ * Batch reassign user group.
+ * POST /api/user/manage/batch_group  body: { ids, group }
+ */
+export async function batchSetGroup(
+  ids: number[],
+  group: string,
+): Promise<ApiResponse> {
+  const res = await api.post("/api/user/manage/batch_group", { ids, group });
+  return res.data;
+}
+
+/**
+ * Batch adjust user quota. `value` is the internal quota unit (already
+ * converted from display currency). mode: add / subtract / override.
+ * POST /api/user/manage/batch_quota  body: { ids, mode, value }
+ */
+export async function batchManageQuota(
+  ids: number[],
+  mode: "add" | "subtract" | "override",
+  value: number,
+): Promise<ApiResponse> {
+  const res = await api.post("/api/user/manage/batch_quota", {
+    ids,
+    mode,
+    value,
+  });
+  return res.data;
+}
+
+/**
  * Reset user's Passkey registration
  */
 export async function resetUserPasskey(id: number): Promise<ApiResponse> {
