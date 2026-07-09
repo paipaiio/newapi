@@ -1,7 +1,7 @@
 {
   "name": "new-api-electron",
   "version": "1.0.0",
-  "description": "New API - AI Model Gateway Desktop Application",
+  "description": "TUFTech - AI Model Gateway Desktop Application",
   "main": "main.js",
   "scripts": {
     "start-app": "electron .",
@@ -18,7 +18,7 @@
     "openai",
     "claude"
   ],
-  "author": "QuantumNous",
+  "author": "TUFTech",
   "repository": {
     "type": "git",
     "url": "https://github.com/QuantumNous/new-api"

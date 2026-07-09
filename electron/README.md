@@ -1,6 +1,6 @@
-# New API Electron Desktop App
+# TUFTech Electron Desktop App
 
-This directory contains the Electron wrapper for New API, providing a native desktop application with system tray support for Windows, macOS, and Linux.
+This directory contains the Electron wrapper for TUFTech, providing a native desktop application with system tray support for Windows, macOS, and Linux.
 
 ## Prerequisites
 

@@ -132,6 +132,9 @@ export interface SystemStatus {
     password_login_enabled?: boolean;
     password_register_enabled?: boolean;
     custom_oauth_providers?: CustomOAuthProviderInfo[];
+    quota_for_new_user?: number;
+    quota_for_inviter?: number;
+    quota_for_invitee?: number;
     [key: string]: unknown;
   };
   // Allow direct access to common properties
@@ -176,6 +179,9 @@ export interface SystemStatus {
   password_login_enabled?: boolean;
   password_register_enabled?: boolean;
   custom_oauth_providers?: CustomOAuthProviderInfo[];
+  quota_for_new_user?: number;
+  quota_for_inviter?: number;
+  quota_for_invitee?: number;
   [key: string]: unknown;
 }
 

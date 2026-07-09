@@ -1,0 +1,112 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+
+/* ============================================================================
+ * Brand signature effects, ported from the classic theme so the default theme
+ * carries the same visual identity: indigo/teal blur balls behind hero/auth
+ * surfaces, and a sweeping shine animation on hero titles.
+ * ========================================================================== */
+
+/* ---- Background blur balls -------------------------------------------------- */
+.blur-ball {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  filter: blur(120px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blur-ball-indigo {
+  background: #6366f1; /* indigo-500 */
+  top: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.25;
+}
+
+.blur-ball-teal {
+  background: #14b8a6; /* teal-500 */
+  top: 200px;
+  left: 30%;
+  opacity: 0.2;
+}
+
+.dark .blur-ball-indigo {
+  opacity: 0.42;
+}
+
+.dark .blur-ball-teal {
+  opacity: 0.34;
+}
+
+/* Compact variant for narrower surfaces (auth cards). */
+.blur-ball-sm {
+  width: 260px;
+  height: 260px;
+  filter: blur(90px);
+}
+
+/* ---- Sweeping shine text ---------------------------------------------------- */
+@keyframes brand-sweep-shine {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.shine-text {
+  background: linear-gradient(
+    90deg,
+    currentColor 0%,
+    currentColor 40%,
+    rgba(255, 255, 255, 0.92) 50%,
+    currentColor 60%,
+    currentColor 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: brand-sweep-shine 4s linear infinite;
+}
+
+.dark .shine-text {
+  background: linear-gradient(
+    90deg,
+    currentColor 0%,
+    currentColor 40%,
+    #facc15 50%,
+    currentColor 60%,
+    currentColor 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shine-text {
+    animation: none;
+  }
+}
