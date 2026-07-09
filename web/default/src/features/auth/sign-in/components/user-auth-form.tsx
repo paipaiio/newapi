@@ -39,11 +39,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { login, telegramLogin, wechatLoginByCode } from "@/features/auth/api";
-import {
-  TelegramLoginButton,
-  type TelegramAuthUser,
-} from "@/features/auth/components/telegram-login-button";
+import { login, wechatLoginByCode } from "@/features/auth/api";
 import { LegalConsent } from "@/features/auth/components/legal-consent";
 import { OAuthProviders } from "@/features/auth/components/oauth-providers";
 import { loginFormSchema } from "@/features/auth/constants";
@@ -225,27 +221,6 @@ export function UserAuthForm({
     }
   }
 
-  const handleTelegramAuth = async (user: TelegramAuthUser) => {
-    if (requiresLegalConsent && !agreedToLegal) {
-      toast.error(legalConsentErrorMessage);
-      return;
-    }
-    try {
-      const res = await telegramLogin(user);
-      if (res?.success) {
-        await handleLoginSuccess(
-          res.data as { id?: number } | null,
-          redirectTo,
-        );
-        toast.success(t("Signed in via Telegram"));
-      } else {
-        toast.error(res?.message || loginFailedMessage);
-      }
-    } catch {
-      toast.error(loginFailedMessage);
-    }
-  };
-
   async function handlePasskeyLogin() {
     if (requiresLegalConsent && !agreedToLegal) {
       toast.error(legalConsentErrorMessage);
@@ -349,15 +324,6 @@ export function UserAuthForm({
         onWeChatLogin={hasWeChatLogin ? handleOpenWeChatDialog : undefined}
         isWeChatLoading={isWeChatSubmitting}
       />
-
-      {status?.telegram_oauth && status?.telegram_bot_name && (
-        <div className="flex justify-center">
-          <TelegramLoginButton
-            botName={status.telegram_bot_name}
-            onAuth={handleTelegramAuth}
-          />
-        </div>
-      )}
     </>
   );
 

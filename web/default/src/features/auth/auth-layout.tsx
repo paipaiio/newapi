@@ -31,7 +31,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
   const { systemName, logo, loading } = useSystemConfig();
 
   return (
-    <div className="relative grid h-svh max-w-none overflow-hidden">
+    // min-h-svh + overflow-x-hidden: page grows with content on mobile so the
+    // form can be scrolled to bottom (e.g. the legal-consent checkbox). We only
+    // clip horizontal overflow to contain the blur-ball decorations.
+    <div className="relative min-h-svh max-w-none overflow-x-hidden">
       {/* Brand blur balls (indigo/teal), ported from the classic theme */}
       <div aria-hidden className="blur-ball blur-ball-indigo -z-10" />
       <div aria-hidden className="blur-ball blur-ball-teal -z-10" />
@@ -56,10 +59,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           <h1 className="text-xl font-medium">{systemName}</h1>
         )}
       </Link>
-      <div className="container flex items-center pt-16 sm:pt-0">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-2 px-4 py-8 sm:w-[480px] sm:p-8">
-          {children}
-        </div>
+      {/* On mobile: natural block flow with padding so form is fully reachable.
+          On sm+: full-height flex column so the form stays vertically centred. */}
+      <div className="container px-4 pb-10 pt-20 sm:flex sm:min-h-svh sm:items-center sm:px-6 sm:py-0">
+        <div className="mx-auto w-full sm:w-[480px] sm:p-8">{children}</div>
       </div>
     </div>
   );
