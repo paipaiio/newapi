@@ -93,6 +93,8 @@ export interface ApiResponse<T = unknown> {
 export interface GetUsersParams {
   p?: number;
   page_size?: number;
+  // Fork: only return users flagged as suspected invite abuse (admin review)
+  flagged_only?: boolean;
 }
 
 export interface GetUsersResponse {

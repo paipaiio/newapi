@@ -40,8 +40,11 @@ import type {
 export async function getUsers(
   params: GetUsersParams = {},
 ): Promise<GetUsersResponse> {
-  const { p = 1, page_size = 10 } = params;
-  const res = await api.get(`/api/user/?p=${p}&page_size=${page_size}`);
+  const { p = 1, page_size = 10, flagged_only = false } = params;
+  const flaggedParam = flagged_only ? "&flagged_only=true" : "";
+  const res = await api.get(
+    `/api/user/?p=${p}&page_size=${page_size}${flaggedParam}`,
+  );
   return res.data;
 }
 

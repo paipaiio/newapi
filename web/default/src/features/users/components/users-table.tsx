@@ -71,6 +71,7 @@ export function UsersTable() {
       { columnId: 'status', searchKey: 'status', type: 'array' },
       { columnId: 'role', searchKey: 'role', type: 'array' },
       { columnId: 'group', searchKey: 'group', type: 'string' },
+      { columnId: 'invite_info', searchKey: 'flagged', type: 'array' },
     ],
   })
   const statusFilter =
@@ -84,6 +85,11 @@ export function UsersTable() {
   const groupFilter =
     (columnFilters.find((filter) => filter.id === 'group')?.value as string) ??
     ''
+  const flaggedFilter =
+    (columnFilters.find((filter) => filter.id === 'invite_info')?.value as
+      | string[]
+      | undefined) ?? []
+  const flaggedOnly = flaggedFilter.includes('flagged')
 
   // Fetch data with React Query
   const { data, isLoading, isFetching } = useQuery({
@@ -95,6 +101,7 @@ export function UsersTable() {
       statusFilter,
       roleFilter,
       groupFilter,
+      flaggedOnly,
       refreshTrigger,
     ],
     queryFn: async () => {
@@ -106,8 +113,11 @@ export function UsersTable() {
         page_size: pagination.pageSize,
       }
 
-      const result =
-        hasFilter || hasColumnFilter
+      // flagged_only is served by the list endpoint (backend ignores keyword
+      // on that path), so it takes precedence over search.
+      const result = flaggedOnly
+        ? await getUsers({ ...params, flagged_only: true })
+        : hasFilter || hasColumnFilter
           ? await searchUsers({
               ...params,
               keyword: globalFilter,
@@ -188,6 +198,12 @@ export function UsersTable() {
             columnId: 'role',
             title: t('Role'),
             options: getUserRoleOptions(t),
+            singleSelect: true,
+          },
+          {
+            columnId: 'invite_info',
+            title: t('Invite abuse'),
+            options: [{ label: t('Suspected invite abuse'), value: 'flagged' }],
             singleSelect: true,
           },
         ],
