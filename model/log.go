@@ -831,7 +831,7 @@ type DailyChannelGroupStat struct {
 func GetDailyChannelGroupStats(startTimestamp, endTimestamp int64) ([]DailyChannelGroupStat, error) {
 	var rows []DailyChannelGroupStat
 	tx := LOG_DB.Table("logs").
-		Select("created_at / 86400 as day, channel_id, `group`, sum(quota) quota, sum(prompt_tokens)+sum(completion_tokens) tokens, count(*) count").
+		Select("FLOOR(created_at / 86400) as day, channel_id, `group`, sum(quota) quota, sum(prompt_tokens)+sum(completion_tokens) tokens, count(*) count").
 		Where("type = ?", LogTypeConsume)
 	if startTimestamp != 0 {
 		tx = tx.Where("created_at >= ?", startTimestamp)
