@@ -88,6 +88,7 @@ function ApiSaleContent() {
   const [defGroup, setDefGroup] = useState("default");
   const [defQuota, setDefQuota] = useState(10);
   const [defUnlimited, setDefUnlimited] = useState(false);
+  const [batchId, setBatchId] = useState("");
 
   const [rows, setRows] = useState<Row[]>([]);
   const [groupOptions, setGroupOptions] = useState<string[]>(["default"]);
@@ -159,6 +160,7 @@ function ApiSaleContent() {
       return;
     }
     setLoading(true);
+    const trimmedBatchId = batchId.trim();
     const items: ApiSaleItem[] = rows.map((r) => ({
       username: r.username,
       password: r.password,
@@ -166,6 +168,7 @@ function ApiSaleContent() {
       group: r.group,
       quota: r.quota,
       unlimited: r.unlimited,
+      batch_id: trimmedBatchId || undefined,
     }));
     try {
       const res = await batchCreateApiSale(items);
@@ -316,6 +319,17 @@ function ApiSaleContent() {
             />
           </div>
         )}
+
+        <div className="space-y-1">
+          <Label>{t("Batch label")}</Label>
+          <Input
+            type="text"
+            value={batchId}
+            onChange={(e) => setBatchId(e.target.value)}
+            placeholder={t("Optional, for tracking")}
+            className="w-40"
+          />
+        </div>
 
         <Button onClick={handlePreview}>
           <Plus className="mr-1 h-4 w-4" />

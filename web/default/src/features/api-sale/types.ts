@@ -29,6 +29,8 @@ export interface ApiSaleItem {
   group: string;
   quota: number;
   unlimited: boolean;
+  /** Optional batch label written to token.batch_id for per-batch tracking/export. */
+  batch_id?: string;
 }
 
 export interface ApiSaleResult {

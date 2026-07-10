@@ -47,7 +47,11 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 	router.Use(static.Serve("/", themeFS))
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
-		if strings.HasPrefix(c.Request.RequestURI, "/v1") || strings.HasPrefix(c.Request.RequestURI, "/api") || strings.HasPrefix(c.Request.RequestURI, "/assets") {
+		// 用带斜杠的前缀精确匹配后端路径，避免误伤前端路由（如 /api-sale 撞 /api）。
+		uri := c.Request.RequestURI
+		if strings.HasPrefix(uri, "/v1/") || uri == "/v1" ||
+			strings.HasPrefix(uri, "/api/") || uri == "/api" ||
+			strings.HasPrefix(uri, "/assets/") {
 			controller.RelayNotFound(c)
 			return
 		}
