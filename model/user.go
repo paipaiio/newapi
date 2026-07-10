@@ -62,6 +62,8 @@ type User struct {
 	RegisterFingerprint string                     `json:"register_fingerprint" gorm:"type:varchar(64);default:'';column:register_fingerprint;index"` // 注册时的浏览器指纹哈希（滥用检测用）
 	InviteAbuseFlagged  bool                       `json:"invite_abuse_flagged" gorm:"type:tinyint(1);default:0;column:invite_abuse_flagged"`         // 疑似邀请滥用（小号刷返利）；true 时不发邀请返利，待管理员复核
 	InviteAbuseReason   string                     `json:"invite_abuse_reason" gorm:"type:varchar(255);default:'';column:invite_abuse_reason"`        // 判定为疑似滥用的原因（供后台展示）
+	PendingQuota        int                        `json:"pending_quota" gorm:"type:int;default:0;column:pending_quota"`                              // 待验证后释放的注册赠额（完成邮件验证或绑定微信/LinuxDO后自动转入 Quota）
+	VerifiedAtRegistration bool                    `json:"-" gorm:"-:all"`                                                                            // 瞬态：OAuth注册时为 true，表示已通过第三方身份验证，直接发放赠额无需等待验证
 	AdminPermissions    map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
 
@@ -570,6 +572,19 @@ func (user *User) Insert(inviterId int) error {
 			user.Quota = common.QuotaForNewUser
 			if user.InviteAbuseFlagged {
 				user.Quota = 0 // 疑似滥用:不发放注册赠额
+				user.PendingQuota = 0
+			} else if user.VerifiedAtRegistration {
+				// OAuth 注册：已通过第三方身份验证，直接发放赠额
+				user.Quota = common.QuotaForNewUser
+				user.PendingQuota = 0
+			} else if user.Email != "" {
+				// 密码注册 + 有邮件：赠额锁定，验证邮件或绑定微信/LinuxDO 后自动释放
+				user.Quota = 0
+				user.PendingQuota = common.QuotaForNewUser
+			} else {
+				// 密码注册 + 无邮件：永不发放注册赠额（方向1）
+				user.Quota = 0
+				user.PendingQuota = 0
 			}
 			user.AffCode = common.GetRandomString(4)
 
@@ -607,7 +622,14 @@ func (user *User) finishInsert(inviterId int) {
 	}
 
 	if common.QuotaForNewUser > 0 && !user.InviteAbuseFlagged {
-		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
+		if user.Quota > 0 {
+			// 赠额已直接发放（OAuth 注册已验证）
+			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
+		} else if user.PendingQuota > 0 {
+			// 赠额待解锁（密码注册 + 有邮件，验证后释放）
+			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("注册赠额 %s 已锁定，完成邮件验证或绑定微信/LinuxDO 后自动解锁", logger.LogQuota(common.QuotaForNewUser)))
+		}
+		// Quota=0 且 PendingQuota=0：无邮件注册，不发放赠额，不记录
 	}
 	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && !user.InviteAbuseFlagged {
 		if common.QuotaForInvitee > 0 {
@@ -637,6 +659,16 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 		user.Quota = common.QuotaForNewUser
 		if user.InviteAbuseFlagged {
 			user.Quota = 0 // 疑似滥用:不发放注册赠额
+			user.PendingQuota = 0
+		} else if user.VerifiedAtRegistration {
+			user.Quota = common.QuotaForNewUser
+			user.PendingQuota = 0
+		} else if user.Email != "" {
+			user.Quota = 0
+			user.PendingQuota = common.QuotaForNewUser
+		} else {
+			user.Quota = 0
+			user.PendingQuota = 0
 		}
 		user.AffCode = common.GetRandomString(4)
 
@@ -648,6 +680,32 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 
 		return tx.Create(user).Error
 	})
+}
+
+// ReleasePendingQuota 将用户的待验证注册赠额转入可用余额。
+// 当用户完成邮件验证或绑定微信/LinuxDO 等身份验证方式后调用。
+// 若 PendingQuota 为 0 则静默返回（幂等）。
+func ReleasePendingQuota(userId int) error {
+	var u User
+	if err := DB.Select("id, pending_quota").Where("id = ?", userId).First(&u).Error; err != nil {
+		return err
+	}
+	if u.PendingQuota <= 0 {
+		return nil // 已释放或从未有待赠额，幂等
+	}
+	pending := u.PendingQuota
+	err := DB.Model(&User{}).
+		Where("id = ? AND pending_quota > 0", userId).
+		Updates(map[string]interface{}{
+			"quota":         gorm.Expr("quota + ?", pending),
+			"pending_quota": 0,
+		}).Error
+	if err != nil {
+		return err
+	}
+	RecordLog(userId, LogTypeSystem, fmt.Sprintf("身份验证通过，解锁注册赠额 %s", logger.LogQuota(pending)))
+	_ = InvalidateUserCache(userId)
+	return nil
 }
 
 // FinalizeOAuthUserCreation performs post-transaction tasks for OAuth user creation.

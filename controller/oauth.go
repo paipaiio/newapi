@@ -197,6 +197,9 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider) {
 		}
 	}
 
+	// OAuth 绑定成功 → 释放待解锁的注册赠额（若用户此前用密码注册但未验证邮件）
+	_ = model.ReleasePendingQuota(user.Id)
+
 	common.ApiSuccessI18n(c, i18n.MsgOAuthBindSuccess, gin.H{
 		"action": "bind",
 	})
@@ -297,6 +300,9 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		user.InviteAbuseReason = res.Reason
 		common.SysLog(fmt.Sprintf("疑似滥用注册(OAuth): username=%s inviter=%d ip=%s reason=%s", user.Username, inviterId, user.RegisterIP, res.Reason))
 	}
+
+	// OAuth 注册已通过第三方身份验证，标记为"已验证"以直接发放注册赠额（无需等待邮件验证）
+	user.VerifiedAtRegistration = true
 
 	// Use transaction to ensure user creation and OAuth binding are atomic
 	if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {

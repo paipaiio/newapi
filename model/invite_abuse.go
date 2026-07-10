@@ -82,6 +82,29 @@ func countRecentRegistrationsByIP(ip string, windowHours int) int64 {
 	return count
 }
 
+// extractIPSubnet24 从 IPv4 地址中提取 /24 子网前缀(如 "92.44.27.")。
+// IPv6 或格式异常时返回空字符串。
+func extractIPSubnet24(ip string) string {
+	parts := strings.SplitN(ip, ".", 4)
+	if len(parts) == 4 {
+		return parts[0] + "." + parts[1] + "." + parts[2] + "."
+	}
+	return ""
+}
+
+// countRecentRegistrationsBySubnet24 统计同 /24 子网在时间窗内的注册数(含软删除)。
+func countRecentRegistrationsBySubnet24(subnet string, windowHours int) int64 {
+	if subnet == "" {
+		return 0
+	}
+	since := common.GetTimestamp() - int64(windowHours)*3600
+	var count int64
+	DB.Unscoped().Model(&User{}).
+		Where("register_ip LIKE ? AND created_at >= ?", subnet+"%", since).
+		Count(&count)
+	return count
+}
+
 // countRecentRegistrationsByFingerprint 统计某指纹在最近 windowHours 小时内的注册数(含软删除)。
 func countRecentRegistrationsByFingerprint(fp string, windowHours int) int64 {
 	if fp == "" {
@@ -187,6 +210,14 @@ func DetectInviteAbuse(inviterId int, registrantIP, fingerprint, rawEmail string
 		}
 		if s.CheckFingerprint && fingerprint != "" && countRecentRegistrationsByFingerprint(fingerprint, s.WindowHours) >= int64(s.MaxPerIP) {
 			reasons = append(reasons, fmt.Sprintf("同指纹 %d 小时内注册数达上限(%d)", s.WindowHours, s.MaxPerIP))
+		}
+	}
+
+	// 4. /24 子网速率检测——防止同一 VPN IP 池在不同 IP 下批量注册
+	if s.CheckIPSubnet && s.MaxPerSubnet > 0 && registrantIP != "" {
+		subnet := extractIPSubnet24(registrantIP)
+		if subnet != "" && countRecentRegistrationsBySubnet24(subnet, s.WindowHours) >= int64(s.MaxPerSubnet) {
+			reasons = append(reasons, fmt.Sprintf("同IP段(%s0/24) %d 小时内注册数达上限(%d)", subnet, s.WindowHours, s.MaxPerSubnet))
 		}
 	}
 

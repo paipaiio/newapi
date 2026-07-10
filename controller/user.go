@@ -1351,6 +1351,8 @@ func EmailBind(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// 邮件绑定成功 → 释放待解锁的注册赠额（若有）
+	_ = model.ReleasePendingQuota(id.(int))
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

@@ -44,6 +44,14 @@ type InviteAbuseSetting struct {
 	// BlockedEmailDomains 一次性/临时邮箱域名黑名单(小写,不含 @)。命中即判定。
 	// 存为 JSON 数组(单个 option 行)。
 	BlockedEmailDomains []string `json:"blocked_email_domains"`
+
+	// CheckIPSubnet 开启后,除精确 IP 外还对 /24 子网做速率检测。
+	// 可防止同一 VPN IP 池(换 IP 但同子网)批量注册。默认开启。
+	CheckIPSubnet bool `json:"check_ip_subnet"`
+
+	// MaxPerSubnet /24 子网在 WindowHours 内允许的最大注册数。
+	// 建议略高于 MaxPerIP,兼顾同一小区/企业多人注册的正常场景。默认 5。
+	MaxPerSubnet int `json:"max_per_subnet"`
 }
 
 var inviteAbuseSetting = InviteAbuseSetting{
@@ -54,6 +62,8 @@ var inviteAbuseSetting = InviteAbuseSetting{
 	CheckEmailAlias:     true,
 	CheckFingerprint:    true,
 	BlockedEmailDomains: []string{},
+	CheckIPSubnet:       true,
+	MaxPerSubnet:        5,
 }
 
 func init() {
