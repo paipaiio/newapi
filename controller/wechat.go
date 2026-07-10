@@ -95,6 +95,8 @@ func WeChatAuth(c *gin.Context) {
 			user.DisplayName = "WeChat User"
 			user.Role = common.RoleCommonUser
 			user.Status = common.UserStatusEnabled
+			// 微信注册已通过第三方身份验证，直接发放注册赠额
+			user.VerifiedAtRegistration = true
 
 			if err := user.Insert(0); err != nil {
 				c.JSON(http.StatusOK, gin.H{
@@ -174,6 +176,8 @@ func WeChatBind(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// 微信绑定成功 → 释放待解锁的注册赠额（若用户此前密码注册未验证邮件）
+	_ = model.ReleasePendingQuota(id.(int))
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
