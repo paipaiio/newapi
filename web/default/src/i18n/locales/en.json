@@ -5450,6 +5450,16 @@
     "{{count}} groups deleted. Click \"Save Settings\" to apply.": "{{count}} groups deleted. Click \"Save Settings\" to apply.",
     "Waffo Pancake payment hint": "Waffo Pancake charges: ¥{{cny}} CNY ≈ ${{usd}} USD",
     "Batch label": "Batch label",
-    "Optional, for tracking": "Optional, for tracking"
+    "Optional, for tracking": "Optional, for tracking",
+    "Request Stats": "Request Stats",
+    "Total requests": "Total requests",
+    "Successful": "Successful",
+    "Daily trend": "Daily trend",
+    "Failure breakdown": "Failure breakdown",
+    "% of failures": "% of failures",
+    "By user": "By user",
+    "Search username": "Search username",
+    "Filter by model": "Filter by model",
+    "Avg time: {{t}}": "Avg time: {{t}}"
   }
 }

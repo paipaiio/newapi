@@ -5471,6 +5471,16 @@
     "Invite abuse": "疑似滥用",
     "Waffo Pancake payment hint": "通过 Waffo Pancake 支付：¥{{cny}} CNY ≈ ${{usd}} USD",
     "Batch label": "批次标签",
-    "Optional, for tracking": "选填，用于批次追踪"
+    "Optional, for tracking": "选填，用于批次追踪",
+    "Request Stats": "请求成功率",
+    "Total requests": "总请求",
+    "Successful": "成功",
+    "Daily trend": "每日趋势",
+    "Failure breakdown": "失败原因明细",
+    "% of failures": "占失败比",
+    "By user": "按用户统计",
+    "Search username": "搜索用户名",
+    "Filter by model": "按模型筛选",
+    "Avg time: {{t}}": "均耗时：{{t}}"
   }
 }

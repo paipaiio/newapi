@@ -180,6 +180,11 @@ export function useSidebarData(): SidebarData {
             icon: BarChart3,
           },
           {
+            title: t("Request Stats"),
+            url: "/request-stats",
+            icon: Activity,
+          },
+          {
             title: t("OAuth Applications"),
             url: "/oauth-apps",
             icon: KeyRound,
