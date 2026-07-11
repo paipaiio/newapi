@@ -119,11 +119,31 @@ func Distribute() func(c *gin.Context) {
 									break
 								}
 							}
-						} else if model.IsChannelEnabledForGroupModel(usingGroup, modelRequest.Model, preferred.Id) {
-							channel = preferred
-							selectGroup = usingGroup
-							affinityUsable = true
-							service.MarkChannelAffinityUsed(c, usingGroup, preferred.Id)
+						} else {
+							// 多分组令牌:usingGroup 仅是列表首个分组占位,亲和渠道可能属于
+							// 后续分组(如 grok-4.5 命中的渠道属于 Grok 分组)。需遍历令牌的
+							// 全部分组校验渠道支持,而非只用首个分组,否则亲和永远失效、
+							// 每次都重新遍历,跨请求粘性丢失。
+							candidateGroups := []string{usingGroup}
+							tokenGroup := common.GetContextKeyString(c, constant.ContextKeyTokenGroup)
+							if strings.Contains(tokenGroup, ",") {
+								candidateGroups = candidateGroups[:0]
+								for _, g := range strings.Split(tokenGroup, ",") {
+									if g = strings.TrimSpace(g); g != "" {
+										candidateGroups = append(candidateGroups, g)
+									}
+								}
+							}
+							for _, g := range candidateGroups {
+								if model.IsChannelEnabledForGroupModel(g, modelRequest.Model, preferred.Id) {
+									channel = preferred
+									selectGroup = g
+									affinityUsable = true
+									common.SetContextKey(c, constant.ContextKeyAutoGroup, g)
+									service.MarkChannelAffinityUsed(c, g, preferred.Id)
+									break
+								}
+							}
 						}
 					}
 					if !affinityUsable && !service.ShouldKeepChannelAffinityOnChannelDisabled() {
