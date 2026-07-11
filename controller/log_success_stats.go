@@ -132,22 +132,6 @@ func buildSuccessStats(start, end int64, username, modelName string, userId int,
 		"COUNT(*) AS total, SUM("+isFailedExpr+") AS failed, AVG(CASE WHEN "+isFailedExpr+" = 0 THEN use_time ELSE NULL END) AS avg_use_time",
 	).Scan(&sr)
 
-	success := sr.Total - sr.Failed
-	rate := 0.0
-	if sr.Total > 0 {
-		rate = float64(success) / float64(sr.Total) * 100
-	}
-	// 保留两位小数
-	rate = float64(int(rate*100+0.5)) / 100
-
-	summary := SuccessStatsSummary{
-		Total:       sr.Total,
-		Success:     success,
-		Failed:      sr.Failed,
-		SuccessRate: rate,
-		AvgUseTime:  sr.AvgUseTime,
-	}
-
 	// --- 按天趋势 ---
 	type dayRow struct {
 		Date   string
@@ -169,25 +153,72 @@ func buildSuccessStats(start, end int64, username, modelName string, userId int,
 		})
 	}
 
-	// --- 失败原因明细 ---
+	// --- 失败原因明细（两类：流式错误来自 type=2，HTTP 错误来自 type=5） ---
+
+	// 1. 流式错误：type=2 中 stream_status.status=error
 	type errRow struct {
 		Reason string
 		Count  int64
 	}
-	var errRows []errRow
-	// end_reason 优先；若为空则取 content 前80字符
+	var streamErrRows []errRow
 	base.Where(isFailedExpr).
 		Select(`COALESCE(
 			NULLIF(JSON_UNQUOTE(JSON_EXTRACT(other, '$.stream_status.end_reason')), ''),
-			NULLIF(LEFT(content, 80), '')
+			NULLIF(LEFT(content, 80), ''),
+			'unknown'
 		) AS reason, COUNT(*) AS count`).
-		Group("reason").Order("count desc").Limit(20).Scan(&errRows)
+		Group("reason").Order("count desc").Limit(10).Scan(&streamErrRows)
 
-	errors := make([]SuccessStatsErrorReason, 0, len(errRows))
-	for _, e := range errRows {
+	// 2. HTTP 错误：type=5（ErrorLogEnabled=true 时才有记录）
+	var httpErrRows []errRow
+	httpBase := model.LOG_DB.Table("logs").
+		Where("type = ? AND created_at >= ? AND created_at <= ?", model.LogTypeError, start, end)
+	if strings.TrimSpace(username) != "" {
+		httpBase = httpBase.Where("username = ?", strings.TrimSpace(username))
+	}
+	if userId > 0 {
+		httpBase = httpBase.Where("user_id = ?", userId)
+	}
+	if strings.TrimSpace(modelName) != "" {
+		httpBase = httpBase.Where("model_name = ?", strings.TrimSpace(modelName))
+	}
+	httpBase.Select(`CONCAT('HTTP ', COALESCE(JSON_UNQUOTE(JSON_EXTRACT(other, '$.status_code')), '?')) AS reason, COUNT(*) AS count`).
+		Group("reason").Order("count desc").Limit(10).Scan(&httpErrRows)
+
+	// 汇总 HTTP 错误总数
+	var httpErrTotal int64
+	for _, e := range httpErrRows {
+		httpErrTotal += e.Count
+	}
+
+	// 修正总失败数 = 流式失败 + HTTP 错误
+	totalFailed := sr.Failed + httpErrTotal
+	totalAll := sr.Total + httpErrTotal
+	success := totalAll - totalFailed
+	rate := 0.0
+	if totalAll > 0 {
+		rate = float64(success) / float64(totalAll) * 100
+	}
+	rate = float64(int(rate*100+0.5)) / 100
+
+	summary := SuccessStatsSummary{
+		Total:       totalAll,
+		Success:     success,
+		Failed:      totalFailed,
+		SuccessRate: rate,
+		AvgUseTime:  sr.AvgUseTime,
+	}
+
+	// 合并失败原因列表
+	allErrRows := make([]errRow, 0, len(httpErrRows)+len(streamErrRows))
+	allErrRows = append(allErrRows, httpErrRows...)   // HTTP 错误在前（更明显）
+	allErrRows = append(allErrRows, streamErrRows...)
+
+	errors := make([]SuccessStatsErrorReason, 0, len(allErrRows))
+	for _, e := range allErrRows {
 		pct := 0.0
-		if sr.Failed > 0 {
-			pct = float64(e.Count) / float64(sr.Failed) * 100
+		if totalFailed > 0 {
+			pct = float64(e.Count) / float64(totalFailed) * 100
 			pct = float64(int(pct*100+0.5)) / 100
 		}
 		errors = append(errors, SuccessStatsErrorReason{
