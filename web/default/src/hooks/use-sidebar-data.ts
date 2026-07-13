@@ -22,6 +22,7 @@ import {
   Bell,
   Box,
   Boxes,
+  Flame,
   CreditCard,
   FileClock,
   FileText,
@@ -221,6 +222,16 @@ export function useSidebarData(): SidebarData {
             title: t("Service Management"),
             url: "/service-management",
             icon: Boxes,
+          },
+          {
+            title: t("Real-time Monitor"),
+            url: "/monitor",
+            icon: Activity,
+          },
+          {
+            title: t("Burn Tool"),
+            url: "/burn-tool",
+            icon: Flame,
           },
           {
             title: t("System Settings"),

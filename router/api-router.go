@@ -451,5 +451,13 @@ func SetApiRouter(router *gin.Engine) {
 			deploymentsRoute.POST("/:id/extend", controller.ExtendDeployment)
 			deploymentsRoute.DELETE("/:id", controller.DeleteDeployment)
 		}
+
+		// Admin tools (real-time monitor + burn tool via SSE)
+		adminToolsRoute := apiRouter.Group("/admin_tools")
+		adminToolsRoute.Use(middleware.AdminAuth())
+		{
+			adminToolsRoute.GET("/monitor/stream", controller.AdminMonitorSSE)
+			adminToolsRoute.POST("/burn/stream", controller.AdminBurnSSE)
+		}
 	}
 }
