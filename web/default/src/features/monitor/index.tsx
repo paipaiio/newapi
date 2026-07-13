@@ -21,6 +21,7 @@ import {
   YAxis,
 } from 'recharts'
 
+import { getCommonHeaders } from '@/lib/api'
 import { SectionPageLayout } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -63,6 +64,7 @@ function useMonitorSSE() {
       try {
         const resp = await fetch('/api/admin_tools/monitor/stream', {
           credentials: 'include',
+          headers: getCommonHeaders(),
         })
         if (!resp.ok || !resp.body) return
         setConnected(true)

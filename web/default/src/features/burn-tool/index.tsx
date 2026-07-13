@@ -9,6 +9,7 @@ License, or (at your option) any later version.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useRef, useState } from 'react'
+import { getCommonHeaders } from '@/lib/api'
 import { Flame, Play, Square } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -114,6 +115,7 @@ function BurnToolContent() {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         signal: ac.signal,
+        headers: getCommonHeaders(),
         body: JSON.stringify({
           key: key.trim(),
           base_url: baseURL.trim(),
