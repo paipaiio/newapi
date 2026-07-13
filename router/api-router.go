@@ -452,12 +452,16 @@ func SetApiRouter(router *gin.Engine) {
 			deploymentsRoute.DELETE("/:id", controller.DeleteDeployment)
 		}
 
-		// Admin tools (real-time monitor + burn tool via SSE)
-		adminToolsRoute := apiRouter.Group("/admin_tools")
-		adminToolsRoute.Use(middleware.AdminAuth())
-		{
-			adminToolsRoute.GET("/monitor/stream", controller.AdminMonitorSSE)
-			adminToolsRoute.POST("/burn/stream", controller.AdminBurnSSE)
-		}
+	}
+
+	// SSE endpoints — registered WITHOUT gzip middleware to prevent buffering
+	// (gzip.Gzip buffers data for compression, breaking real-time SSE streams)
+	sseRouter := router.Group("/api")
+	sseRouter.Use(middleware.RouteTag("api"))
+	sseRouter.Use(middleware.GlobalAPIRateLimit())
+	sseRouter.Use(middleware.AdminAuth())
+	{
+		sseRouter.GET("/admin_tools/monitor/stream", controller.AdminMonitorSSE)
+		sseRouter.POST("/admin_tools/burn/stream", controller.AdminBurnSSE)
 	}
 }
