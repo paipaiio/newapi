@@ -454,11 +454,13 @@ func SetApiRouter(router *gin.Engine) {
 
 	}
 
-	// SSE endpoints — registered WITHOUT gzip middleware to prevent buffering
-	// (gzip.Gzip buffers data for compression, breaking real-time SSE streams)
+	// SSE endpoints — registered WITHOUT gzip middleware (gzip buffers writes and
+	// breaks real-time streaming) and WITHOUT GlobalAPIRateLimit (these are
+	// long-lived streaming connections, not bursts of requests; counting each
+	// connection/reconnect against the 360/180s per-IP budget would starve the
+	// rest of the panel and cause spurious 429s). AdminAuth still gates access.
 	sseRouter := router.Group("/api")
 	sseRouter.Use(middleware.RouteTag("api"))
-	sseRouter.Use(middleware.GlobalAPIRateLimit())
 	sseRouter.Use(middleware.AdminAuth())
 	{
 		sseRouter.GET("/admin_tools/monitor/stream", controller.AdminMonitorSSE)
