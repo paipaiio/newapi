@@ -5482,5 +5482,7 @@
     "Search username": "搜索用户名",
     "Filter by model": "按模型筛选",
     "Avg time: {{t}}": "均耗时：{{t}}"
-  }
+  },
+  "Real-time Monitor": "实时监控",
+  "Burn Tool": "额度验货"
 }
