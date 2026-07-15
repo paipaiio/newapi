@@ -10,9 +10,19 @@ import (
 
 // GetUserUsableGroupsByUser 在 GetUserUsableGroups 的基础上叠加「独享分组」过滤：
 // 独享分组默认对所有人隐藏，只有被授权的 userId 才保留。
+// 同时，将该用户被授权的所有独享分组直接注入到结果中——即使 user.Group 字段未指向
+// 该分组名，授权用户也能正常看到并使用自己的独享分组，无需管理员额外手动同步
+// user.Group 字段。
 // 所有"用户能用哪些分组"的判断都应优先用此函数（能拿到 userId 时）。
 func GetUserUsableGroupsByUser(userId int, userGroup string) map[string]string {
 	groups := GetUserUsableGroups(userGroup)
+	// 把该用户被授权的独享分组直接注入（独享分组一般不在全局 UserUsableGroups 里）
+	for _, name := range model.GetUserAuthorizedExclusiveGroups(userId) {
+		if _, exists := groups[name]; !exists {
+			groups[name] = setting.GetUsableGroupDescription(name)
+		}
+	}
+	// 移除用户无权使用的独享分组
 	for name := range groups {
 		if model.IsExclusiveGroup(name) && !model.IsUserAllowedExclusive(userId, name) {
 			delete(groups, name)

@@ -108,6 +108,22 @@ func GetGroupAuthorizedUsers(groupName string) []int {
 	return ids
 }
 
+// GetUserAuthorizedExclusiveGroups 返回某用户被授权的所有独享分组名。
+// 用于在构建用户可用分组列表时直接注入，确保独享分组对授权用户可见，
+// 不依赖 user.Group 字段是否恰好等于该独享分组名。
+func GetUserAuthorizedExclusiveGroups(userId int) []string {
+	ensureExclusiveCache()
+	exclusiveMu.RLock()
+	defer exclusiveMu.RUnlock()
+	var groups []string
+	for groupName, users := range exclusiveCache {
+		if _, ok := users[userId]; ok {
+			groups = append(groups, groupName)
+		}
+	}
+	return groups
+}
+
 // AddUsersToExclusiveGroup 增量把若干用户加入某分组的独享授权名单（已存在的跳过）。
 // 与 SetGroupExclusiveUsers 的全量覆盖不同，适合批量逐个追加的场景（如 API 售卖）。
 func AddUsersToExclusiveGroup(groupName string, userIds []int) error {
