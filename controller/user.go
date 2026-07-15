@@ -262,6 +262,10 @@ func Register(c *gin.Context) {
 	}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
+		// 邮箱验证码已在上方校验通过（EmailVerificationEnabled 时不通过无法走到这里），
+		// 视同已完成身份验证，注册赠额直接发放，无需再等后续绑定。
+		// 邮箱验证关闭时的裸密码注册不置此标记，赠额仍锁 pending，待后续绑定释放。
+		cleanUser.VerifiedAtRegistration = true
 	}
 	// 注册滥用检测:记录注册 IP/指纹,对所有注册判定(带邀请码=防刷返利小号;
 	// 无邀请码=防同 IP/指纹批量注册)。软处理——始终允许注册,疑似时不发放
