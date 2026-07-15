@@ -26,7 +26,7 @@ import type { z } from "zod";
 
 import { Dialog } from "@/components/dialog";
 import { PasswordInput } from "@/components/password-input";
-import { Turnstile } from "@/components/turnstile";
+import { SmartCaptcha } from '@/components/smart-captcha';
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -343,7 +343,7 @@ export function SignUpForm({
         {/* Turnstile — centred, sits between inputs and the submit button */}
         {isTurnstileEnabled && (
           <div className="flex justify-center">
-            <Turnstile
+            <SmartCaptcha
               siteKey={turnstileSiteKey}
               onVerify={setTurnstileToken}
             />

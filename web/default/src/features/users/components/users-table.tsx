@@ -20,15 +20,18 @@ import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import { useState } from 'react'
 
 import {
   DISABLED_ROW_DESKTOP,
   DISABLED_ROW_MOBILE,
   DataTablePage,
+  DataTableRow,
   useDataTable,
 } from '@/components/data-table'
 import { useMediaQuery } from '@/hooks'
 import { useTableUrlState } from '@/hooks/use-table-url-state'
+import { TableCell, TableRow } from '@/components/ui/table'
 
 import { getUsers, searchUsers } from '../api'
 import {
@@ -41,6 +44,7 @@ import type { User } from '../types'
 import { DataTableBulkActions } from './data-table-bulk-actions'
 import { useUsersColumns } from './users-columns'
 import { useUsers } from './users-provider'
+import { UserKeysPanel } from './UserKeysPanel'
 
 const route = getRouteApi('/_authenticated/users/')
 
@@ -50,8 +54,11 @@ function isDisabledUserRow(user: User) {
 
 export function UsersTable() {
   const { t } = useTranslation()
-  const columns = useUsersColumns()
   const { refreshTrigger } = useUsers()
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null)
+  const toggleExpand = (id: number) =>
+    setExpandedUserId((prev) => (prev === id ? null : id))
+  const columns = useUsersColumns(expandedUserId, toggleExpand)
   const isMobile = useMediaQuery('(max-width: 640px)')
 
   const {
@@ -185,6 +192,34 @@ export function UsersTable() {
       )}
       skeletonKeyPrefix='users-skeleton'
       applyHeaderSize
+      renderRow={(row) => {
+        // Span every currently-visible column so the expanded panel stretches
+        // the full table width and stays aligned when columns are toggled.
+        const visibleColumnCount = table.getVisibleLeafColumns().length;
+        return (
+          <>
+            <DataTableRow
+              row={row}
+              cellRenderColumns={table.options.columns}
+              className={
+                isDisabledUserRow(row.original)
+                  ? DISABLED_ROW_DESKTOP
+                  : undefined
+              }
+            />
+            {expandedUserId === row.original.id && (
+              <TableRow className="hover:bg-transparent">
+                <TableCell
+                  colSpan={visibleColumnCount}
+                  className="p-0 border-t-0 bg-muted/30"
+                >
+                  <UserKeysPanel userId={row.original.id} />
+                </TableCell>
+              </TableRow>
+            )}
+          </>
+        );
+      }}
       toolbarProps={{
         searchPlaceholder: t('Filter by username, name or email...'),
         filters: [

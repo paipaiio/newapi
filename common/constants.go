@@ -142,6 +142,9 @@ var WeChatAccountQRCodeImageURL = ""
 var TurnstileSiteKey = ""
 var TurnstileSecretKey = ""
 
+var GeeTestCaptchaId = ""
+var GeeTestCaptchaKey = ""
+
 var TelegramBotToken = ""
 var TelegramBotName = ""
 

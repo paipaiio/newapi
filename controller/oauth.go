@@ -197,8 +197,11 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider) {
 		}
 	}
 
-	// OAuth 绑定成功 → 释放待解锁的注册赠额（若用户此前用密码注册但未验证邮件）
-	_ = model.ReleasePendingQuota(user.Id)
+	// 只有绑定 LinuxDO（在邮箱/LinuxDO/微信白名单中）才释放待解锁的注册赠额。
+	// GitHub、Discord、OIDC 等不在白名单，绑定这些不能解锁赠额。
+	if _, isLinuxDO := provider.(*oauth.LinuxDOProvider); isLinuxDO {
+		_ = model.ReleasePendingQuota(user.Id)
+	}
 
 	common.ApiSuccessI18n(c, i18n.MsgOAuthBindSuccess, gin.H{
 		"action": "bind",
@@ -301,8 +304,12 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 		common.SysLog(fmt.Sprintf("疑似滥用注册(OAuth): username=%s inviter=%d ip=%s reason=%s", user.Username, inviterId, user.RegisterIP, res.Reason))
 	}
 
-	// OAuth 注册已通过第三方身份验证，标记为"已验证"以直接发放注册赠额（无需等待邮件验证）
-	user.VerifiedAtRegistration = true
+	// 只有 LinuxDO OAuth 属于"邮箱/LinuxDO/微信"白名单，可直接发放注册赠额。
+	// GitHub、Discord、OIDC 及自定义 OAuth 不在白名单，赠额进入锁定状态，
+	// 需完成邮件验证或绑定微信/LinuxDO 后才自动解锁（与密码注册+邮箱的路径一致）。
+	if _, isLinuxDO := provider.(*oauth.LinuxDOProvider); isLinuxDO {
+		user.VerifiedAtRegistration = true
+	}
 
 	// Use transaction to ensure user creation and OAuth binding are atomic
 	if genericProvider, ok := provider.(*oauth.GenericOAuthProvider); ok {

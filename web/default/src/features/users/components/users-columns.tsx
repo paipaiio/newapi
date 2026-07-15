@@ -17,7 +17,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import type { ColumnDef } from "@tanstack/react-table";
+import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
+
+import { Button } from "@/components/ui/button";
 
 import { BadgeCell } from "@/components/data-table";
 import { GroupBadge } from "@/components/group-badge";
@@ -50,9 +53,41 @@ function getQuotaProgressColor(percentage: number): string {
   return "[&_[data-slot=progress-indicator]]:bg-emerald-500";
 }
 
-export function useUsersColumns(): ColumnDef<User>[] {
+export function useUsersColumns(
+  expandedUserId?: number | null,
+  onToggleExpand?: (id: number) => void,
+): ColumnDef<User>[] {
   const { t } = useTranslation();
   return [
+    // Expander column
+    {
+      id: "expander",
+      header: () => null,
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          aria-label={t("Toggle API keys")}
+          aria-expanded={expandedUserId === row.original.id}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand?.(row.original.id);
+          }}
+        >
+          <ChevronRight
+            className="h-4 w-4 transition-transform duration-150"
+            style={{
+              transform:
+                expandedUserId === row.original.id ? "rotate(90deg)" : "none",
+            }}
+          />
+        </Button>
+      ),
+      enableSorting: false,
+      enableHiding: false,
+      size: 44,
+    },
     {
       id: "select",
       header: ({ table }) => (

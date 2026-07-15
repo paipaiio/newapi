@@ -11,7 +11,7 @@ import (
 )
 
 // EmailLogoURL 邮件中使用的品牌 Logo 绝对地址（邮件客户端要求绝对 URL）
-var EmailLogoURL = "https://api.tuftech.org/tuftech-theme/tuftech-logo.png"
+var EmailLogoURL = "https://static.paipaiio.com/tuftech-theme/tuftech-logo.svg"
 
 // WrapEmailContent 将邮件正文片段包进统一的品牌化 HTML 模板。
 // bodyHTML 为正文区域内容（标题、段落、验证码块、按钮等），由调用方提供。

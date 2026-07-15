@@ -116,3 +116,26 @@ export async function fetchTokenKeysBatch(ids: number[]): Promise<{
   const res = await api.post('/api/token/batch/keys', { ids })
   return res.data
 }
+
+// ============================================================================
+// Admin: edit a token owned by another user (per-user admin endpoints)
+// ============================================================================
+
+// Fetch a single token's detail for an arbitrary user (admin, masked key)
+export async function adminGetUserTokenDetail(
+  userId: number,
+  tokenId: number
+): Promise<ApiResponse<ApiKey>> {
+  const res = await api.get(`/api/user/${userId}/tokens/${tokenId}`)
+  return res.data
+}
+
+// Update a token owned by an arbitrary user (admin)
+export async function adminUpdateUserTokenDetail(
+  userId: number,
+  data: ApiKeyFormData & { id: number }
+): Promise<ApiResponse<ApiKey>> {
+  const { id, ...payload } = data
+  const res = await api.put(`/api/user/${userId}/tokens/${id}`, payload)
+  return res.data
+}

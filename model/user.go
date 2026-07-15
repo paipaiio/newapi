@@ -577,14 +577,12 @@ func (user *User) Insert(inviterId int) error {
 				// OAuth 注册：已通过第三方身份验证，直接发放赠额
 				user.Quota = common.QuotaForNewUser
 				user.PendingQuota = 0
-			} else if user.Email != "" {
-				// 密码注册 + 有邮件：赠额锁定，验证邮件或绑定微信/LinuxDO 后自动释放
+			} else {
+				// 其余所有注册方式（密码注册 + 有邮件、密码注册 + 无邮件、GitHub 等第三方
+				// OAuth）：赠额锁定，绑定邮箱（验证后）、LinuxDO 或微信后自动释放。
+				// 此策略统一防止滥用，与注册渠道无关。
 				user.Quota = 0
 				user.PendingQuota = common.QuotaForNewUser
-			} else {
-				// 密码注册 + 无邮件：永不发放注册赠额（方向1）
-				user.Quota = 0
-				user.PendingQuota = 0
 			}
 			user.AffCode = common.GetRandomString(4)
 
@@ -663,12 +661,10 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 		} else if user.VerifiedAtRegistration {
 			user.Quota = common.QuotaForNewUser
 			user.PendingQuota = 0
-		} else if user.Email != "" {
+		} else {
+			// 其余所有注册方式：赠额锁定，绑定邮箱（验证后）、LinuxDO 或微信后自动释放。
 			user.Quota = 0
 			user.PendingQuota = common.QuotaForNewUser
-		} else {
-			user.Quota = 0
-			user.PendingQuota = 0
 		}
 		user.AffCode = common.GetRandomString(4)
 

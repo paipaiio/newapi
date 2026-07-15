@@ -19,7 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, KeyRound, Settings2, WalletCards } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useForm, type SubmitErrorHandler } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -67,7 +67,13 @@ import { getUserModels, getUserGroups } from "@/lib/api";
 import { getCurrencyDisplay, getCurrencyLabel } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
-import { createApiKey, updateApiKey, getApiKey } from "../api";
+import {
+  createApiKey,
+  updateApiKey,
+  getApiKey,
+  adminGetUserTokenDetail,
+  adminUpdateUserTokenDetail,
+} from "../api";
 import { ERROR_MESSAGES, SUCCESS_MESSAGES } from "../constants";
 import {
   getApiKeyFormSchema,
@@ -81,22 +87,36 @@ import {
   ApiKeyGroupCombobox,
   type ApiKeyGroupOption,
 } from "./api-key-group-combobox";
-import { useApiKeys } from "./api-keys-provider";
+import { ApiKeysContext } from "./api-keys-provider";
 
 type ApiKeyMutateDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentRow?: ApiKey;
+  /**
+   * When set, the drawer operates in admin mode: it fetches and updates the
+   * token via the admin per-user endpoints instead of the self-service ones.
+   * Only meaningful together with `currentRow` (update mode).
+   */
+  adminUserId?: number;
+  /** Called after a successful save (used by admin panels to refetch). */
+  onSaved?: () => void;
 };
 
 export function ApiKeysMutateDrawer({
   open,
   onOpenChange,
   currentRow,
+  adminUserId,
+  onSaved,
 }: ApiKeyMutateDrawerProps) {
   const { t } = useTranslation();
   const isUpdate = !!currentRow;
-  const { triggerRefresh } = useApiKeys();
+  const isAdmin = adminUserId != null;
+  // useApiKeys is only available inside the keys page; in admin mode we render
+  // outside that provider, so read the context optionally instead of throwing.
+  const apiKeysContext = useContext(ApiKeysContext);
+  const triggerRefresh = apiKeysContext?.triggerRefresh ?? (() => {});
   const { status } = useStatus();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -139,7 +159,11 @@ export function ApiKeysMutateDrawer({
   // Load existing data when updating
   useEffect(() => {
     if (open && isUpdate && currentRow) {
-      getApiKey(currentRow.id).then((result) => {
+      const fetchDetail =
+        isAdmin && adminUserId != null
+          ? adminGetUserTokenDetail(adminUserId, currentRow.id)
+          : getApiKey(currentRow.id);
+      fetchDetail.then((result) => {
         if (result.success && result.data) {
           form.reset(transformApiKeyToFormDefaults(result.data));
         }
@@ -149,7 +173,16 @@ export function ApiKeysMutateDrawer({
         getApiKeyFormDefaultValues(defaultUseAutoGroup && backendHasAuto),
       );
     }
-  }, [open, isUpdate, currentRow, form, defaultUseAutoGroup, backendHasAuto]);
+  }, [
+    open,
+    isUpdate,
+    currentRow,
+    form,
+    defaultUseAutoGroup,
+    backendHasAuto,
+    isAdmin,
+    adminUserId,
+  ]);
 
   // Correct group after groups load: if the form value is not in available groups, fall back
   useEffect(() => {
@@ -173,14 +206,21 @@ export function ApiKeysMutateDrawer({
       const basePayload = transformFormDataToPayload(data);
 
       if (isUpdate && currentRow) {
-        const result = await updateApiKey({
-          ...basePayload,
-          id: currentRow.id,
-        });
+        const result =
+          isAdmin && adminUserId != null
+            ? await adminUpdateUserTokenDetail(adminUserId, {
+                ...basePayload,
+                id: currentRow.id,
+              })
+            : await updateApiKey({
+                ...basePayload,
+                id: currentRow.id,
+              });
         if (result.success) {
           toast.success(t(SUCCESS_MESSAGES.API_KEY_UPDATED));
           onOpenChange(false);
           triggerRefresh();
+          onSaved?.();
         } else {
           toast.error(result.message || t(ERROR_MESSAGES.UPDATE_FAILED));
         }

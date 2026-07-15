@@ -282,3 +282,60 @@ export async function adminUnbindCustomOAuth(
   );
   return res.data;
 }
+
+// ============================================================================
+// Admin: Per-user token/key management
+// ============================================================================
+
+export interface AdminGetUserTokensResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    items: import("@/features/keys/types").ApiKey[];
+    total: number;
+    page: number;
+    page_size: number;
+  };
+}
+
+/** List all tokens owned by a user (keys are masked). */
+export async function adminGetUserTokens(
+  userId: number,
+  p = 1,
+  pageSize = 20,
+): Promise<AdminGetUserTokensResponse> {
+  const res = await api.get(
+    `/api/user/${userId}/tokens?p=${p}&page_size=${pageSize}`,
+  );
+  return res.data;
+}
+
+/** Update a token owned by a user. Pass `status_only=true` for status toggle. */
+export async function adminUpdateUserToken(
+  userId: number,
+  tokenId: number,
+  payload: Partial<import("@/features/keys/types").ApiKey>,
+  statusOnly = false,
+): Promise<ApiResponse<import("@/features/keys/types").ApiKey>> {
+  const qs = statusOnly ? "?status_only=true" : "";
+  const res = await api.put(`/api/user/${userId}/tokens/${tokenId}${qs}`, payload);
+  return res.data;
+}
+
+/** Delete a token owned by a user. */
+export async function adminDeleteUserToken(
+  userId: number,
+  tokenId: number,
+): Promise<ApiResponse> {
+  const res = await api.delete(`/api/user/${userId}/tokens/${tokenId}`);
+  return res.data;
+}
+
+/** Retrieve the full plaintext key for a token owned by a user. */
+export async function adminGetUserTokenKey(
+  userId: number,
+  tokenId: number,
+): Promise<ApiResponse<{ key: string }>> {
+  const res = await api.get(`/api/user/${userId}/tokens/${tokenId}/key`);
+  return res.data;
+}
