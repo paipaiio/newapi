@@ -87,6 +87,11 @@ export function useUsersColumns(
       enableSorting: false,
       enableHiding: false,
       size: 44,
+      // The inline expander only works on the desktop table (via renderRow).
+      // Mobile/narrow layouts use the card list, which has no expansion slot —
+      // hide the dead chevron there and rely on the row actions "View API keys"
+      // dialog instead.
+      meta: { mobileHidden: true },
     },
     {
       id: "select",

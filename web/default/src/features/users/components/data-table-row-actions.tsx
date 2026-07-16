@@ -40,6 +40,12 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataTableRowActionMenu } from "@/components/data-table/core/row-action-menu";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
@@ -61,6 +67,7 @@ import {
 import { getUserActionMessage } from "../lib";
 import type { User, ManageUserAction } from "../types";
 import { UserBindingDialog } from "./dialogs/user-binding-dialog";
+import { UserKeysPanel } from "./UserKeysPanel";
 import { useUsers } from "./users-provider";
 
 interface DataTableRowActionsProps {
@@ -75,6 +82,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const [resetTwoFAOpen, setResetTwoFAOpen] = useState(false);
   const [bindingDialogOpen, setBindingDialogOpen] = useState(false);
   const [subscriptionsDialogOpen, setSubscriptionsDialogOpen] = useState(false);
+  const [keysDialogOpen, setKeysDialogOpen] = useState(false);
 
   const handleEdit = () => {
     setCurrentRow(user);
@@ -164,6 +172,20 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         ariaLabel={t("Open menu")}
         contentClassName="w-48"
       >
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault();
+            setKeysDialogOpen(true);
+          }}
+        >
+          {t("View API keys")}
+          <DropdownMenuShortcut>
+            <KeyRound size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
         {isDisabled ? (
           <DropdownMenuItem onClick={() => handleManage("enable")}>
             {t("Enable")}
@@ -348,6 +370,17 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         user={{ id: user.id, username: user.username }}
         onSuccess={triggerRefresh}
       />
+
+      <Dialog open={keysDialogOpen} onOpenChange={setKeysDialogOpen}>
+        <DialogContent className="max-w-[calc(100%-2rem)] sm:max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {t("API keys of {{username}}", { username: user.username })}
+            </DialogTitle>
+          </DialogHeader>
+          {keysDialogOpen && <UserKeysPanel userId={user.id} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
