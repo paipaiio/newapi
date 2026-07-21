@@ -41,13 +41,14 @@ import {
   ShieldAlert,
   Tag,
   Ticket,
+  Timer,
   User,
   Users,
   Wallet,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { type SidebarData } from "@/components/layout/types";
+import type { SidebarData } from "@/components/layout/types";
 import { ROLE } from "@/lib/roles";
 
 /**
@@ -224,12 +225,17 @@ export function useSidebarData(): SidebarData {
             icon: Boxes,
           },
           {
-            title: t("Real-time Monitor"),
+            title: "首字稳定性测试",
+            url: "/first-token-test",
+            icon: Timer,
+          },
+          {
+            title: "实时监控",
             url: "/monitor",
             icon: Activity,
           },
           {
-            title: t("Burn Tool"),
+            title: "额度验货",
             url: "/burn-tool",
             icon: Flame,
           },

@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 package controller
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -140,6 +141,326 @@ func AdminMonitorSSE(c *gin.Context) {
 			}
 		}
 	}
+}
+
+// ─────────────────────────────────────────────
+//  First Token Stability SSE
+// ─────────────────────────────────────────────
+
+type FirstTokenConfig struct {
+	Key         string   `json:"key"`
+	BaseURL     string   `json:"base_url"`
+	Model       string   `json:"model"`
+	API         string   `json:"api"`
+	MaxTokens   int      `json:"max_tokens"`
+	Concurrency int      `json:"concurrency"`
+	Requests    int      `json:"requests"`
+	Temperature float64  `json:"temperature"`
+	Prompts     []string `json:"prompts"`
+}
+
+type FirstTokenEvent struct {
+	Type        string  `json:"type"`
+	Index       int     `json:"index,omitempty"`
+	Status      string  `json:"status,omitempty"`
+	Sent        int64   `json:"sent"`
+	OK          int64   `json:"ok"`
+	Fail        int64   `json:"fail"`
+	FirstMs     int64   `json:"first_ms,omitempty"`
+	TotalMs     int64   `json:"total_ms,omitempty"`
+	FirstToken  string  `json:"first_token,omitempty"`
+	Error       string  `json:"error,omitempty"`
+	AvgMs       float64 `json:"avg_ms,omitempty"`
+	P50Ms       int64   `json:"p50_ms,omitempty"`
+	P95Ms       int64   `json:"p95_ms,omitempty"`
+	MinMs       int64   `json:"min_ms,omitempty"`
+	MaxMs       int64   `json:"max_ms,omitempty"`
+	StddevMs    float64 `json:"stddev_ms,omitempty"`
+	Elapsed     float64 `json:"elapsed"`
+	Concurrency int     `json:"concurrency,omitempty"`
+	Message     string  `json:"msg,omitempty"`
+}
+
+type firstTokenResult struct {
+	index      int
+	ok         bool
+	firstMs    int64
+	totalMs    int64
+	firstToken string
+	errSumm    string
+}
+
+func firstTokenEndpoint(cfg FirstTokenConfig) string {
+	base := strings.TrimRight(cfg.BaseURL, "/")
+	if cfg.API == "messages" {
+		return base + "/v1/messages"
+	}
+	return base + "/v1/chat/completions"
+}
+
+func firstTokenPayload(cfg FirstTokenConfig, prompt string) []byte {
+	if cfg.API == "messages" {
+		body := map[string]interface{}{
+			"model":       cfg.Model,
+			"max_tokens":  cfg.MaxTokens,
+			"temperature": cfg.Temperature,
+			"stream":      true,
+			"messages": []interface{}{
+				map[string]interface{}{"role": "user", "content": prompt},
+			},
+		}
+		b, _ := json.Marshal(body)
+		return b
+	}
+	body := map[string]interface{}{
+		"model":       cfg.Model,
+		"max_tokens":  cfg.MaxTokens,
+		"temperature": cfg.Temperature,
+		"stream":      true,
+		"messages": []interface{}{
+			map[string]interface{}{"role": "user", "content": prompt},
+		},
+	}
+	b, _ := json.Marshal(body)
+	return b
+}
+
+func firstTokenExtractText(api string, data []byte) string {
+	var m map[string]interface{}
+	if json.Unmarshal(data, &m) != nil {
+		return ""
+	}
+	if api == "messages" {
+		if delta, ok := m["delta"].(map[string]interface{}); ok {
+			if text, ok := delta["text"].(string); ok {
+				return text
+			}
+		}
+		return ""
+	}
+	choices, _ := m["choices"].([]interface{})
+	if len(choices) == 0 {
+		return ""
+	}
+	choice, _ := choices[0].(map[string]interface{})
+	delta, _ := choice["delta"].(map[string]interface{})
+	if text, ok := delta["content"].(string); ok {
+		return text
+	}
+	if text, ok := delta["reasoning_content"].(string); ok {
+		return text
+	}
+	return ""
+}
+
+func firstTokenOne(ctx context.Context, cfg FirstTokenConfig, endpoint string, index int, prompt string) firstTokenResult {
+	started := time.Now()
+	req, err := http.NewRequestWithContext(ctx, "POST", endpoint, bytes.NewReader(firstTokenPayload(cfg, prompt)))
+	if err != nil {
+		return firstTokenResult{index: index, ok: false, errSumm: err.Error()}
+	}
+	req.Header.Set("Authorization", "Bearer "+cfg.Key)
+	req.Header.Set("Content-Type", "application/json")
+	if cfg.API == "messages" {
+		req.Header.Set("anthropic-version", "2023-06-01")
+	}
+	client := &http.Client{Timeout: 90 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return firstTokenResult{index: index, ok: false, totalMs: time.Since(started).Milliseconds(), errSumm: "[conn] " + truncate(err.Error(), 120)}
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return firstTokenResult{index: index, ok: false, totalMs: time.Since(started).Milliseconds(), errSumm: burnExtractErrSummary(resp.StatusCode, body)}
+	}
+
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !strings.HasPrefix(line, "data: ") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data: "))
+		if data == "" || data == "[DONE]" {
+			continue
+		}
+		text := firstTokenExtractText(cfg.API, []byte(data))
+		if text == "" {
+			continue
+		}
+		ms := time.Since(started).Milliseconds()
+		return firstTokenResult{index: index, ok: true, firstMs: ms, totalMs: ms, firstToken: text}
+	}
+	if err := scanner.Err(); err != nil && ctx.Err() == nil {
+		return firstTokenResult{index: index, ok: false, totalMs: time.Since(started).Milliseconds(), errSumm: truncate(err.Error(), 120)}
+	}
+	return firstTokenResult{index: index, ok: false, totalMs: time.Since(started).Milliseconds(), errSumm: "no non-empty token received"}
+}
+
+func firstTokenStats(values []int64) (avg float64, p50, p95, minV, maxV int64, stddev float64) {
+	if len(values) == 0 {
+		return
+	}
+	sorted := append([]int64(nil), values...)
+	for i := 0; i < len(sorted); i++ {
+		for j := i + 1; j < len(sorted); j++ {
+			if sorted[j] < sorted[i] {
+				sorted[i], sorted[j] = sorted[j], sorted[i]
+			}
+		}
+	}
+	minV, maxV = sorted[0], sorted[len(sorted)-1]
+	var sum int64
+	for _, v := range sorted {
+		sum += v
+	}
+	avg = float64(sum) / float64(len(sorted))
+	idx := func(p int) int {
+		i := (len(sorted)*p + 99) / 100
+		if i <= 0 {
+			return 0
+		}
+		if i > len(sorted) {
+			return len(sorted) - 1
+		}
+		return i - 1
+	}
+	p50, p95 = sorted[idx(50)], sorted[idx(95)]
+	var variance float64
+	for _, v := range sorted {
+		d := float64(v) - avg
+		variance += d * d
+	}
+	stddev = variance / float64(len(sorted))
+	// avoid importing math just for sqrt precision? Newton iteration is enough.
+	if stddev > 0 {
+		x := stddev
+		for i := 0; i < 8; i++ {
+			x = 0.5 * (x + stddev/x)
+		}
+		stddev = x
+	}
+	return
+}
+
+func AdminFirstTokenSSE(c *gin.Context) {
+	var cfg FirstTokenConfig
+	if err := c.ShouldBindJSON(&cfg); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = "http://127.0.0.1:3000"
+	}
+	if cfg.API == "" {
+		cfg.API = "chat"
+	}
+	if cfg.MaxTokens <= 0 {
+		cfg.MaxTokens = 128
+	}
+	if cfg.Requests <= 0 || cfg.Requests > 200 {
+		cfg.Requests = 30
+	}
+	if cfg.Concurrency <= 0 || cfg.Concurrency > 50 {
+		cfg.Concurrency = 5
+	}
+	if len(cfg.Prompts) == 0 {
+		cfg.Prompts = []string{"请用一句话回答：今天适合做什么？"}
+	}
+
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("X-Accel-Buffering", "no")
+	c.Writer.WriteHeader(200)
+
+	sendEvt := func(evt FirstTokenEvent) bool {
+		b, _ := json.Marshal(evt)
+		_, err := fmt.Fprintf(c.Writer, "data: %s\n\n", b)
+		c.Writer.Flush()
+		return err == nil
+	}
+
+	if cfg.Key == "" || cfg.Model == "" {
+		sendEvt(FirstTokenEvent{Type: "error", Message: "请填写 API Key 和模型名"})
+		return
+	}
+
+	endpoint := firstTokenEndpoint(cfg)
+	ctx, cancel := context.WithCancel(c.Request.Context())
+	defer cancel()
+	results := make(chan firstTokenResult, cfg.Concurrency)
+	jobs := make(chan int)
+	var sent, okCount, failCount atomic.Int64
+	latencies := make([]int64, 0, cfg.Requests)
+	var latMu sync.Mutex
+	t0 := time.Now()
+
+	sendEvt(FirstTokenEvent{Type: "probe", Message: "开始批量首字测试…", Concurrency: cfg.Concurrency})
+
+	for i := 0; i < cfg.Concurrency; i++ {
+		go func() {
+			for idx := range jobs {
+				prompt := cfg.Prompts[idx%len(cfg.Prompts)]
+				results <- firstTokenOne(ctx, cfg, endpoint, idx+1, prompt)
+			}
+		}()
+	}
+	go func() {
+		defer close(jobs)
+		for i := 0; i < cfg.Requests; i++ {
+			select {
+			case jobs <- i:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	for i := 0; i < cfg.Requests; i++ {
+		select {
+		case <-ctx.Done():
+			return
+		case r := <-results:
+			sent.Add(1)
+			evt := FirstTokenEvent{Type: "result", Index: r.index, Sent: sent.Load(), Elapsed: time.Since(t0).Seconds()}
+			if r.ok {
+				okCount.Add(1)
+				latMu.Lock()
+				latencies = append(latencies, r.firstMs)
+				avg, p50, p95, minV, maxV, stddev := firstTokenStats(latencies)
+				latMu.Unlock()
+				evt.Status = "success"
+				evt.OK = okCount.Load()
+				evt.Fail = failCount.Load()
+				evt.FirstMs = r.firstMs
+				evt.TotalMs = r.totalMs
+				evt.FirstToken = r.firstToken
+				evt.AvgMs = avg
+				evt.P50Ms = p50
+				evt.P95Ms = p95
+				evt.MinMs = minV
+				evt.MaxMs = maxV
+				evt.StddevMs = stddev
+			} else {
+				failCount.Add(1)
+				evt.Status = "error"
+				evt.OK = okCount.Load()
+				evt.Fail = failCount.Load()
+				evt.TotalMs = r.totalMs
+				evt.Error = r.errSumm
+			}
+			if !sendEvt(evt) {
+				return
+			}
+		}
+	}
+	latMu.Lock()
+	avg, p50, p95, minV, maxV, stddev := firstTokenStats(latencies)
+	latMu.Unlock()
+	sendEvt(FirstTokenEvent{Type: "done", Sent: sent.Load(), OK: okCount.Load(), Fail: failCount.Load(), AvgMs: avg, P50Ms: p50, P95Ms: p95, MinMs: minV, MaxMs: maxV, StddevMs: stddev, Elapsed: time.Since(t0).Seconds()})
 }
 
 // ─────────────────────────────────────────────

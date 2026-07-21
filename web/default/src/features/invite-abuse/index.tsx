@@ -6,14 +6,6 @@ it under the terms of the GNU Affero General Public License as
 published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useState } from 'react'
@@ -60,9 +52,7 @@ function ToggleRow({
 
 function InviteAbuseContent() {
   const { t } = useTranslation()
-  const [cfg, setCfg] = useState<InviteAbuseSettings>(
-    DEFAULT_INVITE_ABUSE_SETTINGS
-  )
+  const [cfg, setCfg] = useState<InviteAbuseSettings>(DEFAULT_INVITE_ABUSE_SETTINGS)
   const [saving, setSaving] = useState(false)
 
   const { data } = useQuery({
@@ -74,10 +64,8 @@ function InviteAbuseContent() {
     if (data) setCfg(data)
   }, [data])
 
-  const set = <K extends keyof InviteAbuseSettings>(
-    key: K,
-    value: InviteAbuseSettings[K]
-  ) => setCfg((prev) => ({ ...prev, [key]: value }))
+  const set = <K extends keyof InviteAbuseSettings>(key: K, value: InviteAbuseSettings[K]) =>
+    setCfg((prev) => ({ ...prev, [key]: value }))
 
   const handleSave = async () => {
     setSaving(true)
@@ -146,9 +134,7 @@ function InviteAbuseContent() {
         />
         <ToggleRow
           title={t('Flag email aliases')}
-          description={t(
-            'Treat +alias and Gmail dot tricks of the same address as one person.'
-          )}
+          description={t('Treat +alias and Gmail dot tricks of the same address as one person.')}
           checked={cfg.check_email_alias}
           disabled={!cfg.enabled}
           onChange={(v) => set('check_email_alias', v)}
@@ -175,8 +161,61 @@ function InviteAbuseContent() {
             placeholder={'example.com\nmailinator.com'}
           />
           <p className='text-muted-foreground text-xs'>
+            {t('One domain per line (without @). Registrations from these domains are flagged.')}
+          </p>
+        </div>
+
+        <Separator />
+
+        <div className='space-y-1.5'>
+          <Label>{t('Max invites per inviter (Layer 1 — inviter rate)')}</Label>
+          <Input
+            type='number'
+            min={0}
+            disabled={!cfg.enabled}
+            value={String(cfg.max_invites_per_inviter)}
+            onChange={(e) => set('max_invites_per_inviter', Number(e.target.value) || 0)}
+          />
+          <p className='text-muted-foreground text-xs'>
             {t(
-              'One domain per line (without @). Registrations from these domains are flagged.'
+              'Within the detection window, if a single invite code is used by this many new registrations, they are flagged. 0 = disabled. Catches VPN/fingerprint-switching abuse that bypasses IP and fingerprint checks.'
+            )}
+          </p>
+        </div>
+
+        <Separator />
+
+        <ToggleRow
+          title={t('Detect datacenter / VPN IPs (Layer 2)')}
+          description={t(
+            'Flag registrations from hosting or proxy IPs. First checks the local CIDR list, then optionally calls an online IP-reputation API.'
+          )}
+          checked={cfg.check_datacenter_ip}
+          disabled={!cfg.enabled}
+          onChange={(v) => set('check_datacenter_ip', v)}
+        />
+        <ToggleRow
+          title={t('Use online IP-reputation API (ip-api.com)')}
+          description={t(
+            'When local CIDR misses, query ip-api.com (1 s timeout, 7-day Redis cache, fail-open). Free, no key required.'
+          )}
+          checked={cfg.use_ip_reputation_api}
+          disabled={!cfg.enabled || !cfg.check_datacenter_ip}
+          onChange={(v) => set('use_ip_reputation_api', v)}
+        />
+
+        <div className='space-y-1.5'>
+          <Label>{t('Datacenter / VPN CIDR list (Layer 2 — local)')}</Label>
+          <Textarea
+            rows={4}
+            disabled={!cfg.enabled || !cfg.check_datacenter_ip}
+            value={cfg.datacenter_cidr_list}
+            onChange={(e) => set('datacenter_cidr_list', e.target.value)}
+            placeholder={'45.128.223.0/24\n104.28.0.0/16'}
+          />
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'One CIDR per line. Registration IPs hitting any of these ranges are flagged immediately without calling the online API.'
             )}
           </p>
         </div>
@@ -195,9 +234,7 @@ export function InviteAbusePage() {
   const { t } = useTranslation()
   return (
     <SectionPageLayout>
-      <SectionPageLayout.Title>
-        {t('Invite-abuse Detection')}
-      </SectionPageLayout.Title>
+      <SectionPageLayout.Title>{t('Invite-abuse Detection')}</SectionPageLayout.Title>
       <SectionPageLayout.Content>
         <InviteAbuseContent />
       </SectionPageLayout.Content>

@@ -47,18 +47,22 @@ import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_a
 import { Route as AuthenticatedStatusIndexRouteImport } from './routes/_authenticated/status/index'
 import { Route as AuthenticatedSessionRecordsIndexRouteImport } from './routes/_authenticated/session-records/index'
 import { Route as AuthenticatedServiceManagementIndexRouteImport } from './routes/_authenticated/service-management/index'
+import { Route as AuthenticatedRequestStatsIndexRouteImport } from './routes/_authenticated/request-stats/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
 import { Route as AuthenticatedOtherServicesIndexRouteImport } from './routes/_authenticated/other-services/index'
 import { Route as AuthenticatedOauthAppsIndexRouteImport } from './routes/_authenticated/oauth-apps/index'
+import { Route as AuthenticatedMonitorIndexRouteImport } from './routes/_authenticated/monitor/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedInviteAbuseIndexRouteImport } from './routes/_authenticated/invite-abuse/index'
 import { Route as AuthenticatedGroupExclusiveIndexRouteImport } from './routes/_authenticated/group-exclusive/index'
+import { Route as AuthenticatedFirstTokenTestIndexRouteImport } from './routes/_authenticated/first-token-test/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChannelCostIndexRouteImport } from './routes/_authenticated/channel-cost/index'
+import { Route as AuthenticatedBurnToolIndexRouteImport } from './routes/_authenticated/burn-tool/index'
 import { Route as AuthenticatedApiSaleIndexRouteImport } from './routes/_authenticated/api-sale/index'
 import { Route as AuthenticatedAlertSettingsIndexRouteImport } from './routes/_authenticated/alert-settings/index'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
@@ -280,6 +284,12 @@ const AuthenticatedServiceManagementIndexRoute =
     path: '/service-management/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedRequestStatsIndexRoute =
+  AuthenticatedRequestStatsIndexRouteImport.update({
+    id: '/request-stats/',
+    path: '/request-stats/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRedemptionCodesIndexRoute =
   AuthenticatedRedemptionCodesIndexRouteImport.update({
     id: '/redemption-codes/',
@@ -310,6 +320,12 @@ const AuthenticatedOauthAppsIndexRoute =
     path: '/oauth-apps/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMonitorIndexRoute =
+  AuthenticatedMonitorIndexRouteImport.update({
+    id: '/monitor/',
+    path: '/monitor/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedModelsIndexRoute =
   AuthenticatedModelsIndexRouteImport.update({
     id: '/models/',
@@ -333,6 +349,12 @@ const AuthenticatedGroupExclusiveIndexRoute =
     path: '/group-exclusive/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedFirstTokenTestIndexRoute =
+  AuthenticatedFirstTokenTestIndexRouteImport.update({
+    id: '/first-token-test/',
+    path: '/first-token-test/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/dashboard/',
@@ -349,6 +371,12 @@ const AuthenticatedChannelCostIndexRoute =
   AuthenticatedChannelCostIndexRouteImport.update({
     id: '/channel-cost/',
     path: '/channel-cost/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedBurnToolIndexRoute =
+  AuthenticatedBurnToolIndexRouteImport.update({
+    id: '/burn-tool/',
+    path: '/burn-tool/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedApiSaleIndexRoute =
@@ -516,18 +544,22 @@ export interface FileRoutesByFullPath {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/alert-settings/': typeof AuthenticatedAlertSettingsIndexRoute
   '/api-sale/': typeof AuthenticatedApiSaleIndexRoute
+  '/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
   '/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
   '/invite-abuse/': typeof AuthenticatedInviteAbuseIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
+  '/monitor/': typeof AuthenticatedMonitorIndexRoute
   '/oauth-apps/': typeof AuthenticatedOauthAppsIndexRoute
   '/other-services/': typeof AuthenticatedOtherServicesIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/request-stats/': typeof AuthenticatedRequestStatsIndexRoute
   '/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
   '/status/': typeof AuthenticatedStatusIndexRoute
@@ -587,18 +619,22 @@ export interface FileRoutesByTo {
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/alert-settings': typeof AuthenticatedAlertSettingsIndexRoute
   '/api-sale': typeof AuthenticatedApiSaleIndexRoute
+  '/burn-tool': typeof AuthenticatedBurnToolIndexRoute
   '/channel-cost': typeof AuthenticatedChannelCostIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
+  '/first-token-test': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive': typeof AuthenticatedGroupExclusiveIndexRoute
   '/invite-abuse': typeof AuthenticatedInviteAbuseIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
+  '/monitor': typeof AuthenticatedMonitorIndexRoute
   '/oauth-apps': typeof AuthenticatedOauthAppsIndexRoute
   '/other-services': typeof AuthenticatedOtherServicesIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/request-stats': typeof AuthenticatedRequestStatsIndexRoute
   '/service-management': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records': typeof AuthenticatedSessionRecordsIndexRoute
   '/status': typeof AuthenticatedStatusIndexRoute
@@ -662,18 +698,22 @@ export interface FileRoutesById {
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/alert-settings/': typeof AuthenticatedAlertSettingsIndexRoute
   '/_authenticated/api-sale/': typeof AuthenticatedApiSaleIndexRoute
+  '/_authenticated/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
   '/_authenticated/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
+  '/_authenticated/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/_authenticated/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
   '/_authenticated/invite-abuse/': typeof AuthenticatedInviteAbuseIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
+  '/_authenticated/monitor/': typeof AuthenticatedMonitorIndexRoute
   '/_authenticated/oauth-apps/': typeof AuthenticatedOauthAppsIndexRoute
   '/_authenticated/other-services/': typeof AuthenticatedOtherServicesIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
+  '/_authenticated/request-stats/': typeof AuthenticatedRequestStatsIndexRoute
   '/_authenticated/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/_authenticated/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
   '/_authenticated/status/': typeof AuthenticatedStatusIndexRoute
@@ -736,18 +776,22 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/alert-settings/'
     | '/api-sale/'
+    | '/burn-tool/'
     | '/channel-cost/'
     | '/channels/'
     | '/dashboard/'
+    | '/first-token-test/'
     | '/group-exclusive/'
     | '/invite-abuse/'
     | '/keys/'
     | '/models/'
+    | '/monitor/'
     | '/oauth-apps/'
     | '/other-services/'
     | '/playground/'
     | '/profile/'
     | '/redemption-codes/'
+    | '/request-stats/'
     | '/service-management/'
     | '/session-records/'
     | '/status/'
@@ -807,18 +851,22 @@ export interface FileRouteTypes {
     | '/usage-logs/$section'
     | '/alert-settings'
     | '/api-sale'
+    | '/burn-tool'
     | '/channel-cost'
     | '/channels'
     | '/dashboard'
+    | '/first-token-test'
     | '/group-exclusive'
     | '/invite-abuse'
     | '/keys'
     | '/models'
+    | '/monitor'
     | '/oauth-apps'
     | '/other-services'
     | '/playground'
     | '/profile'
     | '/redemption-codes'
+    | '/request-stats'
     | '/service-management'
     | '/session-records'
     | '/status'
@@ -881,18 +929,22 @@ export interface FileRouteTypes {
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/alert-settings/'
     | '/_authenticated/api-sale/'
+    | '/_authenticated/burn-tool/'
     | '/_authenticated/channel-cost/'
     | '/_authenticated/channels/'
     | '/_authenticated/dashboard/'
+    | '/_authenticated/first-token-test/'
     | '/_authenticated/group-exclusive/'
     | '/_authenticated/invite-abuse/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
+    | '/_authenticated/monitor/'
     | '/_authenticated/oauth-apps/'
     | '/_authenticated/other-services/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
     | '/_authenticated/redemption-codes/'
+    | '/_authenticated/request-stats/'
     | '/_authenticated/service-management/'
     | '/_authenticated/session-records/'
     | '/_authenticated/status/'
@@ -1210,6 +1262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedServiceManagementIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/request-stats/': {
+      id: '/_authenticated/request-stats/'
+      path: '/request-stats'
+      fullPath: '/request-stats/'
+      preLoaderRoute: typeof AuthenticatedRequestStatsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/redemption-codes/': {
       id: '/_authenticated/redemption-codes/'
       path: '/redemption-codes'
@@ -1245,6 +1304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOauthAppsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/monitor/': {
+      id: '/_authenticated/monitor/'
+      path: '/monitor'
+      fullPath: '/monitor/'
+      preLoaderRoute: typeof AuthenticatedMonitorIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/models/': {
       id: '/_authenticated/models/'
       path: '/models'
@@ -1273,6 +1339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGroupExclusiveIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/first-token-test/': {
+      id: '/_authenticated/first-token-test/'
+      path: '/first-token-test'
+      fullPath: '/first-token-test/'
+      preLoaderRoute: typeof AuthenticatedFirstTokenTestIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/dashboard'
@@ -1292,6 +1365,13 @@ declare module '@tanstack/react-router' {
       path: '/channel-cost'
       fullPath: '/channel-cost/'
       preLoaderRoute: typeof AuthenticatedChannelCostIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/burn-tool/': {
+      id: '/_authenticated/burn-tool/'
+      path: '/burn-tool'
+      fullPath: '/burn-tool/'
+      preLoaderRoute: typeof AuthenticatedBurnToolIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/api-sale/': {
@@ -1544,18 +1624,22 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedAlertSettingsIndexRoute: typeof AuthenticatedAlertSettingsIndexRoute
   AuthenticatedApiSaleIndexRoute: typeof AuthenticatedApiSaleIndexRoute
+  AuthenticatedBurnToolIndexRoute: typeof AuthenticatedBurnToolIndexRoute
   AuthenticatedChannelCostIndexRoute: typeof AuthenticatedChannelCostIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+  AuthenticatedFirstTokenTestIndexRoute: typeof AuthenticatedFirstTokenTestIndexRoute
   AuthenticatedGroupExclusiveIndexRoute: typeof AuthenticatedGroupExclusiveIndexRoute
   AuthenticatedInviteAbuseIndexRoute: typeof AuthenticatedInviteAbuseIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
+  AuthenticatedMonitorIndexRoute: typeof AuthenticatedMonitorIndexRoute
   AuthenticatedOauthAppsIndexRoute: typeof AuthenticatedOauthAppsIndexRoute
   AuthenticatedOtherServicesIndexRoute: typeof AuthenticatedOtherServicesIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
+  AuthenticatedRequestStatsIndexRoute: typeof AuthenticatedRequestStatsIndexRoute
   AuthenticatedServiceManagementIndexRoute: typeof AuthenticatedServiceManagementIndexRoute
   AuthenticatedSessionRecordsIndexRoute: typeof AuthenticatedSessionRecordsIndexRoute
   AuthenticatedStatusIndexRoute: typeof AuthenticatedStatusIndexRoute
@@ -1578,19 +1662,23 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedAlertSettingsIndexRoute: AuthenticatedAlertSettingsIndexRoute,
   AuthenticatedApiSaleIndexRoute: AuthenticatedApiSaleIndexRoute,
+  AuthenticatedBurnToolIndexRoute: AuthenticatedBurnToolIndexRoute,
   AuthenticatedChannelCostIndexRoute: AuthenticatedChannelCostIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  AuthenticatedFirstTokenTestIndexRoute: AuthenticatedFirstTokenTestIndexRoute,
   AuthenticatedGroupExclusiveIndexRoute: AuthenticatedGroupExclusiveIndexRoute,
   AuthenticatedInviteAbuseIndexRoute: AuthenticatedInviteAbuseIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
+  AuthenticatedMonitorIndexRoute: AuthenticatedMonitorIndexRoute,
   AuthenticatedOauthAppsIndexRoute: AuthenticatedOauthAppsIndexRoute,
   AuthenticatedOtherServicesIndexRoute: AuthenticatedOtherServicesIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:
     AuthenticatedRedemptionCodesIndexRoute,
+  AuthenticatedRequestStatsIndexRoute: AuthenticatedRequestStatsIndexRoute,
   AuthenticatedServiceManagementIndexRoute:
     AuthenticatedServiceManagementIndexRoute,
   AuthenticatedSessionRecordsIndexRoute: AuthenticatedSessionRecordsIndexRoute,

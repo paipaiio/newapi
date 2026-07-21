@@ -154,6 +154,18 @@ export function SidebarModulesSection({
         title: t('Subscription Management'),
         description: t('Manage subscription plans and pricing.'),
       },
+      firstTokenTest: {
+        title: '首字稳定性测试',
+        description: t('Measure first token latency stability with batched streaming requests.'),
+      },
+      monitor: {
+        title: '实时监控',
+        description: t('Watch live request and service metrics.'),
+      },
+      burnTool: {
+        title: '额度验货',
+        description: t('Stress-test model output and token burning behavior.'),
+      },
     },
   }
   const formDefaults = useMemo(() => config, [config])

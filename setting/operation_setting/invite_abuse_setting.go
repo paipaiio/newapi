@@ -52,18 +52,42 @@ type InviteAbuseSetting struct {
 	// MaxPerSubnet /24 子网在 WindowHours 内允许的最大注册数。
 	// 建议略高于 MaxPerIP,兼顾同一小区/企业多人注册的正常场景。默认 5。
 	MaxPerSubnet int `json:"max_per_subnet"`
+
+	// MaxInvitesPerInviter 同一邀请人在 WindowHours 内允许的最大邀请注册数(含本次)。
+	// 达到该值即判定为疑似滥用。这是针对「换 IP + 换指纹 但用同一个邀请码短时间连续
+	// 拉新」这类刷返利的核心信号——现有其它检测都只看被邀请人自身的 IP/指纹/邮箱,
+	// 唯独不看「一个邀请码短时间被用了多少次」。默认 2(即第 2 个新号起打标记)。
+	// 设为 0 关闭本项检测。
+	MaxInvitesPerInviter int `json:"max_invites_per_inviter"`
+
+	// CheckDatacenterIP 开启后,对注册 IP 做机房/VPN 判定:先查本地 CIDR 名单,
+	// 未命中再走可选的在线 IP 信誉 API。命中则软处理(不发返利+打标记)。默认开启。
+	CheckDatacenterIP bool `json:"check_datacenter_ip"`
+
+	// DatacenterCIDRList 机房/VPN 高风险网段(CIDR,如 "45.128.223.0/24")。
+	// 注册 IP 命中任一网段即判定。存为 JSON 数组(单个 option 行)。
+	DatacenterCIDRList []string `json:"datacenter_cidr_list"`
+
+	// UseIPReputationAPI 开启后,本地 CIDR 未命中时调用在线 IP 信誉 API(ip-api.com)
+	// 判断 proxy/hosting。带 1s 超时 + Redis 缓存 7 天 + 失败放行(fail-open),
+	// 不会拖慢或阻断注册。默认开启。
+	UseIPReputationAPI bool `json:"use_ip_reputation_api"`
 }
 
 var inviteAbuseSetting = InviteAbuseSetting{
-	Enabled:             false,
-	MaxPerIP:            3,
-	WindowHours:         24,
-	CheckInviterSameIP:  true,
-	CheckEmailAlias:     true,
-	CheckFingerprint:    true,
-	BlockedEmailDomains: []string{},
-	CheckIPSubnet:       true,
-	MaxPerSubnet:        5,
+	Enabled:              false,
+	MaxPerIP:             3,
+	WindowHours:          24,
+	CheckInviterSameIP:   true,
+	CheckEmailAlias:      true,
+	CheckFingerprint:     true,
+	BlockedEmailDomains:  []string{},
+	CheckIPSubnet:        true,
+	MaxPerSubnet:         5,
+	MaxInvitesPerInviter: 2,
+	CheckDatacenterIP:    true,
+	DatacenterCIDRList:   []string{},
+	UseIPReputationAPI:   true,
 }
 
 func init() {

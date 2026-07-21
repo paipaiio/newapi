@@ -3,8 +3,13 @@ package model
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -118,6 +123,99 @@ func countRecentRegistrationsByFingerprint(fp string, windowHours int) int64 {
 	return count
 }
 
+// countRecentInvitesByInviter 统计某邀请人在最近 windowHours 小时内的邀请注册数(含软删除)。
+// 用于 Layer 1「每邀请人邀请速率」检测——这是针对「换 IP+换指纹 但用同一邀请码短时间连续
+// 拉新」这类刷返利的核心信号。计数不含本次(本次尚未入库),调用方比较时用 >= (阈值-1)。
+func countRecentInvitesByInviter(inviterId int, windowHours int) int64 {
+	if inviterId == 0 {
+		return 0
+	}
+	since := common.GetTimestamp() - int64(windowHours)*3600
+	var count int64
+	DB.Unscoped().Model(&User{}).
+		Where("inviter_id = ? AND created_at >= ?", inviterId, since).
+		Count(&count)
+	return count
+}
+
+// ipInCIDRList 判断 IP 是否命中任一 CIDR 网段。非法 IP / 空列表返回 false。
+func ipInCIDRList(ipStr string, cidrs []string) bool {
+	if ipStr == "" || len(cidrs) == 0 {
+		return false
+	}
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return false
+	}
+	for _, c := range cidrs {
+		c = strings.TrimSpace(c)
+		if c == "" {
+			continue
+		}
+		_, ipNet, err := net.ParseCIDR(c)
+		if err != nil {
+			continue
+		}
+		if ipNet.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+// ipReputationCacheTTL IP 信誉结果缓存时长(命中/未命中都缓存,减少外部调用)。
+const ipReputationCacheTTL = 7 * 24 * time.Hour
+
+// isDatacenterIPViaAPI 通过在线 IP 信誉 API(ip-api.com,免费无 key)判断该 IP 是否
+// 属于代理/机房/托管网络。带 Redis 缓存(7天) + 1s 超时 + 失败放行(fail-open):
+// 任何错误/超时都返回 false,绝不阻断或拖慢注册。
+func isDatacenterIPViaAPI(ipStr string) bool {
+	if ipStr == "" {
+		return false
+	}
+	ip := net.ParseIP(ipStr)
+	if ip == nil || ip.IsPrivate() || ip.IsLoopback() {
+		return false
+	}
+
+	cacheKey := "ip_reputation:" + ipStr
+	if common.RedisEnabled {
+		if cached, err := common.RedisGet(cacheKey); err == nil {
+			return cached == "1"
+		}
+	}
+
+	// ip-api.com: proxy=VPN/代理/Tor, hosting=机房/托管. 只取这两个字段。
+	url := fmt.Sprintf("http://ip-api.com/json/%s?fields=status,proxy,hosting", ipStr)
+	client := &http.Client{Timeout: 1 * time.Second}
+	resp, err := client.Get(url)
+	if err != nil {
+		return false // fail-open
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false
+	}
+	var r struct {
+		Status  string `json:"status"`
+		Proxy   bool   `json:"proxy"`
+		Hosting bool   `json:"hosting"`
+	}
+	if json.Unmarshal(body, &r) != nil || r.Status != "success" {
+		return false
+	}
+	isDC := r.Proxy || r.Hosting
+	if common.RedisEnabled {
+		val := "0"
+		if isDC {
+			val = "1"
+		}
+		_ = common.RedisSet(cacheKey, val, ipReputationCacheTTL)
+	}
+	return isDC
+}
+
 // inviterUsesIP 判断邀请人是否用过该 IP(注册 IP 或历史登录 IP)。
 func inviterUsesIP(inviterId int, ip string) bool {
 	if inviterId == 0 || ip == "" {
@@ -218,6 +316,23 @@ func DetectInviteAbuse(inviterId int, registrantIP, fingerprint, rawEmail string
 		subnet := extractIPSubnet24(registrantIP)
 		if subnet != "" && countRecentRegistrationsBySubnet24(subnet, s.WindowHours) >= int64(s.MaxPerSubnet) {
 			reasons = append(reasons, fmt.Sprintf("同IP段(%s0/24) %d 小时内注册数达上限(%d)", subnet, s.WindowHours, s.MaxPerSubnet))
+		}
+	}
+
+	// 5. Layer 1: 每邀请人邀请速率——同一邀请码短时间内被反复使用(换 IP+换指纹 也拦得住)。
+	// 已入库数 >= 阈值-1 时,加上本次即达到阈值,判定为疑似滥用。
+	if inviterId != 0 && s.MaxInvitesPerInviter > 0 {
+		if countRecentInvitesByInviter(inviterId, s.WindowHours) >= int64(s.MaxInvitesPerInviter-1) {
+			reasons = append(reasons, fmt.Sprintf("同一邀请人 %d 小时内邀请注册数达上限(%d)", s.WindowHours, s.MaxInvitesPerInviter))
+		}
+	}
+
+	// 6. Layer 2: 机房/VPN IP 判定——先查本地 CIDR 名单,未命中再走可选在线信誉 API。
+	if s.CheckDatacenterIP && registrantIP != "" {
+		if ipInCIDRList(registrantIP, s.DatacenterCIDRList) {
+			reasons = append(reasons, "注册 IP 命中机房/VPN 网段名单")
+		} else if s.UseIPReputationAPI && isDatacenterIPViaAPI(registrantIP) {
+			reasons = append(reasons, "注册 IP 经信誉库判定为机房/代理")
 		}
 	}
 

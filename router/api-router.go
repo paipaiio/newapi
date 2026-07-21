@@ -473,5 +473,6 @@ func SetApiRouter(router *gin.Engine) {
 	{
 		sseRouter.GET("/admin_tools/monitor/stream", controller.AdminMonitorSSE)
 		sseRouter.POST("/admin_tools/burn/stream", controller.AdminBurnSSE)
+			sseRouter.POST("/admin_tools/first_token/stream", controller.AdminFirstTokenSSE)
 	}
 }

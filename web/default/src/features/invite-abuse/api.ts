@@ -27,6 +27,14 @@ export interface InviteAbuseSettings {
   check_fingerprint: boolean
   /** Newline-separated domain list for the textarea (JSON array on the wire). */
   blocked_email_domains: string
+  /** Layer 1: max invited registrations per inviter within the window (0 = off). */
+  max_invites_per_inviter: number
+  /** Layer 2: enable datacenter/VPN IP detection. */
+  check_datacenter_ip: boolean
+  /** Layer 2: enable online IP-reputation API fallback when local CIDR misses. */
+  use_ip_reputation_api: boolean
+  /** Layer 2: newline-separated CIDR list for the textarea (JSON array on the wire). */
+  datacenter_cidr_list: string
 }
 
 export const DEFAULT_INVITE_ABUSE_SETTINGS: InviteAbuseSettings = {
@@ -37,6 +45,10 @@ export const DEFAULT_INVITE_ABUSE_SETTINGS: InviteAbuseSettings = {
   check_email_alias: true,
   check_fingerprint: true,
   blocked_email_domains: '',
+  max_invites_per_inviter: 2,
+  check_datacenter_ip: true,
+  use_ip_reputation_api: true,
+  datacenter_cidr_list: '',
 }
 
 interface OptionItem {
@@ -86,6 +98,18 @@ export async function getInviteAbuseSettings(): Promise<InviteAbuseSettings> {
     blocked_email_domains: parseDomains(
       map['invite_abuse_setting.blocked_email_domains']
     ),
+    max_invites_per_inviter: num(
+      'invite_abuse_setting.max_invites_per_inviter',
+      2
+    ),
+    check_datacenter_ip: bool('invite_abuse_setting.check_datacenter_ip', true),
+    use_ip_reputation_api: bool(
+      'invite_abuse_setting.use_ip_reputation_api',
+      true
+    ),
+    datacenter_cidr_list: parseDomains(
+      map['invite_abuse_setting.datacenter_cidr_list']
+    ),
   }
 }
 
@@ -105,6 +129,19 @@ export async function saveInviteAbuseSettings(
     [
       'invite_abuse_setting.blocked_email_domains',
       serializeDomains(cfg.blocked_email_domains),
+    ],
+    [
+      'invite_abuse_setting.max_invites_per_inviter',
+      String(cfg.max_invites_per_inviter),
+    ],
+    ['invite_abuse_setting.check_datacenter_ip', String(cfg.check_datacenter_ip)],
+    [
+      'invite_abuse_setting.use_ip_reputation_api',
+      String(cfg.use_ip_reputation_api),
+    ],
+    [
+      'invite_abuse_setting.datacenter_cidr_list',
+      serializeDomains(cfg.datacenter_cidr_list),
     ],
   ]
   const results = await Promise.all(
