@@ -57,6 +57,7 @@ import { Route as AuthenticatedMonitorIndexRouteImport } from './routes/_authent
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedInviteAbuseIndexRouteImport } from './routes/_authenticated/invite-abuse/index'
+import { Route as AuthenticatedGroupManagementIndexRouteImport } from './routes/_authenticated/group-management/index'
 import { Route as AuthenticatedGroupExclusiveIndexRouteImport } from './routes/_authenticated/group-exclusive/index'
 import { Route as AuthenticatedFirstTokenTestIndexRouteImport } from './routes/_authenticated/first-token-test/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
@@ -343,6 +344,12 @@ const AuthenticatedInviteAbuseIndexRoute =
     path: '/invite-abuse/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGroupManagementIndexRoute =
+  AuthenticatedGroupManagementIndexRouteImport.update({
+    id: '/group-management/',
+    path: '/group-management/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedGroupExclusiveIndexRoute =
   AuthenticatedGroupExclusiveIndexRouteImport.update({
     id: '/group-exclusive/',
@@ -550,6 +557,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
+  '/group-management/': typeof AuthenticatedGroupManagementIndexRoute
   '/invite-abuse/': typeof AuthenticatedInviteAbuseIndexRoute
   '/keys/': typeof AuthenticatedKeysIndexRoute
   '/models/': typeof AuthenticatedModelsIndexRoute
@@ -625,6 +633,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/first-token-test': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive': typeof AuthenticatedGroupExclusiveIndexRoute
+  '/group-management': typeof AuthenticatedGroupManagementIndexRoute
   '/invite-abuse': typeof AuthenticatedInviteAbuseIndexRoute
   '/keys': typeof AuthenticatedKeysIndexRoute
   '/models': typeof AuthenticatedModelsIndexRoute
@@ -704,6 +713,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/_authenticated/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
+  '/_authenticated/group-management/': typeof AuthenticatedGroupManagementIndexRoute
   '/_authenticated/invite-abuse/': typeof AuthenticatedInviteAbuseIndexRoute
   '/_authenticated/keys/': typeof AuthenticatedKeysIndexRoute
   '/_authenticated/models/': typeof AuthenticatedModelsIndexRoute
@@ -782,6 +792,7 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/first-token-test/'
     | '/group-exclusive/'
+    | '/group-management/'
     | '/invite-abuse/'
     | '/keys/'
     | '/models/'
@@ -857,6 +868,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/first-token-test'
     | '/group-exclusive'
+    | '/group-management'
     | '/invite-abuse'
     | '/keys'
     | '/models'
@@ -935,6 +947,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/'
     | '/_authenticated/first-token-test/'
     | '/_authenticated/group-exclusive/'
+    | '/_authenticated/group-management/'
     | '/_authenticated/invite-abuse/'
     | '/_authenticated/keys/'
     | '/_authenticated/models/'
@@ -1332,6 +1345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInviteAbuseIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/group-management/': {
+      id: '/_authenticated/group-management/'
+      path: '/group-management'
+      fullPath: '/group-management/'
+      preLoaderRoute: typeof AuthenticatedGroupManagementIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/group-exclusive/': {
       id: '/_authenticated/group-exclusive/'
       path: '/group-exclusive'
@@ -1630,6 +1650,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedFirstTokenTestIndexRoute: typeof AuthenticatedFirstTokenTestIndexRoute
   AuthenticatedGroupExclusiveIndexRoute: typeof AuthenticatedGroupExclusiveIndexRoute
+  AuthenticatedGroupManagementIndexRoute: typeof AuthenticatedGroupManagementIndexRoute
   AuthenticatedInviteAbuseIndexRoute: typeof AuthenticatedInviteAbuseIndexRoute
   AuthenticatedKeysIndexRoute: typeof AuthenticatedKeysIndexRoute
   AuthenticatedModelsIndexRoute: typeof AuthenticatedModelsIndexRoute
@@ -1668,6 +1689,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedFirstTokenTestIndexRoute: AuthenticatedFirstTokenTestIndexRoute,
   AuthenticatedGroupExclusiveIndexRoute: AuthenticatedGroupExclusiveIndexRoute,
+  AuthenticatedGroupManagementIndexRoute:
+    AuthenticatedGroupManagementIndexRoute,
   AuthenticatedInviteAbuseIndexRoute: AuthenticatedInviteAbuseIndexRoute,
   AuthenticatedKeysIndexRoute: AuthenticatedKeysIndexRoute,
   AuthenticatedModelsIndexRoute: AuthenticatedModelsIndexRoute,
