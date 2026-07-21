@@ -29,10 +29,10 @@ import {
   FlaskConical,
   Key,
   KeyRound,
+  Layers,
   LayoutDashboard,
   LayoutGrid,
   ListTodo,
-  Lock,
   MessageSquare,
   Radio,
   Search,
@@ -138,8 +138,10 @@ export function useSidebarData(): SidebarData {
         ],
       },
       {
-        id: "admin",
-        title: t("Admin"),
+        id: "admin-resources",
+        title: t("Resource Management"),
+        section: t("Admin"),
+        collapsible: true,
         items: [
           {
             title: t("Channels"),
@@ -157,40 +159,31 @@ export function useSidebarData(): SidebarData {
             icon: Users,
           },
           {
-            title: t("Session Records"),
-            url: "/session-records",
-            icon: FileClock,
+            title: t("Service Management"),
+            url: "/service-management",
+            icon: Boxes,
           },
+        ],
+      },
+      {
+        id: "admin-groups",
+        title: t("Group"),
+        section: t("Admin"),
+        collapsible: true,
+        items: [
           {
-            title: t("API Sales"),
-            url: "/api-sale",
-            icon: Tag,
+            title: t("Group Management"),
+            url: "/group-management",
+            icon: Layers,
           },
-          {
-            title: t("Exclusive Groups"),
-            url: "/group-exclusive",
-            icon: Lock,
-          },
-          {
-            title: t("Token Lookup"),
-            url: "/token-lookup",
-            icon: Search,
-          },
-          {
-            title: t("Channel Cost"),
-            url: "/channel-cost",
-            icon: BarChart3,
-          },
-          {
-            title: t("Request Stats"),
-            url: "/request-stats",
-            icon: Activity,
-          },
-          {
-            title: t("OAuth Applications"),
-            url: "/oauth-apps",
-            icon: KeyRound,
-          },
+        ],
+      },
+      {
+        id: "admin-commerce",
+        title: t("Commerce"),
+        section: t("Admin"),
+        collapsible: true,
+        items: [
           {
             title: t("Redemption Codes"),
             url: "/redemption-codes",
@@ -202,10 +195,60 @@ export function useSidebarData(): SidebarData {
             icon: CreditCard,
           },
           {
-            title: t("System Info"),
-            url: "/system-info",
-            icon: ServerCog,
-            requiredRole: ROLE.SUPER_ADMIN,
+            title: t("API Sales"),
+            url: "/api-sale",
+            icon: Tag,
+          },
+        ],
+      },
+      {
+        id: "admin-insights",
+        title: t("Insights"),
+        section: t("Admin"),
+        collapsible: true,
+        items: [
+          {
+            title: t("Session Records"),
+            url: "/session-records",
+            icon: FileClock,
+          },
+          {
+            title: t("Request Stats"),
+            url: "/request-stats",
+            icon: Activity,
+          },
+          {
+            title: t("Channel Cost"),
+            url: "/channel-cost",
+            icon: BarChart3,
+          },
+          {
+            title: t("Token Lookup"),
+            url: "/token-lookup",
+            icon: Search,
+          },
+        ],
+      },
+      {
+        id: "admin-monitoring",
+        title: t("Monitoring & Tools"),
+        section: t("Admin"),
+        collapsible: true,
+        items: [
+          {
+            title: t("Real-time Monitor"),
+            url: "/monitor",
+            icon: Activity,
+          },
+          {
+            title: t("First-token Test"),
+            url: "/first-token-test",
+            icon: Timer,
+          },
+          {
+            title: t("Burn Tool"),
+            url: "/burn-tool",
+            icon: Flame,
           },
           {
             title: t("Email Alerts"),
@@ -213,31 +256,38 @@ export function useSidebarData(): SidebarData {
             icon: Bell,
             requiredRole: ROLE.SUPER_ADMIN,
           },
+        ],
+      },
+      {
+        id: "admin-security",
+        title: t("Security"),
+        section: t("Admin"),
+        collapsible: true,
+        items: [
+          {
+            title: t("OAuth Applications"),
+            url: "/oauth-apps",
+            icon: KeyRound,
+          },
           {
             title: t("Invite-abuse Detection"),
             url: "/invite-abuse",
             icon: ShieldAlert,
             requiredRole: ROLE.SUPER_ADMIN,
           },
+        ],
+      },
+      {
+        id: "admin-system",
+        title: t("System"),
+        section: t("Admin"),
+        collapsible: true,
+        items: [
           {
-            title: t("Service Management"),
-            url: "/service-management",
-            icon: Boxes,
-          },
-          {
-            title: "首字稳定性测试",
-            url: "/first-token-test",
-            icon: Timer,
-          },
-          {
-            title: "实时监控",
-            url: "/monitor",
-            icon: Activity,
-          },
-          {
-            title: "额度验货",
-            url: "/burn-tool",
-            icon: Flame,
+            title: t("System Info"),
+            url: "/system-info",
+            icon: ServerCog,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t("System Settings"),

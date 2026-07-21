@@ -74,6 +74,18 @@ export type NavItem = NavCollapsible | NavLink | NavChatPresets
 export type NavGroup = {
   id?: string
   title: string
+  /**
+   * Optional super-section label shared by consecutive groups (e.g. "Admin"
+   * umbrella above several admin sub-groups). Rendered once above the first
+   * group of each consecutive run carrying the same value.
+   */
+  section?: string
+  /**
+   * When true, the group label becomes a toggle that collapses/expands the
+   * group's items. State persists in localStorage; a group auto-expands when
+   * one of its items matches the current URL.
+   */
+  collapsible?: boolean
   items: NavItem[]
 }
 

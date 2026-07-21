@@ -60,52 +60,111 @@ import { ChatPresetsItem } from './chat-presets-item'
  * Sidebar navigation group component
  * Renders a group of navigation items, supporting regular links and collapsible submenus
  */
-export function NavGroup({ title, items }: NavGroupProps) {
+export function NavGroup({ id, title, collapsible, items }: NavGroupProps) {
   const { state, isMobile } = useSidebar()
   const href = useLocation({ select: (location) => location.href })
 
-  return (
-    <SidebarGroup className='px-2 py-1'>
-      <SidebarGroupLabel className='text-muted-foreground/70 px-2 text-[11px] font-medium tracking-wider uppercase'>
-        {title}
-      </SidebarGroupLabel>
-      <SidebarMenu>
-        {items.map((item) => {
-          const key = `${item.title}-${item.url || item.type}`
+  // Collapsible group state: default expanded, persisted in localStorage.
+  const storageKey = `sidebar-group-open:${id || title}`
+  const [isOpen, setIsOpen] = useState(() => {
+    if (!collapsible) return true
+    try {
+      const saved = window.localStorage.getItem(storageKey)
+      return saved === null ? true : saved === 'true'
+    } catch {
+      return true
+    }
+  })
 
-          // Special handling: dynamic chat presets list
-          if (item.type === 'chat-presets') {
-            return <ChatPresetsItem key={key} item={item as NavChatPresets} />
-          }
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open)
+    try {
+      window.localStorage.setItem(storageKey, String(open))
+    } catch {
+      /* empty */
+    }
+  }
 
-          // If no sub-items, render regular link
-          if (!item.items) {
-            return (
-              <SidebarMenuLink key={key} item={item as NavLink} href={href} />
-            )
-          }
+  // Auto-expand when the current URL matches an item in this group.
+  const hasActiveItem = items.some(
+    (item) => item.type !== 'chat-presets' && checkIsActive(href, item)
+  )
+  useEffect(() => {
+    if (collapsible && hasActiveItem) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsOpen(true)
+    }
+  }, [collapsible, hasActiveItem])
 
-          // In collapsed state on non-mobile, render dropdown menu
-          if (state === 'collapsed' && !isMobile) {
-            return (
-              <SidebarMenuCollapsedDropdown
-                key={key}
-                item={item as NavCollapsible}
-                href={href}
-              />
-            )
-          }
+  // Icon-collapsed sidebar: labels are hidden, always show items.
+  const effectiveOpen =
+    state === 'collapsed' && !isMobile ? true : isOpen || !collapsible
 
-          // Render collapsible menu
+  const menu = (
+    <SidebarMenu>
+      {items.map((item) => {
+        const key = `${item.title}-${item.url || item.type}`
+
+        // Special handling: dynamic chat presets list
+        if (item.type === 'chat-presets') {
+          return <ChatPresetsItem key={key} item={item as NavChatPresets} />
+        }
+
+        // If no sub-items, render regular link
+        if (!item.items) {
           return (
-            <SidebarMenuCollapsible
+            <SidebarMenuLink key={key} item={item as NavLink} href={href} />
+          )
+        }
+
+        // In collapsed state on non-mobile, render dropdown menu
+        if (state === 'collapsed' && !isMobile) {
+          return (
+            <SidebarMenuCollapsedDropdown
               key={key}
               item={item as NavCollapsible}
               href={href}
             />
           )
-        })}
-      </SidebarMenu>
+        }
+
+        // Render collapsible menu
+        return (
+          <SidebarMenuCollapsible
+            key={key}
+            item={item as NavCollapsible}
+            href={href}
+          />
+        )
+      })}
+    </SidebarMenu>
+  )
+
+  return (
+    <SidebarGroup className='px-2 py-1'>
+      {collapsible ? (
+        <Collapsible open={effectiveOpen} onOpenChange={handleOpenChange}>
+          <CollapsibleTrigger
+            className='group/group-trigger w-full'
+            render={
+              <SidebarGroupLabel className='text-muted-foreground/70 hover:text-foreground cursor-pointer px-2 text-[11px] font-medium tracking-wider uppercase transition-colors' />
+            }
+          >
+            <span className='min-w-0 flex-1 truncate text-left'>{title}</span>
+            <ChevronRight className='ms-auto size-3.5 shrink-0 transition-transform duration-200 group-data-[panel-open]/group-trigger:rotate-90' />
+          </CollapsibleTrigger>
+          <CollapsibleContent className='CollapsibleContent'>
+            {menu}
+          </CollapsibleContent>
+        </Collapsible>
+      ) : (
+        <>
+          <SidebarGroupLabel className='text-muted-foreground/70 px-2 text-[11px] font-medium tracking-wider uppercase'>
+            {title}
+          </SidebarGroupLabel>
+          {menu}
+        </>
+      )}
     </SidebarGroup>
   )
 }

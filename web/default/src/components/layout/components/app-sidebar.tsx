@@ -64,9 +64,20 @@ export function AppSidebar() {
             transition={MOTION_TRANSITION.fast}
             className='flex flex-col'
           >
-            {navGroups.map((props) => (
-              <NavGroup key={props.id || props.title} {...props} />
-            ))}
+            {navGroups.map((props, index) => {
+              const showSection =
+                props.section && props.section !== navGroups[index - 1]?.section
+              return (
+                <div key={props.id || props.title}>
+                  {showSection && (
+                    <div className='text-foreground/60 px-4 pt-3 pb-0.5 text-xs font-semibold tracking-widest uppercase group-data-[collapsible=icon]:hidden'>
+                      {props.section}
+                    </div>
+                  )}
+                  <NavGroup {...props} />
+                </div>
+              )
+            })}
           </motion.div>
         </AnimatePresence>
       </SidebarContent>
