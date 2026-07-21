@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,8 @@ import {
 } from "@/components/ui/select";
 import { Dialog } from "@/components/dialog";
 import { MultiSelect, type Option } from "@/components/multi-select";
-import { getUsers } from "@/features/users/api";
+import { searchUsers } from "@/features/users/api";
+import { useDebounce } from "@/hooks";
 import { setExclusiveGroup } from "../api";
 
 interface ExclusiveEditDialogProps {
@@ -60,6 +61,12 @@ export function ExclusiveEditDialog({
   const [selectedGroup, setSelectedGroup] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebounce(keyword, 300);
+
+  // id -> label cache so selected chips stay readable even when the user is
+  // not part of the current search result page.
+  const [labelCache, setLabelCache] = useState<Map<string, string>>(new Map());
 
   const isEdit = !!groupName;
 
@@ -67,33 +74,59 @@ export function ExclusiveEditDialog({
     if (open) {
       setSelectedGroup(groupName);
       setSelectedUsers(initialUserIds.map(String));
+      setKeyword("");
+      setLabelCache(() => {
+        const map = new Map<string, string>();
+        for (const id of initialUserIds) {
+          map.set(
+            String(id),
+            userLabels[id] ? `${userLabels[id]} (ID:${id})` : `ID:${id}`,
+          );
+        }
+        return map;
+      });
     }
-  }, [open, groupName, initialUserIds]);
+  }, [open, groupName, initialUserIds, userLabels]);
 
-  // Preload a batch of users for selection (client-side filtered by MultiSelect).
-  const { data: userBatch } = useQuery({
-    queryKey: ["group-exclusive-users"],
+  // Server-side search: empty keyword returns the most recent users (id desc),
+  // typing searches username / email / display_name / id across ALL users.
+  const { data: searchResults } = useQuery({
+    queryKey: ["group-exclusive-user-search", debouncedKeyword],
     queryFn: async () => {
-      const res = await getUsers({ p: 1, page_size: 100 });
+      const res = await searchUsers({
+        keyword: debouncedKeyword,
+        page_size: 20,
+      });
       return res.success ? res.data?.items || [] : [];
     },
     enabled: open,
+    placeholderData: keepPreviousData,
   });
+
+  useEffect(() => {
+    if (!searchResults) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLabelCache((prev) => {
+      const map = new Map(prev);
+      for (const u of searchResults) {
+        map.set(String(u.id), `${u.username} (ID:${u.id})`);
+      }
+      return map;
+    });
+  }, [searchResults]);
 
   const userOptions = useMemo<Option[]>(() => {
     const map = new Map<string, string>();
-    // Already-authorized users (resolved labels) come first so they stay visible.
-    for (const id of initialUserIds) {
-      map.set(
-        String(id),
-        userLabels[id] ? `${userLabels[id]} (ID:${id})` : `ID:${id}`,
-      );
+    // Selected users stay resolvable via the cache.
+    for (const id of selectedUsers) {
+      const label = labelCache.get(id);
+      if (label) map.set(id, label);
     }
-    for (const u of userBatch || []) {
+    for (const u of searchResults || []) {
       map.set(String(u.id), `${u.username} (ID:${u.id})`);
     }
     return [...map.entries()].map(([value, label]) => ({ value, label }));
-  }, [userBatch, initialUserIds, userLabels]);
+  }, [selectedUsers, searchResults, labelCache]);
 
   const handleSave = async () => {
     const group = isEdit ? groupName : selectedGroup;
@@ -174,7 +207,8 @@ export function ExclusiveEditDialog({
           options={userOptions}
           selected={selectedUsers}
           onChange={setSelectedUsers}
-          placeholder={t("Select users, or type to search")}
+          onInputValueChange={setKeyword}
+          placeholder={t("Search by username, email, name or ID")}
           emptyText={t("No users")}
         />
         <p className="text-muted-foreground text-xs">

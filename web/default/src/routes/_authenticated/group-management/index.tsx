@@ -16,22 +16,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export interface ApiResponse<T = unknown> {
-  success: boolean
-  message?: string
-  data?: T
-}
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { useAuthStore } from '@/stores/auth-store'
+import { ROLE } from '@/lib/roles'
+import { GroupManagement } from '@/features/group-management'
 
-/** Minimal authorized-user info resolved by the backend. */
-export interface ExclusiveGroupUser {
-  id: number
-  username: string
-}
+export const Route = createFileRoute('/_authenticated/group-management/')({
+  beforeLoad: () => {
+    const { auth } = useAuthStore.getState()
 
-/** An exclusive group with its authorized user ids. */
-export interface ExclusiveGroupItem {
-  group_name: string
-  user_ids: number[]
-  /** Backend-resolved usernames for the authorized ids (absent on old backends). */
-  users?: ExclusiveGroupUser[]
-}
+    if (!auth.user || auth.user.role < ROLE.ADMIN) {
+      throw redirect({
+        to: '/403',
+      })
+    }
+  },
+  component: GroupManagement,
+})

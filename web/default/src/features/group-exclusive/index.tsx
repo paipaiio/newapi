@@ -26,12 +26,12 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { getGroups, getUsers } from '@/features/users/api'
+import { getGroups } from '@/features/users/api'
 import { getExclusiveGroups, setExclusiveGroup } from './api'
 import { ExclusiveEditDialog } from './components/exclusive-edit-dialog'
 import type { ExclusiveGroupItem } from './types'
 
-function GroupExclusiveContent() {
+export function GroupExclusiveContent() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [editOpen, setEditOpen] = useState(false)
@@ -55,20 +55,15 @@ function GroupExclusiveContent() {
     },
   })
 
-  // Resolve a batch of usernames for the authorized-user chips.
-  const { data: userBatch = [] } = useQuery({
-    queryKey: ['group-exclusive-user-labels'],
-    queryFn: async () => {
-      const res = await getUsers({ p: 1, page_size: 100 })
-      return res.success ? res.data?.items || [] : []
-    },
-  })
-
+  // Authorized-user labels come from the backend (batch-resolved via one IN
+  // query), so this works for any user count — no client-side batch matching.
   const userLabels = useMemo<Record<number, string>>(() => {
     const map: Record<number, string> = {}
-    for (const u of userBatch) map[u.id] = u.username
+    for (const item of exclusiveList) {
+      for (const u of item.users ?? []) map[u.id] = u.username
+    }
     return map
-  }, [userBatch])
+  }, [exclusiveList])
 
   const exclusiveNames = useMemo(
     () => new Set(exclusiveList.map((e) => e.group_name)),

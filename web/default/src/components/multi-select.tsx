@@ -77,6 +77,12 @@ interface MultiSelectProps {
    * instead of being inert. The remove (×) button keeps its own behaviour.
    */
   copyChipOnClick?: boolean
+  /**
+   * Called with the raw input value whenever it changes. Use this to drive
+   * async/server-side option loading; built-in client-side filtering still
+   * applies to whatever `options` the parent provides.
+   */
+  onInputValueChange?: (value: string) => void
 }
 
 const COMMA_REGEX = /[,，\n]/
@@ -140,6 +146,21 @@ export function MultiSelect(props: MultiSelectProps) {
   }, [props.options])
 
   const trimmedInput = inputValue.trim()
+
+  // Label-aware filtering: items are raw values (e.g. user IDs), but users
+  // search by what they see — the label. Base UI's default filter only
+  // matches the value string, which breaks any value≠label usage.
+  const filterByLabel = React.useCallback(
+    (itemValue: string, query: string) => {
+      const q = query.trim().toLowerCase()
+      if (!q) return true
+      const label = labelMap.get(itemValue) ?? itemValue
+      return (
+        label.toLowerCase().includes(q) || itemValue.toLowerCase().includes(q)
+      )
+    },
+    [labelMap]
+  )
   const inputMatchesExisting =
     trimmedInput.length > 0 &&
     (selectedSet.has(trimmedInput) ||
@@ -186,6 +207,7 @@ export function MultiSelect(props: MultiSelectProps) {
   )
 
   const handleInputValueChange = (value: string) => {
+    props.onInputValueChange?.(value)
     if (!props.allowCreate) {
       setInputValue(value)
       return
@@ -206,6 +228,7 @@ export function MultiSelect(props: MultiSelectProps) {
     // feel snappier and matches popular chip-style multiselects.
     if (next.length > props.selected.length) {
       setInputValue('')
+      props.onInputValueChange?.('')
     }
   }
 
@@ -257,6 +280,7 @@ export function MultiSelect(props: MultiSelectProps) {
       open={open}
       onOpenChange={setOpen}
       disabled={props.disabled}
+      filter={filterByLabel}
     >
       <ComboboxChips
         ref={chipsAnchorRef}

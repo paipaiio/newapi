@@ -10,20 +10,44 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// exclusiveGroupItem 列表项：分组名 + 授权用户ID列表。
+// exclusiveGroupItem 列表项：分组名 + 授权用户ID列表 + 已解析的授权用户信息。
 type exclusiveGroupItem struct {
-	GroupName string `json:"group_name"`
-	UserIds   []int  `json:"user_ids"`
+	GroupName string                `json:"group_name"`
+	UserIds   []int                 `json:"user_ids"`
+	Users     []model.ExclusiveUser `json:"users"`
 }
 
 // GetExclusiveGroups 列出所有独享分组及其授权用户（管理员）。
+// 授权用户的用户名在后端一次性解析（IN 查询），避免前端只能匹配到最近注册的小批用户。
 func GetExclusiveGroups(c *gin.Context) {
 	names := model.GetExclusiveGroupNames()
+	// 先收集全部授权用户ID，一次查询解析用户名
+	allIds := make([]int, 0)
+	seen := make(map[int]struct{})
+	perGroup := make(map[string][]int, len(names))
+	for _, name := range names {
+		ids := model.GetGroupAuthorizedUsers(name)
+		perGroup[name] = ids
+		for _, id := range ids {
+			if _, ok := seen[id]; !ok {
+				seen[id] = struct{}{}
+				allIds = append(allIds, id)
+			}
+		}
+	}
+	usernames := model.GetExclusiveUsersByIds(allIds)
+
 	items := make([]exclusiveGroupItem, 0, len(names))
 	for _, name := range names {
+		ids := perGroup[name]
+		users := make([]model.ExclusiveUser, 0, len(ids))
+		for _, id := range ids {
+			users = append(users, model.ExclusiveUser{Id: id, Username: usernames[id]})
+		}
 		items = append(items, exclusiveGroupItem{
 			GroupName: name,
-			UserIds:   model.GetGroupAuthorizedUsers(name),
+			UserIds:   ids,
+			Users:     users,
 		})
 	}
 	common.ApiSuccess(c, items)

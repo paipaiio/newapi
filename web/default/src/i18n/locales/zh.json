@@ -237,6 +237,24 @@
     "Adjust response formatting, prompt behavior, proxy, and upstream automation.": "调整响应格式、提示词行为、代理和上游自动化。",
     "Adjust the appearance and layout to suit your preferences.": "调整外观和布局以适应您的偏好。",
     "Admin": "管理员",
+    "Resource Management": "资源管理",
+    "Group Management": "分组管理",
+    "Personal group ratios": "个人分组倍率",
+    "Add ratio override": "添加倍率覆写",
+    "Ratio": "倍率",
+    "Select a group": "选择分组",
+    "Failed to save group ratio overrides": "保存分组倍率覆写失败",
+    "Per-user billing ratio for the selected group. Highest priority: overrides both the user-group special ratio and the global ratio. Applies to billing and all ratio displays.": "该用户在所选分组的专属计费倍率。优先级最高：覆盖用户组特殊倍率与全局倍率，计费与所有倍率展示统一生效。",
+    "Search by username, email, name or ID": "按用户名、邮箱、昵称或 ID 搜索",
+    "Group Configuration": "分组配置",
+    "Invalid JSON in {{field}}": "{{field}} 中的 JSON 无效",
+    "Groups are defined by their billing ratio. Configure ratios, top-up ratios, selectable groups and auto assignment here.": "分组由其计费倍率定义。在此配置倍率、充值倍率、可选分组与自动分配。",
+    "Commerce": "营收管理",
+    "Insights": "数据分析",
+    "Monitoring & Tools": "监控与工具",
+    "First-token Test": "首字稳定性测试",
+    "Real-time Monitor": "实时监控",
+    "Burn Tool": "额度验货",
     "Admin Channel Permissions": "管理员渠道权限",
     "Admin Only": "仅限管理员",
     "Admin Permissions": "管理员权限",
@@ -5514,7 +5532,5 @@
     "Use online IP-reputation API (ip-api.com)": "使用在线 IP 信誉 API（ip-api.com）",
     "When local CIDR misses, query ip-api.com (1 s timeout, 7-day Redis cache, fail-open). Free, no key required.": "本地 CIDR 未命中时调用 ip-api.com（1 秒超时 + Redis 缓存 7 天 + 失败放行）。免费无需 Key。",
     "Within the detection window, if a single invite code is used by this many new registrations, they are flagged. 0 = disabled. Catches VPN/fingerprint-switching abuse that bypasses IP and fingerprint checks.": "在检测时间窗内，同一邀请码被使用了这么多次新注册时，将被标记。0 = 关闭。可拦截换 IP / 换指纹但用同一邀请码的刷量。"
-  },
-  "Real-time Monitor": "实时监控",
-  "Burn Tool": "额度验货"
+  }
 }

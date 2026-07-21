@@ -124,6 +124,33 @@ func GetUserAuthorizedExclusiveGroups(userId int) []string {
 	return groups
 }
 
+// ExclusiveUser 独享分组授权用户的最小信息（id + 用户名），用于管理端展示。
+type ExclusiveUser struct {
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+}
+
+// GetExclusiveUsersByIds 用一次 IN 查询批量解析用户ID到用户名，
+// 避免管理端在前端用"最近100个用户"去匹配授权名单（用户多了会解析不到）。
+func GetExclusiveUsersByIds(ids []int) map[int]string {
+	result := make(map[int]string, len(ids))
+	if len(ids) == 0 {
+		return result
+	}
+	var rows []struct {
+		Id       int
+		Username string
+	}
+	if err := DB.Model(&User{}).Select("id, username").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+		common.SysLog("GetExclusiveUsersByIds error: " + err.Error())
+		return result
+	}
+	for _, r := range rows {
+		result[r.Id] = r.Username
+	}
+	return result
+}
+
 // AddUsersToExclusiveGroup 增量把若干用户加入某分组的独享授权名单（已存在的跳过）。
 // 与 SetGroupExclusiveUsers 的全量覆盖不同，适合批量逐个追加的场景（如 API 售卖）。
 func AddUsersToExclusiveGroup(groupName string, userIds []int) error {
