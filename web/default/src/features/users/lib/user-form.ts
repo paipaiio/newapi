@@ -50,6 +50,12 @@ export const userFormSchema = z.object({
   // Fork customization: visible-group whitelist (display-only). Empty = all
   // available groups are shown. Persisted via a dedicated batch endpoint.
   visible_groups: z.array(z.string()).optional(),
+  // Fork customization: per-user group ratio overrides (billing + display).
+  // Rows form in the UI; converted to a {group: ratio} map on save via a
+  // dedicated endpoint. Priority: personal > GroupGroupRatio > global.
+  group_ratios: z
+    .array(z.object({ group: z.string(), ratio: z.number().min(0) }))
+    .optional(),
 });
 
 export type UserFormValues = z.infer<typeof userFormSchema>;
@@ -70,6 +76,7 @@ export const USER_FORM_DEFAULT_VALUES: UserFormValues = {
   admin_permissions: {},
   topup_discount: 1,
   visible_groups: [],
+  group_ratios: [],
 };
 
 // ============================================================================
@@ -144,6 +151,7 @@ export function transformUserToFormDefaults(user: User): UserFormValues {
         ? user.topup_discount
         : 1,
     visible_groups: parseVisibleGroups(user.setting),
+    group_ratios: parseGroupRatios(user.setting),
   };
 }
 
@@ -153,6 +161,26 @@ function parseVisibleGroups(setting: string | undefined): string[] {
   try {
     const parsed = JSON.parse(setting) as { visible_groups?: string[] };
     return Array.isArray(parsed.visible_groups) ? parsed.visible_groups : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Extract personal group ratio overrides from the user's setting JSON blob. */
+function parseGroupRatios(
+  setting: string | undefined,
+): Array<{ group: string; ratio: number }> {
+  if (!setting) return [];
+  try {
+    const parsed = JSON.parse(setting) as {
+      group_ratios?: Record<string, number>;
+    };
+    if (!parsed.group_ratios || typeof parsed.group_ratios !== "object") {
+      return [];
+    }
+    return Object.entries(parsed.group_ratios)
+      .filter(([group, ratio]) => group && typeof ratio === "number")
+      .map(([group, ratio]) => ({ group, ratio }));
   } catch {
     return [];
   }

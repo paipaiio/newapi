@@ -18,6 +18,7 @@ type UserSetting struct {
 	Language                         string  `json:"language,omitempty"`                             // Language 用户语言偏好 (zh, en)
 	RedactRequestEnabled             bool    `json:"redact_request_enabled,omitempty"`               // RedactRequestEnabled 请求发往上游前脱敏 PII/密钥(不影响会话记录)
 	VisibleGroups                    []string `json:"visible_groups,omitempty"`                      // VisibleGroups 可见分组白名单：非空时该用户在分组下拉/模型广场/价格页只看到这些分组（仅影响展示，不强拦 API）
+	GroupRatios                      map[string]float64 `json:"group_ratios,omitempty"`              // GroupRatios 个人分组倍率覆写：分组名→倍率。优先级高于 GroupGroupRatio 与全局 GroupRatio，计费与展示统一生效
 }
 
 var (

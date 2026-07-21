@@ -253,3 +253,51 @@ func BatchSetVisibleGroups(c *gin.Context) {
 	}
 	common.ApiSuccess(c, nil)
 }
+
+// SetUserGroupRatiosRequest 设置个人分组倍率覆写请求。
+// Ratios 为空 map = 清除全部个人覆写（恢复按用户组/全局倍率计费）。
+type SetUserGroupRatiosRequest struct {
+	Id     int                `json:"id"`
+	Ratios map[string]float64 `json:"ratios"`
+}
+
+// SetUserGroupRatios 设置某用户的「个人分组倍率覆写」（管理员）。
+// 优先级：个人覆写 > GroupGroupRatio（用户组特殊倍率）> GroupRatio（全局倍率）。
+// 计费（relay price）与展示（令牌分组/定价页）统一生效。
+// POST /api/user/manage/group_ratios
+func SetUserGroupRatios(c *gin.Context) {
+	var req SetUserGroupRatiosRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.Id <= 0 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "参数错误：id 不能为空"})
+		return
+	}
+	// 规范化：去空分组名、去负倍率；倍率允许 0（免费）
+	normalized := make(map[string]float64, len(req.Ratios))
+	for name, ratio := range req.Ratios {
+		name = strings.TrimSpace(name)
+		if name == "" || ratio < 0 {
+			continue
+		}
+		normalized[name] = ratio
+	}
+
+	user, err := model.GetUserById(req.Id, true)
+	if err != nil || user == nil {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "用户不存在"})
+		return
+	}
+	// 读改写：仅改 GroupRatios，保留用户其他 setting
+	setting := user.GetSetting()
+	if len(normalized) == 0 {
+		setting.GroupRatios = nil
+	} else {
+		setting.GroupRatios = normalized
+	}
+	user.SetSetting(setting)
+	if err := user.Update(false); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	_ = model.InvalidateUserCache(req.Id)
+	common.ApiSuccess(c, nil)
+}

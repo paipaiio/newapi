@@ -155,3 +155,31 @@ func GetUserGroupRatio(userGroup, group string) float64 {
 	}
 	return ratio_setting.GetGroupRatio(group)
 }
+
+// GetUserPersonalGroupRatio 返回用户对某分组的个人倍率覆写（user.Setting.GroupRatios）。
+// 未设置时 ok=false。
+func GetUserPersonalGroupRatio(userId int, group string) (float64, bool) {
+	if userId <= 0 {
+		return 0, false
+	}
+	cache, err := model.GetUserCache(userId)
+	if err != nil || cache == nil {
+		return 0, false
+	}
+	overrides := cache.GetSetting().GroupRatios
+	if len(overrides) == 0 {
+		return 0, false
+	}
+	ratio, ok := overrides[group]
+	return ratio, ok
+}
+
+// GetUserGroupRatioByUser 解析用户在某分组的最终倍率：
+// 个人覆写 > 用户组特殊倍率（GroupGroupRatio）> 全局倍率（GroupRatio）。
+// 计费与所有展示场景都应使用此函数（能拿到 userId 时）。
+func GetUserGroupRatioByUser(userId int, userGroup, group string) float64 {
+	if ratio, ok := GetUserPersonalGroupRatio(userId, group); ok {
+		return ratio
+	}
+	return GetUserGroupRatio(userGroup, group)
+}

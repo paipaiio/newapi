@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery } from "@tanstack/react-query";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
@@ -82,6 +82,7 @@ import {
   getGroups,
   getPermissionCatalog,
   setVisibleGroups,
+  setUserGroupRatios,
 } from "../api";
 import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from "../constants";
 import {
@@ -188,6 +189,24 @@ export function UsersMutateDrawer({
           [currentRow.id],
           data.visible_groups ?? [],
         ).catch(() => {});
+
+        // Personal group ratio overrides: rows -> {group: ratio} map, skip
+        // rows without a group; later rows win on duplicate groups.
+        const ratioMap: Record<string, number> = {};
+        for (const row of data.group_ratios ?? []) {
+          const group = row.group.trim();
+          if (!group || Number.isNaN(row.ratio) || row.ratio < 0) continue;
+          ratioMap[group] = row.ratio;
+        }
+        const ratioResult = await setUserGroupRatios(
+          currentRow.id,
+          ratioMap,
+        ).catch(() => null);
+        if (ratioResult && !ratioResult.success) {
+          toast.error(
+            ratioResult.message || t("Failed to save group ratio overrides"),
+          );
+        }
       }
 
       if (result.success) {
@@ -515,6 +534,104 @@ export function UsersMutateDrawer({
                         <FormMessage />
                       </FormItem>
                     )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="group_ratios"
+                    render={({ field }) => {
+                      const rows = field.value ?? [];
+                      const update = (
+                        next: Array<{ group: string; ratio: number }>,
+                      ) => field.onChange(next);
+                      return (
+                        <FormItem>
+                          <FormLabel>{t("Personal group ratios")}</FormLabel>
+                          <div className="space-y-2">
+                            {rows.map((row, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center gap-2"
+                              >
+                                <Select
+                                  value={row.group}
+                                  onValueChange={(v) =>
+                                    update(
+                                      rows.map((r, j) =>
+                                        j === index
+                                          ? { ...r, group: v ?? "" }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                >
+                                  <SelectTrigger className="min-w-0 flex-1">
+                                    <SelectValue
+                                      placeholder={t("Select a group")}
+                                    />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {groups.map((group) => (
+                                      <SelectItem key={group} value={group}>
+                                        {group}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  className="w-24 shrink-0"
+                                  value={String(row.ratio)}
+                                  onChange={(e) =>
+                                    update(
+                                      rows.map((r, j) =>
+                                        j === index
+                                          ? {
+                                              ...r,
+                                              ratio: Number(e.target.value),
+                                            }
+                                          : r,
+                                      ),
+                                    )
+                                  }
+                                  placeholder={t("Ratio")}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="shrink-0"
+                                  onClick={() =>
+                                    update(rows.filter((_, j) => j !== index))
+                                  }
+                                >
+                                  <X className="size-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                update([...rows, { group: "", ratio: 1 }])
+                              }
+                            >
+                              <Plus className="mr-1 size-4" />
+                              {t("Add ratio override")}
+                            </Button>
+                          </div>
+                          <FormDescription className="text-xs">
+                            {t(
+                              "Per-user billing ratio for the selected group. Highest priority: overrides both the user-group special ratio and the global ratio. Applies to billing and all ratio displays.",
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
                 </SideDrawerSection>
               )}

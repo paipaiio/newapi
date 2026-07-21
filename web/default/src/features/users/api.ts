@@ -146,6 +146,19 @@ export async function setVisibleGroups(
 }
 
 /**
+ * Set one user's personal group ratio overrides.
+ * POST /api/user/manage/group_ratios  body: { id, ratios }
+ * Empty map clears all overrides (fall back to user-group / global ratios).
+ */
+export async function setUserGroupRatios(
+  id: number,
+  ratios: Record<string, number>,
+): Promise<ApiResponse> {
+  const res = await api.post("/api/user/manage/group_ratios", { id, ratios });
+  return res.data;
+}
+
+/**
  * Batch enable / disable / delete / enable_login / disable_login for many users.
  * POST /api/user/manage/batch_action  body: { ids, action }
  */

@@ -37,7 +37,7 @@ func GetUserGroups(c *gin.Context) {
 			continue // auto 在下方单独处理（倍率显示为「自动」）
 		}
 		usableGroups[groupName] = map[string]interface{}{
-			"ratio": service.GetUserGroupRatio(userGroup, groupName),
+			"ratio": service.GetUserGroupRatioByUser(userId, userGroup, groupName),
 			"desc":  desc,
 		}
 	}

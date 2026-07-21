@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -52,6 +53,15 @@ func HandleGroupRatio(ctx *gin.Context, relayInfo *relaycommon.RelayInfo) types.
 	if exists {
 		logger.LogDebug(ctx, "final group: %s", autoGroup)
 		relayInfo.UsingGroup = autoGroup.(string)
+	}
+
+	// check personal ratio override first: user.Setting.GroupRatios has the
+	// highest priority (per-user > per-user-group > global).
+	if personalRatio, ok := service.GetUserPersonalGroupRatio(relayInfo.UserId, relayInfo.UsingGroup); ok {
+		groupRatioInfo.GroupSpecialRatio = personalRatio
+		groupRatioInfo.GroupRatio = personalRatio
+		groupRatioInfo.HasSpecialRatio = true
+		return groupRatioInfo
 	}
 
 	// check user group special ratio

@@ -54,6 +54,14 @@ func GetPricing(c *gin.Context) {
 					groupRatio[g] = ratio
 				}
 			}
+			// 个人倍率覆写优先级最高（user.Setting.GroupRatios）
+			if overrides := user.GetSetting().GroupRatios; len(overrides) > 0 {
+				for g, r := range overrides {
+					if _, ok := groupRatio[g]; ok {
+						groupRatio[g] = r
+					}
+				}
+			}
 		}
 	}
 
