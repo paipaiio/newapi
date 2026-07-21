@@ -2,6 +2,7 @@ package model
 
 import (
 	"sync"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"gorm.io/gorm"
@@ -21,11 +22,18 @@ type GroupExclusive struct {
 
 // 内存缓存：分组名 -> 授权用户ID集合。
 // 由于独享分组数量与授权关系都很少且读多写少，全量缓存 + 写时重建最简单可靠。
+// 多节点部署时其他节点的缓存不会随写入即时失效，因此加 TTL 定期回源：
+// 超过 exclusiveCacheTTL 未刷新则下一次读取时重新全量加载（秒级最终一致）。
 var (
-	exclusiveMu    sync.RWMutex
-	exclusiveCache map[string]map[int]struct{}
-	exclusiveInit  bool
+	exclusiveMu       sync.RWMutex
+	exclusiveCache    map[string]map[int]struct{}
+	exclusiveInit     bool
+	exclusiveLoadedAt time.Time
 )
+
+// exclusiveCacheTTL 缓存最长存活时间；独享授权是低频读写字段，30s 回源一次
+// 对 DB 压力可忽略（全表单表查询），换来多节点秒级一致。
+const exclusiveCacheTTL = 30 * time.Second
 
 // InitGroupExclusiveCache 从数据库加载全部独享授权到内存。
 func InitGroupExclusiveCache() error {
@@ -43,15 +51,16 @@ func InitGroupExclusiveCache() error {
 	exclusiveMu.Lock()
 	exclusiveCache = cache
 	exclusiveInit = true
+	exclusiveLoadedAt = time.Now()
 	exclusiveMu.Unlock()
 	return nil
 }
 
 func ensureExclusiveCache() {
 	exclusiveMu.RLock()
-	ok := exclusiveInit
+	fresh := exclusiveInit && time.Since(exclusiveLoadedAt) < exclusiveCacheTTL
 	exclusiveMu.RUnlock()
-	if !ok {
+	if !fresh {
 		_ = InitGroupExclusiveCache()
 	}
 }

@@ -341,6 +341,7 @@ func SetApiRouter(router *gin.Engine) {
 		groupRoute.Use(middleware.AdminAuth())
 		{
 			groupRoute.GET("/", controller.GetGroups)
+			groupRoute.GET("/usage", controller.GetGroupUsage)
 			groupRoute.GET("/exclusive", controller.GetExclusiveGroups)
 			groupRoute.POST("/exclusive", controller.SetExclusiveGroup)
 		}

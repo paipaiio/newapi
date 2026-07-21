@@ -25,6 +25,22 @@ func GetGroups(c *gin.Context) {
 	})
 }
 
+// GetGroupUsage 返回分组引用统计（用户/令牌/渠道），用于删除前安全检查。
+// GET /api/group/usage?name=xxx （管理员）
+func GetGroupUsage(c *gin.Context) {
+	name := c.Query("name")
+	if name == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "参数错误：name 不能为空"})
+		return
+	}
+	stats, err := model.GetGroupUsageStats(name)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, stats)
+}
+
 // buildUserGroupsPayload 构建某用户的「可见分组 + 倍率」视图。
 // isAdmin=true 时返回全部已定义分组（管理员不受可选/白名单限制）。
 func buildUserGroupsPayload(userId int, userGroup string, isAdmin bool) map[string]map[string]interface{} {
