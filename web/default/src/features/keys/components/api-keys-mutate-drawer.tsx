@@ -63,7 +63,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useStatus } from "@/hooks/use-status";
-import { getUserModels, getUserGroups } from "@/lib/api";
+import { getUserModels, getSelfVisibleGroups } from "@/lib/api";
 import { getCurrencyDisplay, getCurrencyLabel } from "@/lib/currency";
 import { cn } from "@/lib/utils";
 
@@ -133,7 +133,7 @@ export function ApiKeysMutateDrawer({
   // Fetch groups
   const { data: groupsData } = useQuery({
     queryKey: ["user-groups"],
-    queryFn: getUserGroups,
+    queryFn: getSelfVisibleGroups,
     enabled: open,
     staleTime: 0,
   });

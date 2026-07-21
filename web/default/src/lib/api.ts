@@ -197,7 +197,7 @@ export async function getUserModels(): Promise<{
 }
 
 // Get user groups with descriptions and ratios
-export async function getUserGroups(): Promise<{
+export async function getSelfVisibleGroups(): Promise<{
   success: boolean
   message?: string
   data?: Record<string, { desc: string; ratio: number | string }>

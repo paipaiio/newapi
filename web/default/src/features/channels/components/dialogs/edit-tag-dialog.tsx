@@ -44,7 +44,7 @@ import {
   editTagChannels,
   getTagModels,
   getAllModels,
-  getGroups,
+  getAllGroupNames,
 } from '../../api'
 import { channelsQueryKeys } from '../../lib'
 import type { TagOperationParams } from '../../types'
@@ -85,7 +85,7 @@ export function EditTagDialog({ open, onOpenChange }: EditTagDialogProps) {
   // Fetch groups
   const { data: groupsData } = useQuery({
     queryKey: ['groups'],
-    queryFn: getGroups,
+    queryFn: getAllGroupNames,
     enabled: open,
   })
 

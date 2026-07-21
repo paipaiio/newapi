@@ -30,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { getUserGroups } from '@/lib/api'
+import { getSelfVisibleGroups } from '@/lib/api'
 import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
@@ -52,7 +52,7 @@ function getQuotaProgressColor(percentage: number): string {
 function useGroupRatios(): Record<string, number> {
   const { data } = useQuery({
     queryKey: ['user-groups'],
-    queryFn: getUserGroups,
+    queryFn: getSelfVisibleGroups,
     staleTime: 0,
     select: (res) => {
       if (!res.success || !res.data) return {}

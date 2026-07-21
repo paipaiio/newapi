@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { getGroups as getUserGroups } from '@/features/users/api'
+import { getAllGroupNames } from '@/features/users/api'
 import { api, type ApiRequestConfig } from '@/lib/api'
 
 import type {
@@ -622,7 +622,7 @@ export async function getOllamaVersion(
 /**
  * Get all available groups (re-exported from users API for convenience)
  */
-export const getGroups = getUserGroups
+export { getAllGroupNames }
 
 // ============================================================================
 // Prefill Groups (Model Groups)

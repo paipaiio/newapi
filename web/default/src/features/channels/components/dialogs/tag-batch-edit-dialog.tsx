@@ -35,7 +35,7 @@ import {
   getTagModels,
   editTagChannels,
   getAllModels,
-  getGroups,
+  getAllGroupNames,
 } from '../../api'
 import { channelsQueryKeys } from '../../lib'
 import type { TagOperationParams } from '../../types'
@@ -66,7 +66,7 @@ export function TagBatchEditDialog({
   // Fetch available groups
   const { data: groupsData, isLoading: isLoadingGroups } = useQuery({
     queryKey: ['groups'],
-    queryFn: getGroups,
+    queryFn: getAllGroupNames,
   })
 
   // Transform groups to multi-select options

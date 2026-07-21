@@ -35,13 +35,7 @@ export async function batchCreateApiSale(
   return res.data;
 }
 
-/**
- * Get all available groups.
- */
-export async function getGroups(): Promise<ApiResponse<string[]>> {
-  const res = await api.get("/api/group/");
-  return res.data;
-}
+export { getAllGroupNames } from "@/features/users/api";
 
 /**
  * Get aggregated statistics for all sale batches (admin only).

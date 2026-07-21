@@ -234,7 +234,7 @@ export async function resetUserTwoFA(id: number): Promise<ApiResponse> {
 /**
  * Get all available groups
  */
-export async function getGroups(): Promise<ApiResponse<string[]>> {
+export async function getAllGroupNames(): Promise<ApiResponse<string[]>> {
   const res = await api.get("/api/group/");
   return res.data;
 }

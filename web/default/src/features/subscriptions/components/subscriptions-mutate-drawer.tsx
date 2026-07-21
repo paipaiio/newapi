@@ -65,7 +65,7 @@ import { getCurrencyDisplay, getCurrencyLabel } from '@/lib/currency'
 import {
   createPlan,
   updatePlan,
-  getGroups,
+  getAllGroupNames,
   createWaffoPancakeSubscriptionProduct,
   listWaffoPancakeSubscriptionProductOptions,
 } from '../api'
@@ -117,7 +117,7 @@ export function SubscriptionsMutateDrawer({
       } else {
         form.reset(PLAN_FORM_DEFAULTS)
       }
-      getGroups()
+      getAllGroupNames()
         .then((res) => {
           if (res.success) setGroupOptions(res.data || [])
         })

@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { getGroups } from '@/features/users/api'
+import { getAllGroupNames } from '@/features/users/api'
 import { getExclusiveGroups, setExclusiveGroup } from './api'
 import { ExclusiveEditDialog } from './components/exclusive-edit-dialog'
 import type { ExclusiveGroupItem } from './types'
@@ -50,7 +50,7 @@ export function GroupExclusiveContent() {
   const { data: allGroups = [] } = useQuery({
     queryKey: ['all-groups'],
     queryFn: async () => {
-      const res = await getGroups()
+      const res = await getAllGroupNames()
       return res.success ? res.data || [] : []
     },
   })

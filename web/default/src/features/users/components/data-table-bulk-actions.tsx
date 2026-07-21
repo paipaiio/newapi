@@ -58,7 +58,7 @@ import {
   batchManageQuota,
   batchSetGroup,
   batchSetTopup,
-  getGroups,
+  getAllGroupNames,
   setVisibleGroups,
 } from "../api";
 import type { User, QuotaAdjustMode } from "../types";
@@ -82,7 +82,7 @@ export function DataTableBulkActions({ table }: DataTableBulkActionsProps) {
 
   const { data: groupsData } = useQuery({
     queryKey: ["groups"],
-    queryFn: getGroups,
+    queryFn: getAllGroupNames,
   });
   const groups = groupsData?.data || [];
 

@@ -43,7 +43,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { batchCreateApiSale, getGroups } from "./api";
+import { batchCreateApiSale, getAllGroupNames } from "./api";
 import { BatchStatsSection } from "./components/batch-stats-section";
 import type { ApiSaleItem } from "./types";
 
@@ -97,7 +97,7 @@ function ApiSaleContent() {
   const [created, setCreated] = useState(false);
 
   useEffect(() => {
-    getGroups()
+    getAllGroupNames()
       .then((res) => {
         if (res.success && res.data?.length) {
           setGroupOptions(res.data);

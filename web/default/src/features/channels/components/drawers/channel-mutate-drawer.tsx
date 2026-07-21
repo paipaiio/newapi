@@ -130,7 +130,7 @@ import {
   getAllModels,
   getChannel,
   getChannelKey,
-  getGroups,
+  getAllGroupNames,
   getPrefillGroups,
   refreshCodexCredential,
 } from '../../api'
@@ -648,7 +648,7 @@ export function ChannelMutateDrawer({
   // Fetch available groups
   const { data: groupsData, isLoading: isLoadingGroups } = useQuery({
     queryKey: ['groups'],
-    queryFn: getGroups,
+    queryFn: getAllGroupNames,
   })
 
   // Fetch all available models
