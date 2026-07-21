@@ -262,7 +262,6 @@ export function CheckinCalendarCard({
         <div className='flex justify-center py-4'>
           <SmartCaptcha
             key={turnstileWidgetKey}
-            siteKey={turnstileSiteKey}
             onVerify={(token) => {
               doCheckin(token)
             }}

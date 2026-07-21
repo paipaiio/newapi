@@ -262,7 +262,7 @@ function FirstTokenTestContent() {
             </div>
             <div className='space-y-1.5'>
               <Label>接口类型</Label>
-              <Select value={api} onValueChange={setApi} disabled={running}>
+              <Select value={api} onValueChange={(v) => setApi(v ?? 'chat')} disabled={running}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value='chat'>chat/completions</SelectItem>

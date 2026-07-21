@@ -59,6 +59,8 @@ const defaultAuthSettings: AuthSettings = {
   TurnstileCheckEnabled: false,
   TurnstileSiteKey: '',
   TurnstileSecretKey: '',
+  GeeTestCaptchaId: '',
+  GeeTestCaptchaKey: '',
   'passkey.enabled': false,
   'passkey.rp_display_name': '',
   'passkey.rp_id': '',

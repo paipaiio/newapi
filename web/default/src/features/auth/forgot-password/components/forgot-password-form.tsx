@@ -53,7 +53,6 @@ export function ForgotPasswordForm({
 
   const {
     isTurnstileEnabled,
-    turnstileSiteKey,
     turnstileToken,
     setTurnstileToken,
     validateTurnstile,
@@ -125,7 +124,6 @@ export function ForgotPasswordForm({
         {isTurnstileEnabled && (
           <div className='mt-2'>
             <SmartCaptcha
-              siteKey={turnstileSiteKey}
               onVerify={setTurnstileToken}
             />
           </div>

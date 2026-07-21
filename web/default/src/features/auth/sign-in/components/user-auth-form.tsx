@@ -81,7 +81,6 @@ export function UserAuthForm({
       true) !== false;
   const {
     isTurnstileEnabled,
-    turnstileSiteKey,
     turnstileToken,
     setTurnstileToken,
     validateTurnstile,
@@ -384,7 +383,6 @@ export function UserAuthForm({
             {isTurnstileEnabled && (
               <div className="flex justify-center">
                 <SmartCaptcha
-                  siteKey={turnstileSiteKey}
                   onVerify={setTurnstileToken}
                 />
               </div>

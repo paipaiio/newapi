@@ -198,7 +198,7 @@ function MonitorContent() {
               <XAxis dataKey='time' tick={{ fontSize: 10 }}
                 tickFormatter={(v: string) => v.slice(-5)} interval='preserveStartEnd' />
               <YAxis tick={{ fontSize: 10 }} />
-              <Tooltip formatter={(v: number) => [`${v} req/s`, '速率']} contentStyle={{ fontSize: 12 }} />
+              <Tooltip formatter={(v) => [`${Number(v)} req/s`, '速率']} contentStyle={{ fontSize: 12 }} />
               <Area type='monotone' dataKey='rps' stroke='#6366f1' strokeWidth={2}
                 fill='url(#rpsGrad)' isAnimationActive={false} />
             </AreaChart>

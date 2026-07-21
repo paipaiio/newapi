@@ -63,7 +63,6 @@ export function GeeTest({ siteKey, onVerify, onExpire, className }: GeeTestProps
 
   useEffect(() => {
     let cancelled = false
-    let captchaInstance: GeeTestCaptcha | null = null
 
     const loadGeeTestScript = (): Promise<void> => {
       if (window.initGeetest4) return Promise.resolve()
@@ -88,8 +87,6 @@ export function GeeTest({ siteKey, onVerify, onExpire, className }: GeeTestProps
         },
         (captcha) => {
           if (cancelled) return
-
-          captchaInstance = captcha
 
           captcha.onReady(() => {
             if (cancelled) return
@@ -132,7 +129,6 @@ export function GeeTest({ siteKey, onVerify, onExpire, className }: GeeTestProps
 
     return () => {
       cancelled = true
-      captchaInstance = null
     }
   }, [siteKey])
 

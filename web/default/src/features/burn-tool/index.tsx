@@ -113,9 +113,8 @@ function BurnToolContent() {
       const resp = await fetch('/api/admin_tools/burn/stream', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getCommonHeaders() },
         signal: ac.signal,
-        headers: getCommonHeaders(),
         body: JSON.stringify({
           key: key.trim(),
           base_url: baseURL.trim(),
@@ -211,7 +210,7 @@ function BurnToolContent() {
             </div>
             <div className='space-y-1.5'>
               <Label>接口类型</Label>
-              <Select value={api} onValueChange={setApi} disabled={running}>
+              <Select value={api} onValueChange={(v) => setApi(v ?? 'chat')} disabled={running}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value='chat'>chat/completions</SelectItem>
@@ -235,7 +234,7 @@ function BurnToolContent() {
           <div className='grid grid-cols-2 gap-3'>
             <div className='space-y-1.5'>
               <Label>停止条件</Label>
-              <Select value={stopType} onValueChange={setStopType} disabled={running}>
+              <Select value={stopType} onValueChange={(v) => setStopType(v ?? 'spend')} disabled={running}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value='spend'>消耗达到 $</SelectItem>
