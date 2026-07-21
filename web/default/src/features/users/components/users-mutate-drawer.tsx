@@ -79,7 +79,7 @@ import {
   createUser,
   updateUser,
   getUser,
-  getGroups,
+  getAllGroupNames,
   getPermissionCatalog,
   setVisibleGroups,
   setUserGroupRatios,
@@ -117,7 +117,7 @@ export function UsersMutateDrawer({
   // Fetch groups
   const { data: groupsData } = useQuery({
     queryKey: ["groups"],
-    queryFn: getGroups,
+    queryFn: getAllGroupNames,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -185,10 +185,17 @@ export function UsersMutateDrawer({
       // Visible-group whitelist is persisted through a dedicated endpoint (it
       // lives in the user's setting JSON, not the main update payload).
       if (isUpdate && result.success && currentRow?.id) {
-        await setVisibleGroups(
+        const visibleResult = await setVisibleGroups(
           [currentRow.id],
           data.visible_groups ?? [],
-        ).catch(() => {});
+        ).catch(() => null);
+        if (!visibleResult) {
+          toast.error(t("Failed to save visible groups"));
+        } else if (!visibleResult.success) {
+          toast.error(
+            visibleResult.message || t("Failed to save visible groups"),
+          );
+        }
 
         // Personal group ratio overrides: rows -> {group: ratio} map, skip
         // rows without a group; later rows win on duplicate groups.
