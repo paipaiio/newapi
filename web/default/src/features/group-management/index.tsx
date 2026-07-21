@@ -24,12 +24,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GroupExclusiveContent } from '@/features/group-exclusive'
 
 import { GroupOptionsEditor } from './components/group-options-editor'
+import { UserPerspectivePreview } from './components/user-perspective-preview'
 
 /**
  * Unified admin page for everything group-related:
  *  - Group Configuration: ratios, top-up ratios, selectable groups,
  *    auto groups, inter-group overrides, special usable rules
  *  - Exclusive Groups: per-group user authorization
+ *  - User Perspective: preview any user's visible groups + ratios
  */
 export function GroupManagement() {
   const { t } = useTranslation()
@@ -48,12 +50,18 @@ export function GroupManagement() {
             <TabsTrigger value='exclusive'>
               {t('Exclusive Groups')}
             </TabsTrigger>
+            <TabsTrigger value='perspective'>
+              {t('User Perspective')}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value='groups'>
             <GroupOptionsEditor />
           </TabsContent>
           <TabsContent value='exclusive'>
             <GroupExclusiveContent />
+          </TabsContent>
+          <TabsContent value='perspective'>
+            <UserPerspectivePreview />
           </TabsContent>
         </Tabs>
       </SectionPageLayout.Content>

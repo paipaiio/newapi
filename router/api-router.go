@@ -144,6 +144,7 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.POST("/manage/batch_action", controller.BatchManageUser)
 				adminRoute.POST("/manage/batch_visible_groups", controller.BatchSetVisibleGroups)
 				adminRoute.POST("/manage/group_ratios", controller.SetUserGroupRatios)
+				adminRoute.GET("/:id/groups", controller.GetUserGroupsPreview)
 				adminRoute.GET("/token/lookup", controller.AdminLookupToken)
 				adminRoute.POST("/token/rate_limit", controller.SetTokenRateLimit)
 				adminRoute.GET("/batch/stats", controller.GetBatchStats)

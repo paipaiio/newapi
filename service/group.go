@@ -78,6 +78,13 @@ func filterByVisibleGroups(userId int, userGroup string, groups map[string]strin
 			filtered[name] = desc
 		}
 	}
+	// 独享分组是管理员对该用户的显式授权，优先级高于可见白名单：始终保留，
+	// 否则会出现"已授权独享分组但用户分组选择里看不到"的问题。
+	for _, name := range model.GetUserAuthorizedExclusiveGroups(userId) {
+		if desc, ok := groups[name]; ok {
+			filtered[name] = desc
+		}
+	}
 	// 兜底：白名单与可用分组无交集时，至少保留用户自身分组，避免无组可用
 	if len(filtered) == 0 {
 		if desc, ok := groups[userGroup]; ok {

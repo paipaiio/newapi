@@ -437,15 +437,20 @@ func TokenAuth() func(c *gin.Context) {
 
 		userGroup := userCache.Group
 		tokenGroup := token.Group
+		// 管理员不受「用户可选分组/独享授权」限制，可使用任何已定义的分组
+		// （仍校验分组是否存在于 GroupRatio，防止指向已弃用分组）。
+		isAdmin := userCache.Role >= common.RoleAdminUser
 		if tokenGroup != "" {
 			// token 可绑定多个分组(逗号分隔,顺序即优先级)。逐个校验权限与有效性。
 			tokenGroups := token.GetGroups()
 			usableGroups := service.GetUserUsableGroupsByUser(userCache.Id, userGroup)
 			for _, g := range tokenGroups {
 				// check common.UserUsableGroups[userGroup] —— 含独享分组过滤
-				if _, ok := usableGroups[g]; !ok {
-					abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", g))
-					return
+				if !isAdmin {
+					if _, ok := usableGroups[g]; !ok {
+						abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", g))
+						return
+					}
 				}
 				// check group in common.GroupRatio
 				if !ratio_setting.ContainsGroupRatio(g) {
@@ -463,7 +468,7 @@ func TokenAuth() func(c *gin.Context) {
 		} else {
 			// token 未指定分组时直接使用用户自身分组。
 			// 若该分组为独享分组且用户未被授权（如被移出名单），拒绝访问。
-			if model.IsExclusiveGroup(userGroup) && !model.IsUserAllowedExclusive(userCache.Id, userGroup) {
+			if !isAdmin && model.IsExclusiveGroup(userGroup) && !model.IsUserAllowedExclusive(userCache.Id, userGroup) {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", userGroup))
 				return
 			}
