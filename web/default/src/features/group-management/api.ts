@@ -16,25 +16,45 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { api } from '@/lib/api'
+import { api } from "@/lib/api";
 
 export type UserGroupsPreviewResponse = {
-  success: boolean
-  message?: string
+  success: boolean;
+  message?: string;
   data?: {
-    user_id: number
-    username: string
-    group: string
-    groups: Record<string, { ratio: number | string; desc: string }>
-  }
-}
+    user_id: number;
+    username: string;
+    group: string;
+    groups: Record<string, { ratio: number | string; desc: string }>;
+  };
+};
 
 /** Admin: preview the visible groups + ratios for an arbitrary user. */
 export async function getUserGroupsPreview(
-  userId: number
+  userId: number,
 ): Promise<UserGroupsPreviewResponse> {
   const res = await api.get<UserGroupsPreviewResponse>(
-    `/api/user/${userId}/groups`
-  )
-  return res.data
+    `/api/user/${userId}/groups`,
+  );
+  return res.data;
+}
+
+export type GroupUsageStats = {
+  users: number;
+  tokens: number;
+  channels: number;
+};
+
+export type GroupUsageResponse = {
+  success: boolean;
+  message?: string;
+  data?: GroupUsageStats;
+};
+
+/** Admin: how many users / tokens / channels still reference a group. */
+export async function getGroupUsage(name: string): Promise<GroupUsageResponse> {
+  const res = await api.get<GroupUsageResponse>("/api/group/usage", {
+    params: { name },
+  });
+  return res.data;
 }
