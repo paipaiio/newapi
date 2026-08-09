@@ -177,10 +177,14 @@ export async function getCheckinStatus(
  * Perform daily checkin
  */
 export async function performCheckin(
-  turnstileToken?: string
+  captchaFragment?: string
 ): Promise<ApiResponse<CheckinResponse>> {
-  const url = turnstileToken
-    ? `/api/user/checkin?turnstile=${encodeURIComponent(turnstileToken)}`
+  // captchaFragment is a ready-to-append captcha query fragment
+  // (e.g. "turnstile=<token>" or "lot_number=..&captcha_output=..&..").
+  // Append it raw so multi-param providers (GeeTest) arrive as top-level
+  // query params on the backend.
+  const url = captchaFragment
+    ? `/api/user/checkin?${captchaFragment}`
     : '/api/user/checkin'
   const res = await api.post(url)
   return res.data

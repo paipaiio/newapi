@@ -11,14 +11,15 @@ import (
 )
 
 type apiSaleItem struct {
-	Username  string  `json:"username"`
-	Password  string  `json:"password"`
-	CustomKey string  `json:"custom_key"`
-	Group     string  `json:"group"`
-	Quota     float64 `json:"quota"`
-	Unlimited bool    `json:"unlimited"`
-	Exclusive bool    `json:"exclusive"` // 是否把新账户加入该分组的独享授权名单
-	BatchId   string  `json:"batch_id"`  // 批次标识，写入 token.batch_id，用于反查整批
+	Username    string   `json:"username"`
+	Password    string   `json:"password"`
+	CustomKey   string   `json:"custom_key"`
+	Group       string   `json:"group"`
+	ExtraGroups []string `json:"extra_groups"` // token 额外路由分组（逗号拼接后写入 token.Group），账户分组仍为单值 Group
+	Quota       float64  `json:"quota"`
+	Unlimited   bool     `json:"unlimited"`
+	Exclusive   bool     `json:"exclusive"` // 是否把新账户加入该分组的独享授权名单
+	BatchId     string   `json:"batch_id"`  // 批次标识，写入 token.batch_id，用于反查整批
 }
 
 type ApiSaleResult struct {
@@ -113,8 +114,21 @@ func createOneSaleItem(item apiSaleItem) ApiSaleResult {
 		}
 	}
 
-	// Token 设为无限额度，真正的余额上限由用户账户额度(user.quota)控制，
-	// 避免 token 额度与账户额度双重限制
+	// 账户分组保持单值（group），token 分组可包含额外路由分组。
+	// 同时把 token.RemainQuota 设为与账户同等额度，方便买家通过 key 直接查询余额。
+	allGroups := make([]string, 0, 1+len(item.ExtraGroups))
+	allGroups = append(allGroups, group)
+	for _, eg := range item.ExtraGroups {
+		eg = strings.TrimSpace(eg)
+		if eg != "" {
+			allGroups = append(allGroups, eg)
+		}
+	}
+	tokenGroup, _ := validateTokenGroups(strings.Join(allGroups, ","))
+	if tokenGroup == "" {
+		tokenGroup = group
+	}
+
 	tokenName := "sale"
 	if item.BatchId != "" {
 		tokenName = item.BatchId
@@ -126,9 +140,9 @@ func createOneSaleItem(item apiSaleItem) ApiSaleResult {
 		CreatedTime:    common.GetTimestamp(),
 		AccessedTime:   common.GetTimestamp(),
 		ExpiredTime:    -1,
-		UnlimitedQuota: true,
-		RemainQuota:    0,
-		Group:          group,
+		UnlimitedQuota: item.Unlimited,
+		RemainQuota:    internalQuota,
+		Group:          tokenGroup,
 		BatchId:        item.BatchId,
 		Status:         common.TokenStatusEnabled,
 	}

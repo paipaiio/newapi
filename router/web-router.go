@@ -44,6 +44,21 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
+	// 资源按构建命名空间（/av26/static/... → /static/...）：每次构建换前缀，
+	// 彻底避免 CDN 上旧的被污染缓存条目影响新构建。
+	router.Use(func(c *gin.Context) {
+		p := c.Request.URL.Path
+		if strings.HasPrefix(p, "/av") {
+			if idx := strings.Index(p[1:], "/"); idx > 0 {
+				rest := p[1+idx:]
+				if strings.HasPrefix(rest, "/static/") || rest == "/favicon.ico" ||
+					strings.HasPrefix(rest, "/logo") || strings.HasPrefix(rest, "/manifest") {
+					c.Request.URL.Path = rest
+				}
+			}
+		}
+		c.Next()
+	})
 	router.Use(static.Serve("/", themeFS))
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
@@ -53,6 +68,13 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 			strings.HasPrefix(uri, "/api/") || uri == "/api" ||
 			strings.HasPrefix(uri, "/assets/") {
 			controller.RelayNotFound(c)
+			return
+		}
+		// 静态资源不存在必须返回 404，绝不能回退到 index.html：
+		// 否则 CDN 会把 HTML 当 JS 缓存 30 天（历史事故根因）。
+		if strings.HasPrefix(c.Request.URL.Path, "/static/") {
+			c.Header("Cache-Control", "no-store")
+			c.Status(http.StatusNotFound)
 			return
 		}
 		c.Header("Cache-Control", "no-cache")

@@ -44,6 +44,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { batchCreateApiSale, getAllGroupNames } from "./api";
+import { MultiSelect } from "@/components/multi-select";
 import { BatchStatsSection } from "./components/batch-stats-section";
 import type { ApiSaleItem } from "./types";
 
@@ -55,6 +56,8 @@ interface Row {
   password: string;
   customKey: string;
   group: string;
+  /** Additional routing groups for the token (account group stays single). */
+  extraGroups: string[];
   quota: number;
   unlimited: boolean;
   status: "" | "ok" | "error";
@@ -70,6 +73,7 @@ const buildRow = (partial: Partial<Row> = {}): Row => ({
   password: "",
   customKey: "",
   group: "default",
+  extraGroups: [],
   quota: 10,
   unlimited: false,
   status: "",
@@ -86,6 +90,7 @@ function ApiSaleContent() {
   const [importText, setImportText] = useState("");
 
   const [defGroup, setDefGroup] = useState("default");
+  const [defExtraGroups, setDefExtraGroups] = useState<string[]>([]);
   const [defQuota, setDefQuota] = useState(10);
   const [defUnlimited, setDefUnlimited] = useState(false);
   const [batchId, setBatchId] = useState("");
@@ -114,6 +119,7 @@ function ApiSaleContent() {
         newRows.push(
           buildRow({
             group: defGroup,
+            extraGroups: defExtraGroups,
             quota: defQuota,
             unlimited: defUnlimited,
           }),
@@ -133,6 +139,7 @@ function ApiSaleContent() {
           buildRow({
             customKey: k,
             group: defGroup,
+            extraGroups: defExtraGroups,
             quota: defQuota,
             unlimited: defUnlimited,
           }),
@@ -166,6 +173,7 @@ function ApiSaleContent() {
       password: r.password,
       custom_key: r.customKey,
       group: r.group,
+      extra_groups: r.extraGroups.filter((g) => g && g !== r.group),
       quota: r.quota,
       unlimited: r.unlimited,
       batch_id: trimmedBatchId || undefined,
@@ -301,6 +309,19 @@ function ApiSaleContent() {
         </div>
 
         <div className="space-y-1">
+          <Label>{t("Extra groups (token)")}</Label>
+          <MultiSelect
+            options={groupOptions
+              .filter((g) => g !== defGroup)
+              .map((g) => ({ label: g, value: g }))}
+            selected={defExtraGroups}
+            onChange={setDefExtraGroups}
+            placeholder={t("Optional")}
+            className="w-44"
+          />
+        </div>
+
+        <div className="space-y-1">
           <Label>{t("Unlimited quota")}</Label>
           <div className="pt-1">
             <Switch checked={defUnlimited} onCheckedChange={setDefUnlimited} />
@@ -368,7 +389,7 @@ function ApiSaleContent() {
                   <TableHead>{t("Username")}</TableHead>
                   <TableHead>{t("Password")}</TableHead>
                   <TableHead>{t("API Key")}</TableHead>
-                  <TableHead className="w-36">{t("Group")}</TableHead>
+                  <TableHead className="w-52">{t("Groups")}</TableHead>
                   <TableHead className="w-40">{t("Quota")}</TableHead>
                   <TableHead className="w-20">{t("Status")}</TableHead>
                   <TableHead className="w-12" />
@@ -422,23 +443,38 @@ function ApiSaleContent() {
                     </TableCell>
                     <TableCell>
                       {r.status === "ok" ? (
-                        <Badge variant="secondary">{r.group}</Badge>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="secondary">{r.group}</Badge>
+                          {r.extraGroups.map((g) => (
+                            <Badge key={g} variant="outline">{g}</Badge>
+                          ))}
+                        </div>
                       ) : (
-                        <Select
-                          value={r.group}
-                          onValueChange={(v) => updateRow(r.id, "group", v)}
-                        >
-                          <SelectTrigger className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {groupOptions.map((g) => (
-                              <SelectItem key={g} value={g}>
-                                {g}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-1">
+                          <Select
+                            value={r.group}
+                            onValueChange={(v) => updateRow(r.id, "group", v)}
+                          >
+                            <SelectTrigger className="h-8">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {groupOptions.map((g) => (
+                                <SelectItem key={g} value={g}>
+                                  {g}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <MultiSelect
+                            options={groupOptions
+                              .filter((g) => g !== r.group)
+                              .map((g) => ({ label: g, value: g }))}
+                            selected={r.extraGroups}
+                            onChange={(v) => updateRow(r.id, "extraGroups", v)}
+                            placeholder={t("Extra groups")}
+                          />
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>

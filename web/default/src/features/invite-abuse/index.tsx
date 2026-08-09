@@ -220,6 +220,24 @@ function InviteAbuseContent() {
           </p>
         </div>
 
+        <Separator />
+
+        <div className='space-y-1.5'>
+          <Label>{t('Topup unlock threshold (CNY ¥)')}</Label>
+          <Input
+            type='number'
+            min={0}
+            step={1}
+            value={String(cfg.topup_unlock_threshold)}
+            onChange={(e) => set('topup_unlock_threshold', Number(e.target.value) || 0)}
+          />
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Flagged users who accumulate this many CNY in successful top-ups will have their withheld registration and invite bonuses released automatically. Set to 0 to disable auto-unlock. All currently flagged users with no pending bonus will be backfilled on next server restart.'
+            )}
+          </p>
+        </div>
+
         <div className='pt-2'>
           <Button onClick={handleSave} disabled={saving}>
             {t('Save')}

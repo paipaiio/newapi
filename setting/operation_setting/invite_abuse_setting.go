@@ -72,6 +72,11 @@ type InviteAbuseSetting struct {
 	// 判断 proxy/hosting。带 1s 超时 + Redis 缓存 7 天 + 失败放行(fail-open),
 	// 不会拖慢或阻断注册。默认开启。
 	UseIPReputationAPI bool `json:"use_ip_reputation_api"`
+
+	// TopupUnlockThreshold 滥用标记用户解锁赠金所需的最低累计充值金额（人民币元）。
+	// 达到该金额后自动发放暂扣的注册赠额和邀请返利，并可在钱包页查看进度。
+	// 默认 50.0（¥50元）。设为 0 关闭此机制（不自动解锁）。
+	TopupUnlockThreshold float64 `json:"topup_unlock_threshold"`
 }
 
 var inviteAbuseSetting = InviteAbuseSetting{
@@ -88,6 +93,7 @@ var inviteAbuseSetting = InviteAbuseSetting{
 	CheckDatacenterIP:    true,
 	DatacenterCIDRList:   []string{},
 	UseIPReputationAPI:   true,
+	TopupUnlockThreshold: 50.0,
 }
 
 func init() {

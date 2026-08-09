@@ -13,7 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/service"
+	// "github.com/QuantumNous/new-api/service" // removed: relay no longer restricts by user-selectable groups
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/types"
@@ -443,11 +443,13 @@ func TokenAuth() func(c *gin.Context) {
 		if tokenGroup != "" {
 			// token 可绑定多个分组(逗号分隔,顺序即优先级)。逐个校验权限与有效性。
 			tokenGroups := token.GetGroups()
-			usableGroups := service.GetUserUsableGroupsByUser(userCache.Id, userGroup)
 			for _, g := range tokenGroups {
-				// check common.UserUsableGroups[userGroup] —— 含独享分组过滤
 				if !isAdmin {
-					if _, ok := usableGroups[g]; !ok {
+					// relay 校验只管「独享分组授权」——用户必须被显式授权才能使用独享分组。
+					// 「用户可选分组」（UserUsableGroups）是 UI 层限制（控制用户在创建 token
+					// 时能选哪些分组），不限制 relay 使用。管理员直接给 token 分配的分组应
+					// 始终可用，不受可选分组列表为空的影响。
+					if model.IsExclusiveGroup(g) && !model.IsUserAllowedExclusive(userCache.Id, g) {
 						abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", g))
 						return
 					}

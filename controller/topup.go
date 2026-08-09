@@ -43,10 +43,16 @@ func GetTopUpInfo(c *gin.Context) {
 	id := c.GetInt("id")
 	allowTopup := true
 	userTopupDiscount := 1.0
+	var abusePendingBonus int
+	var abuseTopupAccumulated float64
 	if user, err := model.GetUserById(id, false); err == nil && user != nil {
 		allowTopup = user.AllowTopup
 		if user.TopupDiscount > 0 && user.TopupDiscount <= 1 {
 			userTopupDiscount = user.TopupDiscount
+		}
+		if user.AbusePendingBonus > 0 {
+			abusePendingBonus = user.AbusePendingBonus
+			abuseTopupAccumulated = model.GetUserSuccessTopupMoney(id)
 		}
 	}
 
@@ -121,6 +127,30 @@ func GetTopUpInfo(c *gin.Context) {
 		}
 	}
 
+	// 如果启用了支付宝，添加到支付方法列表
+	enableAlipay := isAlipayTopUpEnabled()
+	if enableAlipay {
+		payMethods = append(payMethods, map[string]string{
+			"name":       "支付宝",
+			"type":       "alipay",
+			"color":      "rgba(var(--semi-blue-5), 1)",
+			"min_topup":  fmt.Sprintf("%.2f", setting.AlipayMinTopUp),
+			"unit_price": fmt.Sprintf("%.4f", setting.AlipayUnitPrice),
+		})
+	}
+
+	// 如果启用了微信支付，添加到支付方法列表
+	enableWechatPay := isWechatPayTopUpEnabled()
+	if enableWechatPay {
+		payMethods = append(payMethods, map[string]string{
+			"name":       "微信支付",
+			"type":       "wechatpay",
+			"color":      "rgba(var(--semi-green-5), 1)",
+			"min_topup":  fmt.Sprintf("%.2f", setting.WechatPayMinTopUp),
+			"unit_price": fmt.Sprintf("%.4f", setting.WechatPayUnitPrice),
+		})
+	}
+
 	data := gin.H{
 		"allow_topup":                      allowTopup,
 		"user_topup_discount":              userTopupDiscount,
@@ -129,6 +159,8 @@ func GetTopUpInfo(c *gin.Context) {
 		"enable_creem_topup":               isCreemTopUpEnabled(),
 		"enable_waffo_topup":               enableWaffo,
 		"enable_waffo_pancake_topup":       enableWaffoPancake,
+		"enable_alipay_topup":              enableAlipay,
+		"enable_wechatpay_topup":           enableWechatPay,
 		"enable_redemption":                complianceConfirmed,
 		"payment_compliance_confirmed":     complianceConfirmed,
 		"payment_compliance_terms_version": operation_setting.CurrentComplianceTermsVersion,
@@ -138,16 +170,23 @@ func GetTopUpInfo(c *gin.Context) {
 			}
 			return nil
 		}(),
-		"creem_products":          setting.CreemProducts,
-		"pay_methods":             payMethods,
-		"min_topup":               operation_setting.MinTopUp,
-		"stripe_min_topup":        setting.StripeMinTopUp,
-		"waffo_min_topup":         setting.WaffoMinTopUp,
-		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
+		"creem_products":           setting.CreemProducts,
+		"pay_methods":              payMethods,
+		"min_topup":                operation_setting.MinTopUp,
+		"stripe_min_topup":         setting.StripeMinTopUp,
+		"waffo_min_topup":          setting.WaffoMinTopUp,
+		"waffo_pancake_min_topup":  setting.WaffoPancakeMinTopUp,
 		"waffo_pancake_unit_price": setting.WaffoPancakeUnitPrice,
-		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
-		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
-		"topup_link":              common.TopUpLink,
+		"alipay_min_topup":         setting.AlipayMinTopUp,
+		"alipay_unit_price":        setting.AlipayUnitPrice,
+		"wechatpay_min_topup":      setting.WechatPayMinTopUp,
+		"wechatpay_unit_price":     setting.WechatPayUnitPrice,
+		"amount_options":           operation_setting.GetPaymentSetting().AmountOptions,
+		"discount":                 operation_setting.GetPaymentSetting().AmountDiscount,
+		"topup_link":               common.TopUpLink,
+		"abuse_pending_bonus":      abusePendingBonus,
+		"abuse_topup_required":     operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold,
+		"abuse_topup_accumulated":  abuseTopupAccumulated,
 	}
 	common.ApiSuccess(c, data)
 }

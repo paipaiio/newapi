@@ -35,6 +35,8 @@ export interface InviteAbuseSettings {
   use_ip_reputation_api: boolean
   /** Layer 2: newline-separated CIDR list for the textarea (JSON array on the wire). */
   datacenter_cidr_list: string
+  /** Topup unlock: CNY amount a flagged user must accumulate to auto-release their withheld bonuses (0 = disabled). */
+  topup_unlock_threshold: number
 }
 
 export const DEFAULT_INVITE_ABUSE_SETTINGS: InviteAbuseSettings = {
@@ -49,6 +51,7 @@ export const DEFAULT_INVITE_ABUSE_SETTINGS: InviteAbuseSettings = {
   check_datacenter_ip: true,
   use_ip_reputation_api: true,
   datacenter_cidr_list: '',
+  topup_unlock_threshold: 50,
 }
 
 interface OptionItem {
@@ -110,6 +113,10 @@ export async function getInviteAbuseSettings(): Promise<InviteAbuseSettings> {
     datacenter_cidr_list: parseDomains(
       map['invite_abuse_setting.datacenter_cidr_list']
     ),
+    topup_unlock_threshold: (() => {
+      const v = map['invite_abuse_setting.topup_unlock_threshold']
+      return v !== undefined ? parseFloat(v) || 50 : 50
+    })(),
   }
 }
 
@@ -142,6 +149,10 @@ export async function saveInviteAbuseSettings(
     [
       'invite_abuse_setting.datacenter_cidr_list',
       serializeDomains(cfg.datacenter_cidr_list),
+    ],
+    [
+      'invite_abuse_setting.topup_unlock_threshold',
+      String(cfg.topup_unlock_threshold),
     ],
   ]
   const results = await Promise.all(

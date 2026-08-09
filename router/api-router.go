@@ -24,6 +24,8 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/status", controller.GetStatus)
 		apiRouter.GET("/captcha/config", controller.GetCaptchaConfig)
 		apiRouter.GET("/uptime/status", controller.GetUptimeKumaStatus)
+		apiRouter.GET("/public/key-balance", middleware.CriticalRateLimit(), controller.GetPublicKeyBalance)
+		apiRouter.POST("/public/key-transfer", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.PostPublicKeyTransfer)
 		apiRouter.GET("/models", middleware.UserAuth(), controller.DashboardListModels)
 		apiRouter.GET("/status/test", middleware.AdminAuth(), controller.TestStatus)
 		apiRouter.GET("/notice", controller.GetNotice)
@@ -67,8 +69,8 @@ func SetApiRouter(router *gin.Engine) {
 
 		userRoute := apiRouter.Group("/user")
 		{
-			userRoute.POST("/register", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, middleware.TurnstileCheck(), controller.Register)
-			userRoute.POST("/login", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, middleware.TurnstileCheck(), controller.Login)
+			userRoute.POST("/register", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, middleware.SmartCaptchaCheck(), controller.Register)
+			userRoute.POST("/login", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, middleware.SmartCaptchaCheck(), controller.Login)
 			userRoute.POST("/login/2fa", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.Verify2FALogin)
 			userRoute.POST("/passkey/login/begin", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.PasskeyLoginBegin)
 			userRoute.POST("/passkey/login/finish", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.PasskeyLoginFinish)
@@ -76,6 +78,9 @@ func SetApiRouter(router *gin.Engine) {
 			userRoute.GET("/logout", controller.Logout)
 			userRoute.POST("/epay/notify", anonymousRequestBodyLimit, controller.EpayNotify)
 			userRoute.GET("/epay/notify", controller.EpayNotify)
+			userRoute.POST("/alipay/notify", anonymousRequestBodyLimit, controller.AlipayNotify)
+			userRoute.GET("/alipay/notify", controller.AlipayNotify)
+			userRoute.POST("/wechatpay/notify", anonymousRequestBodyLimit, controller.WechatPayNotify)
 			userRoute.GET("/groups", controller.GetUserGroups)
 
 			selfRoute := userRoute.Group("/")
@@ -106,6 +111,10 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.POST("/waffo/pay", middleware.CriticalRateLimit(), controller.RequestWaffoPay)
 				selfRoute.POST("/waffo-pancake/amount", controller.RequestWaffoPancakeAmount)
 				selfRoute.POST("/waffo-pancake/pay", middleware.CriticalRateLimit(), controller.RequestWaffoPancakePay)
+				selfRoute.POST("/alipay/pay", middleware.CriticalRateLimit(), controller.RequestAlipay)
+				selfRoute.GET("/alipay/query", controller.QueryAlipayOrder)
+				selfRoute.POST("/wechatpay/pay", middleware.CriticalRateLimit(), controller.RequestWechatPay)
+				selfRoute.GET("/wechatpay/query", controller.QueryWechatPayOrder)
 				selfRoute.POST("/aff_transfer", controller.TransferAffQuota)
 				selfRoute.PUT("/setting", controller.UpdateUserSetting)
 
@@ -118,7 +127,7 @@ func SetApiRouter(router *gin.Engine) {
 
 				// Check-in routes
 				selfRoute.GET("/checkin", controller.GetCheckinStatus)
-				selfRoute.POST("/checkin", middleware.TurnstileCheck(), controller.DoCheckin)
+				selfRoute.POST("/checkin", middleware.SmartCaptchaCheck(), controller.DoCheckin)
 
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)

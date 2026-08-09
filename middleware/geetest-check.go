@@ -50,8 +50,9 @@ func GeeTestCheck() gin.HandlerFunc {
 			return
 		}
 
-		// 生成签名：hmac-sha256(captcha_key, lot_number + passToken + genTime)
-		signToken := hmacSha256(common.GeeTestCaptchaKey, lotNumber+passToken+genTime)
+		// 生成签名：hmac-sha256(captcha_key, lot_number)
+		// 官方算法只签 lot_number，多签 passToken+genTime 会被极验判 sign_token error
+		signToken := hmacSha256(common.GeeTestCaptchaKey, lotNumber)
 
 		// 调用极验服务器二次验证
 		rawRes, err := http.PostForm("https://gcaptcha4.geetest.com/validate", url.Values{

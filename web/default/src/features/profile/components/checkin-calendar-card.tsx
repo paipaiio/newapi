@@ -132,7 +132,13 @@ export function CheckinCalendarCard({
     (message?: string) => {
       if (!turnstileEnabled) return false
       if (typeof message !== 'string') return true
-      return message.includes('Turnstile')
+      // Match both Turnstile and GeeTest (Chinese) captcha-failure messages so
+      // the modal opens regardless of which provider the backend selected.
+      return (
+        message.includes('Turnstile') ||
+        message.includes('极验') ||
+        message.includes('token')
+      )
     },
     [turnstileEnabled]
   )
@@ -150,10 +156,8 @@ export function CheckinCalendarCard({
           setTurnstileModalVisible(false)
         } else {
           if (!token && shouldTriggerTurnstile(res.message)) {
-            if (!turnstileSiteKey) {
-              toast.error(t('Turnstile is enabled but site key is empty.'))
-              return
-            }
+            // SmartCaptcha fetches its own config (Turnstile vs GeeTest) and
+            // renders accordingly, so no site key is required here.
             setTurnstileModalVisible(true)
             return
           }

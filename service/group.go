@@ -3,6 +3,7 @@ package service
 import (
 	"strings"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -189,4 +190,51 @@ func GetUserGroupRatioByUser(userId int, userGroup, group string) float64 {
 		return ratio
 	}
 	return GetUserGroupRatio(userGroup, group)
+}
+
+// IsGroupUnrestrictedRole 判断该角色是否不受分组可见性限制（管理员及以上）。
+func IsGroupUnrestrictedRole(role int) bool {
+	return role >= common.RoleAdminUser
+}
+
+// GetAllDefinedGroups 返回系统内所有「已定义」分组：GroupRatio 注册表 ∪ 全局可选分组，
+// 并在配置了 auto 子分组时补上虚拟分组 auto。
+// 取并集是因为两边都可能有对方没有的分组——像 kiro-test 这类可用但未配倍率的分组
+// 不在 GroupRatio 里，而独享分组通常只在 GroupRatio 里。
+func GetAllDefinedGroups() map[string]string {
+	groups := make(map[string]string)
+	for name := range ratio_setting.GetGroupRatioCopy() {
+		groups[name] = setting.GetUsableGroupDescription(name)
+	}
+	for name, desc := range setting.GetUserUsableGroupsCopy() {
+		if _, exists := groups[name]; !exists {
+			groups[name] = desc
+		}
+	}
+	if len(setting.GetAutoGroups()) > 0 {
+		groups["auto"] = setting.GetUsableGroupDescription("auto")
+	}
+	return groups
+}
+
+// GetDisplayGroupsForRole 是所有「展示分组」场景的统一入口：
+//   - 管理员及以上：返回全部已定义分组，不受独享名单与可见白名单限制
+//   - 普通用户：等价于 GetUserDisplayGroupsByUser（独享 + 可见白名单双重过滤）
+//
+// 新增任何展示分组的页面/接口都应调用此函数，不要各自去拼过滤逻辑——
+// 历史上定价页（模型广场）就是因为绕过统一入口而漏掉了管理员豁免。
+// ⚠️ 仅用于展示；鉴权与渠道选择等强制路径必须继续用 GetUserUsableGroupsByUser。
+func GetDisplayGroupsForRole(userId int, userGroup string, role int) map[string]string {
+	if IsGroupUnrestrictedRole(role) {
+		return GetAllDefinedGroups()
+	}
+	return GetUserDisplayGroupsByUser(userId, userGroup)
+}
+
+// GetDisplayAutoGroupsForRole 展示用的 auto 子分组列表，管理员不受限制。
+func GetDisplayAutoGroupsForRole(userId int, userGroup string, role int) []string {
+	if IsGroupUnrestrictedRole(role) {
+		return append(make([]string, 0), setting.GetAutoGroups()...)
+	}
+	return GetUserDisplayAutoGroupsByUser(userId, userGroup)
 }

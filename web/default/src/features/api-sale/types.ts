@@ -27,6 +27,9 @@ export interface ApiSaleItem {
   password: string;
   custom_key: string;
   group: string;
+  /** Additional routing groups appended to the token (comma-joined on the backend).
+   *  The user account always stays in the single primary `group`. */
+  extra_groups?: string[];
   quota: number;
   unlimited: boolean;
   /** Optional batch label written to token.batch_id for per-batch tracking/export. */

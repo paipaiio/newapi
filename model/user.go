@@ -18,6 +18,9 @@ import (
 
 const UserNameMaxLength = 20
 
+// AbuseBonusTopupThreshold 是滥用用户解锁赠金所需的最低累计充值金额（人民币元）
+const AbuseBonusTopupThreshold = 50.0
+
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
@@ -62,6 +65,7 @@ type User struct {
 	RegisterFingerprint string                     `json:"register_fingerprint" gorm:"type:varchar(64);default:'';column:register_fingerprint;index"` // 注册时的浏览器指纹哈希（滥用检测用）
 	InviteAbuseFlagged  bool                       `json:"invite_abuse_flagged" gorm:"type:tinyint(1);default:0;column:invite_abuse_flagged"`         // 疑似邀请滥用（小号刷返利）；true 时不发邀请返利，待管理员复核
 	InviteAbuseReason   string                     `json:"invite_abuse_reason" gorm:"type:varchar(255);default:'';column:invite_abuse_reason"`        // 判定为疑似滥用的原因（供后台展示）
+	AbusePendingBonus   int                        `json:"abuse_pending_bonus" gorm:"type:int;default:0;column:abuse_pending_bonus"`                  // 滥用标记用户因未达充值门槛而暂扣的赠金额度（本人注册赠额+被邀请赠额），充值满门槛后自动发放
 	PendingQuota        int                        `json:"pending_quota" gorm:"type:int;default:0;column:pending_quota"`                              // 待验证后释放的注册赠额（完成邮件验证或绑定微信/LinuxDO后自动转入 Quota）
 	VerifiedAtRegistration bool                    `json:"-" gorm:"-:all"`                                                                            // 瞬态：OAuth注册时为 true，表示已通过第三方身份验证，直接发放赠额无需等待验证
 	AdminPermissions    map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
@@ -476,6 +480,97 @@ func inviteUser(inviterId int) (err error) {
 	return DB.Save(user).Error
 }
 
+// CheckAndReleaseAbusePendingBonus 检查滥用标记用户是否已累计充值满门槛，
+// 满足条件时一次性发放暂扣的赠金，并触发邀请人返利。
+// 每次充值成功后调用，已释放过则为空操作。
+func CheckAndReleaseAbusePendingBonus(userId int) {
+	threshold := operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold
+	if threshold <= 0 {
+		return // 阈值为0表示关闭自动解锁
+	}
+
+	user, err := GetUserById(userId, false)
+	if err != nil || user == nil {
+		return
+	}
+	// 未标记滥用或赠金已释放
+	if !user.InviteAbuseFlagged || user.AbusePendingBonus <= 0 {
+		return
+	}
+
+	totalTopup := GetUserSuccessTopupMoney(userId)
+	if totalTopup < threshold {
+		return
+	}
+
+	// 达到门槛：原子地清零 abuse_pending_bonus 并增加用户余额
+	bonus := user.AbusePendingBonus
+	err = DB.Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&User{}).
+			Where("id = ? AND abuse_pending_bonus > 0", userId).
+			Updates(map[string]interface{}{
+				"quota":               gorm.Expr("quota + ?", bonus),
+				"abuse_pending_bonus": 0,
+			})
+		if result.Error != nil {
+			return result.Error
+		}
+		if result.RowsAffected == 0 {
+			return errors.New("already released")
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	RecordLog(userId, LogTypeSystem, fmt.Sprintf(
+		"累计充值已达 ¥%.0f，暂扣赠金 %s 已自动解锁发放",
+		threshold, logger.LogQuota(bonus),
+	))
+
+	// 发放邀请人返利（如果有）
+	if user.InviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && common.QuotaForInviter > 0 {
+		_ = inviteUser(user.InviterId)
+		RecordLog(user.InviterId, LogTypeSystem, fmt.Sprintf(
+			"邀请用户 #%d 充值达门槛，邀请返利 %s 自动发放",
+			userId, logger.LogQuota(common.QuotaForInviter),
+		))
+	}
+
+	InvalidateUserCache(userId)
+}
+
+// BackfillAbusePendingBonus 为历史上已标记滥用但尚未设置 abuse_pending_bonus 的用户
+// 补填待发赠金字段。幂等：已有值的用户跳过。在服务启动时调用一次。
+func BackfillAbusePendingBonus() {
+	if common.QuotaForNewUser <= 0 {
+		return
+	}
+	// 查出所有 invite_abuse_flagged=true 且 abuse_pending_bonus=0 的用户
+	var users []User
+	if err := DB.Where("invite_abuse_flagged = ? AND abuse_pending_bonus = ?", true, 0).
+		Select("id, inviter_id").Find(&users).Error; err != nil || len(users) == 0 {
+		return
+	}
+
+	count := 0
+	for _, u := range users {
+		bonus := common.QuotaForNewUser
+		if u.InviterId != 0 && common.QuotaForInvitee > 0 {
+			bonus += common.QuotaForInvitee
+		}
+		if err := DB.Model(&User{}).Where("id = ? AND abuse_pending_bonus = 0", u.Id).
+			Update("abuse_pending_bonus", bonus).Error; err == nil {
+			count++
+		}
+	}
+
+	if count > 0 {
+		common.SysLog(fmt.Sprintf("BackfillAbusePendingBonus: 已为 %d 名历史滥用标记用户补填待发赠金", count))
+	}
+}
+
 func (user *User) TransferAffQuotaToQuota(quota int) error {
 	// 检查quota是否小于最小额度
 	if float64(quota) < common.QuotaPerUnit {
@@ -639,6 +734,29 @@ func (user *User) finishInsert(inviterId int) {
 			//_ = IncreaseUserQuota(inviterId, common.QuotaForInviter)
 			RecordLog(inviterId, LogTypeSystem, fmt.Sprintf("邀请用户赠送 %s", logger.LogQuota(common.QuotaForInviter)))
 			_ = inviteUser(inviterId)
+		}
+	}
+
+	// 滥用标记用户：计算应得赠金存入 abuse_pending_bonus，充值满门槛后自动发放
+	if user.InviteAbuseFlagged {
+		var pendingBonus int
+		if common.QuotaForNewUser > 0 {
+			pendingBonus += common.QuotaForNewUser
+		}
+		if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && common.QuotaForInvitee > 0 {
+			pendingBonus += common.QuotaForInvitee
+		}
+		if pendingBonus > 0 {
+			DB.Model(&User{}).Where("id = ?", user.Id).Update("abuse_pending_bonus", pendingBonus)
+			inviterHint := ""
+			if inviterId != 0 && common.QuotaForInviter > 0 {
+				inviterHint = fmt.Sprintf("，邀请人 #%d 赠金亦待发放", inviterId)
+			}
+			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf(
+				"账号疑似邀请滥用，注册赠额 %s%s 已暂扣，累计充值满 ¥%.0f 元后自动解锁",
+				logger.LogQuota(pendingBonus), inviterHint,
+				operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold,
+			))
 		}
 	}
 }

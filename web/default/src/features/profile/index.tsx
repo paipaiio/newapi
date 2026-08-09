@@ -41,7 +41,8 @@ export function Profile() {
 
   const checkinEnabled = status?.checkin_enabled === true
   const turnstileEnabled = !!(
-    status?.turnstile_check && status?.turnstile_site_key
+    (status?.turnstile_check && status?.turnstile_site_key) ||
+    status?.geetest_check
   )
   const turnstileSiteKey = status?.turnstile_site_key || ''
   const canConfigureSidebar = permissions?.sidebar_settings !== false

@@ -37,14 +37,16 @@ import type {
 
 // User login with username and password
 export async function login(payload: LoginPayload) {
-  const turnstile = payload.turnstile ?? "";
-  const res = await api.post<LoginResponse>(
-    `/api/user/login?turnstile=${turnstile}`,
-    {
-      username: payload.username,
-      password: payload.password,
-    },
-  );
+  // payload.turnstile is a ready-to-append captcha query fragment
+  // (e.g. "turnstile=<token>" or "lot_number=..&captcha_output=..&..").
+  const captcha = payload.turnstile ?? "";
+  const url = captcha
+    ? `/api/user/login?${captcha}`
+    : `/api/user/login`;
+  const res = await api.post<LoginResponse>(url, {
+    username: payload.username,
+    password: payload.password,
+  });
   return res.data;
 }
 
@@ -69,9 +71,11 @@ export async function sendPasswordResetEmail(
   email: string,
   turnstile?: string,
 ): Promise<ApiResponse> {
-  const res = await api.get("/api/reset_password", {
-    params: { email, turnstile },
-  });
+  // turnstile is a captcha query fragment; append it raw so multi-param
+  // providers (GeeTest) arrive as top-level query params on the backend.
+  let url = `/api/reset_password?email=${encodeURIComponent(email)}`;
+  if (turnstile) url += `&${turnstile}`;
+  const res = await api.get(url);
   return res.data;
 }
 
@@ -115,9 +119,13 @@ export async function telegramLogin(
 
 // User registration
 export async function register(payload: RegisterPayload): Promise<ApiResponse> {
-  const res = await api.post(`/api/user/register`, payload, {
-    params: { turnstile: payload.turnstile ?? "" },
-  });
+  // payload.turnstile is a ready-to-append captcha query fragment; append it
+  // raw so multi-param providers (GeeTest) arrive as top-level query params.
+  const captcha = payload.turnstile ?? "";
+  const url = captcha
+    ? `/api/user/register?${captcha}`
+    : `/api/user/register`;
+  const res = await api.post(url, payload);
   return res.data;
 }
 
@@ -126,9 +134,11 @@ export async function sendEmailVerification(
   email: string,
   turnstile?: string,
 ): Promise<ApiResponse> {
-  const res = await api.get("/api/verification", {
-    params: { email, turnstile },
-  });
+  // turnstile is a captcha query fragment; append it raw so multi-param
+  // providers (GeeTest) arrive as top-level query params on the backend.
+  let url = `/api/verification?email=${encodeURIComponent(email)}`;
+  if (turnstile) url += `&${turnstile}`;
+  const res = await api.get(url);
   return res.data;
 }
 

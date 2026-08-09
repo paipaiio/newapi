@@ -362,6 +362,11 @@ func InitResources() error {
 	// Initialize options, should after model.InitDB()
 	model.InitOptionMap()
 
+	// 补填历史滥用标记用户的待发赠金字段（需在 InitOptionMap 之后，依赖 QuotaForNewUser 等选项值）
+	if common.IsMasterNode {
+		go model.BackfillAbusePendingBonus()
+	}
+
 	// 初始化 OAuth Provider 签名密钥（首次启动自动生成并持久化），需在 InitOptionMap 之后
 	if common.IsMasterNode {
 		if err := oauthprovider.InitSigningKey(); err != nil {

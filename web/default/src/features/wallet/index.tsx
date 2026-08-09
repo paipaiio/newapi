@@ -25,6 +25,7 @@ import { useSystemConfig } from "@/hooks/use-system-config";
 import { getSelf } from "@/lib/api";
 
 import { AffiliateRewardsCard } from "./components/affiliate-rewards-card";
+import { AbusePendingBonusBanner } from "./components/abuse-pending-bonus-banner";
 import { BillingHistoryDialog } from "./components/dialogs/billing-history-dialog";
 import { CreemConfirmDialog } from "./components/dialogs/creem-confirm-dialog";
 import { PaymentConfirmDialog } from "./components/dialogs/payment-confirm-dialog";
@@ -46,7 +47,10 @@ import {
   getDefaultPaymentType,
   getMinTopupAmount,
   isWaffoPancakePayment,
+  isQRCodePayment,
 } from "./lib";
+import { useQRCodePayment } from "./hooks/use-qrcode-payment";
+import { QRCodePaymentDialog } from "./components/qrcode-payment-dialog";
 import type {
   UserWalletData,
   PaymentMethod,
@@ -122,6 +126,12 @@ export function Wallet(props: WalletProps) {
     }
   }, []);
 
+  const {
+    state: qrCodeState,
+    startQRCodePayment,
+    closeDialog: closeQRCodeDialog,
+  } = useQRCodePayment(fetchUser);
+
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
@@ -173,6 +183,12 @@ export function Wallet(props: WalletProps) {
       // Validate minimum topup
       const minTopup = getMinTopupAmount(topupInfo);
       if (topupAmount < minTopup) {
+        return;
+      }
+
+      // QR code payments: skip confirm dialog, go straight to QR dialog
+      if (isQRCodePayment(method.type)) {
+        await startQRCodePayment(Math.floor(topupAmount), method.type);
         return;
       }
 
@@ -298,6 +314,10 @@ export function Wallet(props: WalletProps) {
                           )}
                         </div>
                       )}
+                    <AbusePendingBonusBanner
+                      topupInfo={topupInfo}
+                      priceRatio={effectiveUsdExchangeRate}
+                    />
                     <RechargeFormCard
                       topupInfo={topupInfo}
                       presetAmounts={presetAmounts}
@@ -388,6 +408,8 @@ export function Wallet(props: WalletProps) {
         product={selectedCreemProduct}
         processing={creemProcessing}
       />
+
+      <QRCodePaymentDialog state={qrCodeState} onClose={closeQRCodeDialog} />
     </>
   );
 }

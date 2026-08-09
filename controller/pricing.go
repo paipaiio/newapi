@@ -43,11 +43,15 @@ func GetPricing(c *gin.Context) {
 	}
 	var group string
 	resolvedUserId := 0
+	// ⚠️ 本路由默认走 TryUserAuth（只 set id 不 set role），c.GetInt("role") 恒为 0，
+	// 因此角色必须从 user cache 读；取不到时保持 RoleGuestUser 按最受限处理。
+	role := common.RoleGuestUser
 	if exists {
 		resolvedUserId = userId.(int)
 		user, err := model.GetUserCache(userId.(int))
 		if err == nil {
 			group = user.Group
+			role = user.Role
 			for g := range groupRatio {
 				ratio, ok := ratio_setting.GetGroupGroupRatio(group, g)
 				if ok {
@@ -65,12 +69,16 @@ func GetPricing(c *gin.Context) {
 		}
 	}
 
-	usableGroup = service.GetUserDisplayGroupsByUser(resolvedUserId, group)
-	pricing = filterPricingByUsableGroups(pricing, usableGroup)
-	// check groupRatio contains usableGroup
-	for group := range ratio_setting.GetGroupRatioCopy() {
-		if _, ok := usableGroup[group]; !ok {
-			delete(groupRatio, group)
+	usableGroup = service.GetDisplayGroupsForRole(resolvedUserId, group, role)
+	// 管理员不受分组可见性限制：跳过按可用分组裁剪模型列表，否则 EnableGroup 指向
+	// 未在注册表里的分组的模型会被误删。
+	if !service.IsGroupUnrestrictedRole(role) {
+		pricing = filterPricingByUsableGroups(pricing, usableGroup)
+		// check groupRatio contains usableGroup
+		for group := range ratio_setting.GetGroupRatioCopy() {
+			if _, ok := usableGroup[group]; !ok {
+				delete(groupRatio, group)
+			}
 		}
 	}
 
@@ -81,7 +89,7 @@ func GetPricing(c *gin.Context) {
 		"group_ratio":        groupRatio,
 		"usable_group":       usableGroup,
 		"supported_endpoint": model.GetSupportedEndpointMap(),
-		"auto_groups":        service.GetUserDisplayAutoGroupsByUser(resolvedUserId, group),
+		"auto_groups":        service.GetDisplayAutoGroupsForRole(resolvedUserId, group, role),
 		"pricing_version":    "a42d372ccf0b5dd13ecf71203521f9d2",
 	})
 }

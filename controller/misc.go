@@ -72,6 +72,7 @@ func GetStatus(c *gin.Context) {
 		"server_address":              system_setting.ServerAddress,
 		"turnstile_check":             common.TurnstileCheckEnabled,
 		"turnstile_site_key":          common.TurnstileSiteKey,
+		"geetest_check":               common.GeeTestCaptchaId != "",
 		"docs_link":                   operation_setting.GetGeneralSetting().DocsLink,
 		"quota_per_unit":              common.QuotaPerUnit,
 		// 公开首页返利 pill 数据：注册赠额 / 邀请人赠额 / 被邀请人赠额（为 0 时前端隐藏对应 pill）

@@ -84,6 +84,13 @@ export function SmartCaptcha({ onVerify, onExpire, className }: SmartCaptchaProp
     return null
   }
 
+  // Normalize each provider's result into a URL query fragment that callers can
+  // append verbatim to a request URL. Turnstile yields a bare token (needs the
+  // `turnstile=` key + encoding); GeeTest already yields an encoded
+  // `lot_number=..&captcha_output=..&pass_token=..&gen_time=..` string, so it
+  // passes through unchanged. Sending GeeTest's 4 params bundled under a single
+  // `turnstile=` value was the bug: the backend reads them as top-level query
+  // params, so they must travel as top-level params.
   if (config.type === 'geetest') {
     return (
       <GeeTest
@@ -99,7 +106,7 @@ export function SmartCaptcha({ onVerify, onExpire, className }: SmartCaptchaProp
     return (
       <Turnstile
         siteKey={config.siteKey}
-        onVerify={onVerify}
+        onVerify={(token) => onVerify(`turnstile=${encodeURIComponent(token)}`)}
         onExpire={onExpire}
         className={className}
       />
