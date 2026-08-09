@@ -15,9 +15,9 @@ func isStripeTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
 		return false
 	}
+	// 充值改用 price_data 现场定价（按实收金额），不再依赖预建的 StripePriceId。
 	return strings.TrimSpace(setting.StripeApiSecret) != "" &&
-		strings.TrimSpace(setting.StripeWebhookSecret) != "" &&
-		strings.TrimSpace(setting.StripePriceId) != ""
+		strings.TrimSpace(setting.StripeWebhookSecret) != ""
 }
 
 func isStripeWebhookConfigured() bool {

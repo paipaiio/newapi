@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -86,13 +87,22 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 	}
 
 	id := c.GetInt("id")
-	user, _ := model.GetUserById(id, false)
-	chargedMoney := GetChargedAmount(float64(req.Amount), *user)
+	user, err := model.GetUserById(id, false)
+	if err != nil || user == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "获取用户失败"})
+		return
+	}
+	// 实收金额 = 数量 × 单价 × 分组倍率 × 折扣（与 /stripe/amount 前端预估口径一致）
+	payMoney := getStripePayMoney(id, float64(req.Amount), user.Group)
+	if payMoney <= 0 {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额计算错误"})
+		return
+	}
 
 	reference := fmt.Sprintf("new-api-ref-%d-%d-%s", user.Id, time.Now().UnixMilli(), randstr.String(4))
 	referenceId := "ref_" + common.Sha1([]byte(reference))
 
-	payLink, err := genStripeLink(referenceId, user.StripeCustomer, user.Email, req.Amount, req.SuccessURL, req.CancelURL)
+	payLink, err := genStripeLink(referenceId, user.StripeCustomer, user.Email, payMoney, req.SuccessURL, req.CancelURL)
 	if err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Stripe 创建 Checkout Session 失败 user_id=%d trade_no=%s amount=%d error=%q", id, referenceId, req.Amount, err.Error()))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "拉起支付失败"})
@@ -102,7 +112,7 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 	topUp := &model.TopUp{
 		UserId:          id,
 		Amount:          req.Amount,
-		Money:           chargedMoney,
+		Money:           payMoney,
 		TradeNo:         referenceId,
 		PaymentMethod:   model.PaymentMethodStripe,
 		PaymentProvider: model.PaymentProviderStripe,
@@ -115,7 +125,7 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建订单失败"})
 		return
 	}
-	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Stripe 充值订单创建成功 user_id=%d trade_no=%s amount=%d money=%.2f", id, referenceId, req.Amount, chargedMoney))
+	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Stripe 充值订单创建成功 user_id=%d trade_no=%s amount=%d money=%.2f", id, referenceId, req.Amount, payMoney))
 	c.JSON(http.StatusOK, gin.H{
 		"message": "success",
 		"data": gin.H{
@@ -336,12 +346,12 @@ func sessionExpired(ctx context.Context, event stripe.Event) {
 //   - referenceId: unique reference identifier for the transaction
 //   - customerId: existing Stripe customer ID (empty string if new customer)
 //   - email: customer email address for new customer creation
-//   - amount: quantity of units to purchase
+//   - moneyYuan: actual amount to charge in CNY (含折扣/分组倍率), shown as a single line item
 //   - successURL: custom URL to redirect after successful payment (empty for default)
 //   - cancelURL: custom URL to redirect when payment is canceled (empty for default)
 //
 // Returns the checkout session URL or an error if the session creation fails.
-func genStripeLink(referenceId string, customerId string, email string, amount int64, successURL string, cancelURL string) (string, error) {
+func genStripeLink(referenceId string, customerId string, email string, moneyYuan float64, successURL string, cancelURL string) (string, error) {
 	if !strings.HasPrefix(setting.StripeApiSecret, "sk_") && !strings.HasPrefix(setting.StripeApiSecret, "rk_") {
 		return "", fmt.Errorf("无效的Stripe API密钥")
 	}
@@ -356,14 +366,27 @@ func genStripeLink(referenceId string, customerId string, email string, amount i
 		cancelURL = paymentReturnPath("/console/topup")
 	}
 
+	// 用 price_data 按实收金额(人民币)现场定价、数量=1：收银台直接显示
+	// "API 额度充值 ¥X.XX"，而不是固定 Price 的 "¥1 × N"。人民币最小单位是分。
+	unitAmount := int64(math.Round(moneyYuan * 100))
+	if unitAmount <= 0 {
+		return "", fmt.Errorf("无效的充值金额")
+	}
+
 	params := &stripe.CheckoutSessionParams{
 		ClientReferenceID: stripe.String(referenceId),
 		SuccessURL:        stripe.String(successURL),
 		CancelURL:         stripe.String(cancelURL),
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String(setting.StripePriceId),
-				Quantity: stripe.Int64(amount),
+				PriceData: &stripe.CheckoutSessionLineItemPriceDataParams{
+					Currency:   stripe.String("cny"),
+					UnitAmount: stripe.Int64(unitAmount),
+					ProductData: &stripe.CheckoutSessionLineItemPriceDataProductDataParams{
+						Name: stripe.String("API 额度充值"),
+					},
+				},
+				Quantity: stripe.Int64(1),
 			},
 		},
 		Mode:                stripe.String(string(stripe.CheckoutSessionModePayment)),
