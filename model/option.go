@@ -150,6 +150,11 @@ func InitOptionMap() {
 	common.OptionMap["TurnstileSecretKey"] = ""
 	common.OptionMap["GeeTestCaptchaId"] = ""
 	common.OptionMap["GeeTestCaptchaKey"] = ""
+	common.OptionMap["CapEnabled"] = strconv.FormatBool(common.CapEnabled)
+	common.OptionMap["CapServerURL"] = ""
+	common.OptionMap["CapPublicEndpoint"] = ""
+	common.OptionMap["CapSiteKey"] = ""
+	common.OptionMap["CapSecretKey"] = ""
 	common.OptionMap["QuotaForNewUser"] = strconv.Itoa(common.QuotaForNewUser)
 	common.OptionMap["QuotaForInviter"] = strconv.Itoa(common.QuotaForInviter)
 	common.OptionMap["QuotaForInvitee"] = strconv.Itoa(common.QuotaForInvitee)
@@ -316,6 +321,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.TelegramOAuthEnabled = boolValue
 		case "TurnstileCheckEnabled":
 			common.TurnstileCheckEnabled = boolValue
+		case "CapEnabled":
+			common.CapEnabled = boolValue
 		case "RegisterEnabled":
 			common.RegisterEnabled = boolValue
 		case "EmailDomainRestrictionEnabled":
@@ -556,6 +563,14 @@ func updateOptionMap(key string, value string) (err error) {
 		common.GeeTestCaptchaId = value
 	case "GeeTestCaptchaKey":
 		common.GeeTestCaptchaKey = value
+	case "CapServerURL":
+		common.CapServerURL = value
+	case "CapPublicEndpoint":
+		common.CapPublicEndpoint = value
+	case "CapSiteKey":
+		common.CapSiteKey = value
+	case "CapSecretKey":
+		common.CapSecretKey = value
 	case "QuotaForNewUser":
 		common.QuotaForNewUser, _ = strconv.Atoi(value)
 	case "QuotaForInviter":

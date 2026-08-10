@@ -19,10 +19,15 @@ For commercial licensing, please contact support@quantumnous.com
 import { useEffect, useState } from 'react'
 import { GeeTest } from './geetest'
 import { Turnstile } from './turnstile'
+import { CapWidget } from './cap-widget'
 
 interface CaptchaConfig {
-  type: 'turnstile' | 'geetest' | 'none'
+  type: 'turnstile' | 'geetest' | 'cap' | 'none'
   siteKey: string
+  /** Cap: widget 的 api endpoint */
+  endpoint?: string
+  /** Cap: widget.js 脚本地址 */
+  script_url?: string
   enabled: boolean
   region: 'CN' | 'overseas'
 }
@@ -88,9 +93,22 @@ export function SmartCaptcha({ onVerify, onExpire, className }: SmartCaptchaProp
   // append verbatim to a request URL. Turnstile yields a bare token (needs the
   // `turnstile=` key + encoding); GeeTest already yields an encoded
   // `lot_number=..&captcha_output=..&pass_token=..&gen_time=..` string, so it
-  // passes through unchanged. Sending GeeTest's 4 params bundled under a single
-  // `turnstile=` value was the bug: the backend reads them as top-level query
-  // params, so they must travel as top-level params.
+  // passes through unchanged. Cap yields `cap_token=<token>`. Sending GeeTest's
+  // 4 params bundled under a single `turnstile=` value was the bug: the backend
+  // reads them as top-level query params, so they must travel as top-level params.
+  if (config.type === 'cap') {
+    if (!config.endpoint || !config.script_url) return null
+    return (
+      <CapWidget
+        endpoint={config.endpoint}
+        scriptUrl={config.script_url}
+        onVerify={onVerify}
+        onExpire={onExpire}
+        className={className}
+      />
+    )
+  }
+
   if (config.type === 'geetest') {
     return (
       <GeeTest

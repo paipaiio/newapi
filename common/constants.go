@@ -145,6 +145,13 @@ var TurnstileSecretKey = ""
 var GeeTestCaptchaId = ""
 var GeeTestCaptchaKey = ""
 
+// Cap 自托管验证码（proof-of-work，开源）。全部 DB options 热加载可配，无硬编码。
+var CapEnabled = false       // 总开关：启用后全站用 Cap（地域无关），false 则回退 geetest/turnstile 地域分流
+var CapServerURL = ""        // 后端内部访问地址（siteverify），如 http://cap:3000
+var CapPublicEndpoint = ""   // 浏览器经 new-api 反代访问的地址（widget challenge/redeem），如 https://api.tuftech.org/api/cap
+var CapSiteKey = ""          // Cap dashboard 生成的 site key（公开）
+var CapSecretKey = ""        // Cap dashboard 生成的 secret key（仅后端 siteverify 用，勿泄露）
+
 var TelegramBotToken = ""
 var TelegramBotName = ""
 

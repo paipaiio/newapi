@@ -30,12 +30,13 @@ export function useTurnstile() {
   const [turnstileToken, setTurnstileToken] = useState('')
 
   // "Turnstile" here is a historical name; the gate now covers any captcha
-  // provider. SmartCaptcha picks Turnstile or GeeTest by client region, so
-  // readiness must be true whenever either is enabled — otherwise a GeeTest-only
-  // (China) setup would submit with an empty token and get rejected.
+  // provider. SmartCaptcha picks Cap / GeeTest / Turnstile by config + region, so
+  // readiness must be true whenever any is enabled — otherwise a captcha-enabled
+  // setup would submit with an empty token and get rejected.
   const isTurnstileEnabled = !!(
     (status?.turnstile_check && status?.turnstile_site_key) ||
-    status?.geetest_check
+    status?.geetest_check ||
+    status?.cap_check
   )
   const turnstileSiteKey = status?.turnstile_site_key || ''
 

@@ -23,6 +23,9 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.POST("/setup", anonymousRequestBodyLimit, controller.PostSetup)
 		apiRouter.GET("/status", controller.GetStatus)
 		apiRouter.GET("/captcha/config", controller.GetCaptchaConfig)
+		// Cap 自托管验证码：浏览器经此反代访问 Cap 的 widget/challenge/redeem（无需动宝塔 nginx）
+		apiRouter.GET("/cap/*proxypath", controller.CapProxy)
+		apiRouter.POST("/cap/*proxypath", anonymousRequestBodyLimit, controller.CapProxy)
 		apiRouter.GET("/uptime/status", controller.GetUptimeKumaStatus)
 		apiRouter.GET("/public/key-balance", middleware.CriticalRateLimit(), controller.GetPublicKeyBalance)
 		apiRouter.POST("/public/key-transfer", middleware.CriticalRateLimit(), anonymousRequestBodyLimit, controller.PostPublicKeyTransfer)

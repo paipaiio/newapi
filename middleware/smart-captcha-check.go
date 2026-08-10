@@ -5,14 +5,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SmartCaptchaCheck 根据用户IP地域智能选择验证方式
-// 国内IP → 极验GeeTest
-// 境外IP → Cloudflare Turnstile
+// SmartCaptchaCheck 智能选择验证码方式
+// Cap 已启用且配置齐全 → Cap（自托管 PoW，地域无关，全站统一）
+// 否则按 IP 地域分流：国内 → 极验GeeTest；境外 → Cloudflare Turnstile
 func SmartCaptchaCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 如果两种验证都未启用，直接跳过
-		if !common.TurnstileCheckEnabled && common.GeeTestCaptchaId == "" {
+		// 三种验证都未启用，直接跳过
+		if !common.TurnstileCheckEnabled && common.GeeTestCaptchaId == "" && !IsCapConfigured() {
 			c.Next()
+			return
+		}
+
+		// Cap 自托管验证：启用且配置齐全 → 全站统一使用（地域无关，不依赖外部服务）
+		if IsCapConfigured() {
+			CapCheck()(c)
 			return
 		}
 
