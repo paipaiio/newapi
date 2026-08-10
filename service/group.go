@@ -4,9 +4,11 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/gin-gonic/gin"
 )
 
 // GetUserUsableGroupsByUser 在 GetUserUsableGroups 的基础上叠加「独享分组」过滤：
@@ -129,28 +131,106 @@ func GroupInUserUsableGroups(userGroup, groupName string) bool {
 	return ok
 }
 
+func IsUserSelectableGroup(userGroup, groupName string) bool {
+	if groupName == "" || groupName == "auto" {
+		return false
+	}
+	return GroupInUserUsableGroups(userGroup, groupName) && ratio_setting.ContainsGroupRatio(groupName)
+}
+
 // GetUserAutoGroup 根据用户分组获取自动分组设置
 func GetUserAutoGroup(userGroup string) []string {
-	groups := GetUserUsableGroups(userGroup)
+	autoGroups := make([]string, 0)
+	seen := make(map[string]struct{})
+	for _, group := range setting.GetAutoGroups() {
+		if !IsUserSelectableGroup(userGroup, group) {
+			continue
+		}
+		if _, ok := seen[group]; ok {
+			continue
+		}
+		seen[group] = struct{}{}
+		autoGroups = append(autoGroups, group)
+	}
+	return autoGroups
+}
+
+// GetUserAutoGroupByUser 在 GetUserAutoGroup 基础上叠加独享分组授权。
+func GetUserAutoGroupByUser(userId int, userGroup string) []string {
+	groups := GetUserUsableGroupsByUser(userId, userGroup)
 	autoGroups := make([]string, 0)
 	for _, group := range setting.GetAutoGroups() {
-		if _, ok := groups[group]; ok {
+		if _, ok := groups[group]; ok && ratio_setting.ContainsGroupRatio(group) {
 			autoGroups = append(autoGroups, group)
 		}
 	}
 	return autoGroups
 }
 
-// GetUserAutoGroupByUser 在 GetUserAutoGroup 基础上叠加独享分组过滤。
-func GetUserAutoGroupByUser(userId int, userGroup string) []string {
-	groups := GetUserUsableGroupsByUser(userId, userGroup)
-	autoGroups := make([]string, 0)
-	for _, group := range setting.GetAutoGroups() {
-		if _, ok := groups[group]; ok {
-			autoGroups = append(autoGroups, group)
+// FilterUserTokenAutoGroups applies current group permissions before the token limit.
+func FilterUserTokenAutoGroups(userGroup string, groups []string) []string {
+	return filterUserTokenAutoGroupsByUser(0, userGroup, groups)
+}
+
+func filterUserTokenAutoGroupsByUser(userId int, userGroup string, groups []string) []string {
+	maxCount := setting.GetMaxTokenAutoGroups()
+	filtered := make([]string, 0, min(len(groups), maxCount))
+	seen := make(map[string]struct{})
+	var usable map[string]string
+	if userId > 0 {
+		usable = GetUserUsableGroupsByUser(userId, userGroup)
+	}
+	for _, group := range groups {
+		selectable := IsUserSelectableGroup(userGroup, group)
+		if usable != nil {
+			_, selectable = usable[group]
+			selectable = selectable && ratio_setting.ContainsGroupRatio(group)
+		}
+		if !selectable {
+			continue
+		}
+		if _, ok := seen[group]; ok {
+			continue
+		}
+		seen[group] = struct{}{}
+		filtered = append(filtered, group)
+		if len(filtered) == maxCount {
+			break
 		}
 	}
-	return autoGroups
+	return filtered
+}
+
+// GetRequestAutoGroups resolves the ordered Auto groups for the current token.
+func GetRequestAutoGroups(c *gin.Context, userGroup string) []string {
+	userId := common.GetContextKeyInt(c, constant.ContextKeyUserId)
+	value, ok := common.GetContextKey(c, constant.ContextKeyTokenAutoGroups)
+	if !ok {
+		if userId > 0 {
+			return GetUserAutoGroupByUser(userId, userGroup)
+		}
+		return GetUserAutoGroup(userGroup)
+	}
+	groups, ok := value.([]string)
+	if !ok {
+		return []string{}
+	}
+	return filterUserTokenAutoGroupsByUser(userId, userGroup, groups)
+}
+
+// GetGroupsEnabledModels 按 groups 顺序获取各分组启用的模型并去重。
+func GetGroupsEnabledModels(groups []string) []string {
+	seen := make(map[string]struct{})
+	models := make([]string, 0)
+	for _, group := range groups {
+		for _, modelName := range model.GetGroupEnabledModels(group) {
+			if _, ok := seen[modelName]; !ok {
+				seen[modelName] = struct{}{}
+				models = append(models, modelName)
+			}
+		}
+	}
+	return models
 }
 
 // GetUserGroupRatio 获取用户使用某个分组的倍率

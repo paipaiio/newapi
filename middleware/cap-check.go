@@ -2,14 +2,12 @@ package middleware
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -32,12 +30,6 @@ func IsCapConfigured() bool {
 // 后端拿 secret 调 Cap standalone 的 /<siteKey>/siteverify 验证（token 单次有效）。
 func CapCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		if session.Get("cap") != nil {
-			c.Next()
-			return
-		}
-
 		token := strings.TrimSpace(c.Query("cap_token"))
 		if token == "" {
 			c.JSON(http.StatusOK, gin.H{
@@ -62,10 +54,16 @@ func CapCheck() gin.HandlerFunc {
 		}
 
 		verifyURL := fmt.Sprintf("%s/%s/siteverify", server, siteKey)
-		body, _ := json.Marshal(map[string]string{
+		body, err := common.Marshal(map[string]string{
 			"secret":   secret,
 			"response": token,
 		})
+		if err != nil {
+			common.SysLog("Cap 验证请求编码失败: " + err.Error())
+			c.JSON(http.StatusOK, gin.H{"success": false, "message": "Cap 验证服务不可用"})
+			c.Abort()
+			return
+		}
 		req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodPost, verifyURL, bytes.NewReader(body))
 		if err != nil {
 			common.SysLog("Cap 验证请求构造失败: " + err.Error())
@@ -85,7 +83,7 @@ func CapCheck() gin.HandlerFunc {
 		defer rawRes.Body.Close()
 
 		var res capSiteverifyResponse
-		if err := json.NewDecoder(rawRes.Body).Decode(&res); err != nil {
+		if err := common.DecodeJson(rawRes.Body, &res); err != nil {
 			common.SysLog("Cap 响应解析失败: " + err.Error())
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": "Cap 验证结果解析失败"})
 			c.Abort()
@@ -101,10 +99,6 @@ func CapCheck() gin.HandlerFunc {
 			return
 		}
 
-		session.Set("cap", true)
-		if err := session.Save(); err != nil {
-			common.SysLog("Cap session 保存失败: " + err.Error())
-		}
 		c.Next()
 	}
 }

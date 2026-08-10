@@ -2,7 +2,6 @@ package router
 
 import (
 	"embed"
-	"io/fs"
 	"net/http"
 	"strings"
 
@@ -14,52 +13,35 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ThemeAssets holds the embedded frontend assets for both themes.
-type ThemeAssets struct {
-	DefaultBuildFS   embed.FS
-	DefaultIndexPage []byte
-	ClassicBuildFS   embed.FS
-	ClassicIndexPage []byte
+// WebAssets holds the embedded dashboard frontend assets.
+type WebAssets struct {
+	BuildFS   embed.FS
+	IndexPage []byte
 }
 
-func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
-	defaultFS := common.EmbedFolder(assets.DefaultBuildFS, "web/default/dist")
-	classicFS := common.EmbedFolder(assets.ClassicBuildFS, "web/classic/dist")
-	themeFS := common.NewThemeAwareFS(defaultFS, classicFS)
-
-	// Serve /docs/* directly from the embedded classic dist, bypassing the
-	// gin-contrib/static middleware which has trouble with embedded directories.
-	docsSubFS, err := fs.Sub(assets.ClassicBuildFS, "web/classic/dist/docs")
-	if err == nil {
-		docsHandler := http.FileServerFS(docsSubFS)
-		router.GET("/docs", func(c *gin.Context) {
-			http.Redirect(c.Writer, c.Request, "/docs/", http.StatusMovedPermanently)
-		})
-		router.GET("/docs/*filepath", func(c *gin.Context) {
-			c.Request.URL.Path = c.Param("filepath")
-			docsHandler.ServeHTTP(c.Writer, c.Request)
-		})
-	}
+func SetWebRouter(router *gin.Engine, assets WebAssets) {
+	frontendFS := common.EmbedFolder(assets.BuildFS, "web/dist")
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
 	router.Use(middleware.Cache())
-	// 资源按构建命名空间（/av26/static/... → /static/...）：每次构建换前缀，
-	// 彻底避免 CDN 上旧的被污染缓存条目影响新构建。
+	// Rewrite versioned CDN paths (/avHASH/static/... or /avHASH/assets/...)
+	// to their embedded single-frontend paths.
 	router.Use(func(c *gin.Context) {
-		p := c.Request.URL.Path
-		if strings.HasPrefix(p, "/av") {
-			if idx := strings.Index(p[1:], "/"); idx > 0 {
-				rest := p[1+idx:]
-				if strings.HasPrefix(rest, "/static/") || rest == "/favicon.ico" ||
-					strings.HasPrefix(rest, "/logo") || strings.HasPrefix(rest, "/manifest") {
+		path := c.Request.URL.Path
+		if strings.HasPrefix(path, "/av") {
+			if idx := strings.Index(path[1:], "/"); idx > 0 {
+				rest := path[1+idx:]
+				if strings.HasPrefix(rest, "/static/") || strings.HasPrefix(rest, "/assets/") ||
+					rest == "/favicon.ico" || strings.HasPrefix(rest, "/logo") ||
+					strings.HasPrefix(rest, "/manifest") {
 					c.Request.URL.Path = rest
 				}
 			}
 		}
 		c.Next()
 	})
-	router.Use(static.Serve("/", themeFS))
+	router.Use(static.Serve("/", frontendFS))
 	router.NoRoute(func(c *gin.Context) {
 		c.Set(middleware.RouteTagKey, "web")
 		// 用带斜杠的前缀精确匹配后端路径，避免误伤前端路由（如 /api-sale 撞 /api）。
@@ -78,10 +60,6 @@ func SetWebRouter(router *gin.Engine, assets ThemeAssets) {
 			return
 		}
 		c.Header("Cache-Control", "no-cache")
-		if common.GetTheme() == "classic" {
-			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.ClassicIndexPage)
-		} else {
-			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.DefaultIndexPage)
-		}
+		c.Data(http.StatusOK, "text/html; charset=utf-8", assets.IndexPage)
 	})
 }
