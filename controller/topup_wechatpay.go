@@ -147,6 +147,9 @@ func RequestWechatPay(c *gin.Context) {
 // WechatPayNotify 处理微信支付回调通知
 func WechatPayNotify(c *gin.Context) {
 	ctx := c.Request.Context()
+	// Replace literal \n with actual newlines for PEM format
+	privateKeyContent := strings.ReplaceAll(setting.WechatPayPrivateKey, "\\n", "\n")
+
 
 	privateKey, err := utils.LoadPrivateKey(setting.WechatPayPrivateKey)
 	if err != nil {
