@@ -31,7 +31,7 @@ func getWechatPayClient() (*core.Client, error) {
 
 	privateKey, err := utils.LoadPrivateKey(privateKeyContent)
 	if err != nil {
-		privateKey, err = utils.LoadPrivateKeyWithPath(setting.WechatPayPrivateKey)
+		privateKey, err = utils.LoadPrivateKeyWithPath(privateKeyContent)
 		if err != nil {
 			return nil, fmt.Errorf("加载微信支付私钥失败: %w", err)
 		}
@@ -150,7 +150,7 @@ func WechatPayNotify(c *gin.Context) {
 
 	privateKey, err := utils.LoadPrivateKey(setting.WechatPayPrivateKey)
 	if err != nil {
-		privateKey, err = utils.LoadPrivateKeyWithPath(setting.WechatPayPrivateKey)
+		privateKey, err = utils.LoadPrivateKeyWithPath(privateKeyContent)
 		if err != nil {
 			logger.LogError(ctx, "wechatpay notify: load private key failed: "+err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "配置错误"})
