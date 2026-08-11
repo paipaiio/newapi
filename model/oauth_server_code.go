@@ -59,6 +59,38 @@ func GetOAuthAuthRequestByRequestId(requestId string) (*OAuthAuthorizationCode, 
 	return &r, nil
 }
 
+// BindOAuthAuthRequestUser claims a pending browser authorization request for
+// the authenticated dashboard user. The authorize endpoint itself is reached
+// by a top-level browser navigation and therefore has no bearer token; binding
+// happens on the authenticated consent API instead.
+func BindOAuthAuthRequestUser(requestId string, userId int) error {
+	if requestId == "" || userId <= 0 {
+		return errors.New("invalid authorization request binding")
+	}
+	now := common.GetTimestamp()
+	result := DB.Model(&OAuthAuthorizationCode{}).
+		Where("request_id = ? AND status = ? AND expires_at > ? AND user_id = ?",
+			requestId, OAuthCodeStatusPending, now, 0).
+		Update("user_id", userId)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected > 0 {
+		return nil
+	}
+	var count int64
+	if err := DB.Model(&OAuthAuthorizationCode{}).
+		Where("request_id = ? AND user_id = ? AND status = ? AND expires_at > ?",
+			requestId, userId, OAuthCodeStatusPending, now).
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("authorization request not found or already claimed")
+	}
+	return nil
+}
+
 // ApproveOAuthAuthRequest 把 pending 请求标记为 approved 并写入新生成的授权码哈希。
 // 返回明文授权码（只在此刻可得）。要求请求未过期且仍为 pending，避免重复签发。
 func ApproveOAuthAuthRequest(requestId string, userId int) (string, error) {

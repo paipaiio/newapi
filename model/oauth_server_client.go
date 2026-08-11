@@ -17,9 +17,9 @@ type OAuthClient struct {
 	Id               int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	ClientId         string `json:"client_id" gorm:"type:varchar(64);uniqueIndex;not null"`
 	ClientSecretHash string `json:"-" gorm:"type:varchar(128)"`                                     // bcrypt 哈希；public 客户端为空
-	Name             string `json:"name" gorm:"type:varchar(128);not null"`                        // 展示名（同意页/管理页）
-	Logo             string `json:"logo" gorm:"type:varchar(512)"`                                 // 图标 URL（可空）
-	RedirectUris     string `json:"redirect_uris" gorm:"type:text"`                                // 回调地址，换行分隔，精确匹配
+	Name             string `json:"name" gorm:"type:varchar(128);not null"`                         // 展示名（同意页/管理页）
+	Logo             string `json:"logo" gorm:"type:varchar(512)"`                                  // 图标 URL（可空）
+	RedirectUris     string `json:"redirect_uris" gorm:"type:text"`                                 // 回调地址，换行分隔，精确匹配
 	Scopes           string `json:"scopes" gorm:"type:varchar(512);default:'openid profile email'"` // 允许的 scope，空格分隔
 	IsPublic         bool   `json:"is_public" gorm:"type:tinyint(1);default:0"`                     // public 客户端：无 secret，强制 PKCE
 	AutoApprove      bool   `json:"auto_approve" gorm:"type:tinyint(1);default:0"`                  // 受信任应用：跳过用户同意页

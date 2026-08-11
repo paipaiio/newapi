@@ -4,9 +4,7 @@ import (
 	"crypto/tls"
 	//"os"
 	//"strconv"
-	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,44 +16,6 @@ var SystemName = "TUFTech"
 var Footer = ""
 var Logo = ""
 var TopUpLink = ""
-
-var themeValue atomic.Value // stores string; safe for concurrent read/write
-
-func init() {
-	themeValue.Store("default")
-}
-
-func GetTheme() string {
-	return themeValue.Load().(string)
-}
-
-// SetTheme updates the frontend theme atomically.
-// Only "default" and "classic" are accepted; other values are silently ignored.
-func SetTheme(t string) {
-	if t == "default" || t == "classic" {
-		themeValue.Store(t)
-	}
-}
-
-// ThemeAwarePath rewrites legacy /console/* paths to the default-theme
-// equivalents when the active theme is "default".  For "classic" (or any
-// other theme) the path is returned unchanged.  The function only touches
-// known prefixes so it is safe to call with arbitrary suffixes and query
-// strings.
-func ThemeAwarePath(suffix string) string {
-	if GetTheme() != "default" {
-		return suffix
-	}
-	switch {
-	case strings.HasPrefix(suffix, "/console/topup"):
-		return strings.Replace(suffix, "/console/topup", "/wallet", 1)
-	case strings.HasPrefix(suffix, "/console/log"):
-		return strings.Replace(suffix, "/console/log", "/usage-logs", 1)
-	case strings.HasPrefix(suffix, "/console/personal"):
-		return strings.Replace(suffix, "/console/personal", "/profile", 1)
-	}
-	return suffix
-}
 
 // var ChatLink = ""
 // var ChatLink2 = ""
@@ -76,6 +36,22 @@ var SessionSecret = uuid.New().String()
 var CryptoSecret = uuid.New().String()
 var SessionCookieSecure = false
 var SessionCookieTrustedURLs []string
+
+const (
+	DefaultUserSessionActiveLimit           = 50
+	DefaultUserSessionIssuanceLimit         = 100
+	DefaultUserSessionIssuanceWindowSeconds = 24 * 60 * 60
+	DefaultUserSessionRevokedRetentionDays  = 7
+	DefaultUserSessionHourlyAlertThreshold  = 5000
+)
+
+var (
+	UserSessionActiveLimit           = DefaultUserSessionActiveLimit
+	UserSessionIssuanceLimit         = DefaultUserSessionIssuanceLimit
+	UserSessionIssuanceWindowSeconds = int64(DefaultUserSessionIssuanceWindowSeconds)
+	UserSessionRevokedRetentionDays  = DefaultUserSessionRevokedRetentionDays
+	UserSessionHourlyAlertThreshold  = DefaultUserSessionHourlyAlertThreshold
+)
 
 var OptionMap map[string]string
 var OptionMapRWMutex sync.RWMutex
@@ -146,11 +122,11 @@ var GeeTestCaptchaId = ""
 var GeeTestCaptchaKey = ""
 
 // Cap 自托管验证码（proof-of-work，开源）。全部 DB options 热加载可配，无硬编码。
-var CapEnabled = false       // 总开关：启用后全站用 Cap（地域无关），false 则回退 geetest/turnstile 地域分流
-var CapServerURL = ""        // 后端内部访问地址（siteverify），如 http://cap:3000
-var CapPublicEndpoint = ""   // 浏览器经 new-api 反代访问的地址（widget challenge/redeem），如 https://api.tuftech.org/api/cap
-var CapSiteKey = ""          // Cap dashboard 生成的 site key（公开）
-var CapSecretKey = ""        // Cap dashboard 生成的 secret key（仅后端 siteverify 用，勿泄露）
+var CapEnabled = false     // 总开关：启用后全站用 Cap（地域无关），false 则回退 geetest/turnstile 地域分流
+var CapServerURL = ""      // 后端内部访问地址（siteverify），如 http://cap:3000
+var CapPublicEndpoint = "" // 浏览器经 new-api 反代访问的地址（widget challenge/redeem），如 https://api.tuftech.org/api/cap
+var CapSiteKey = ""        // Cap dashboard 生成的 site key（公开）
+var CapSecretKey = ""      // Cap dashboard 生成的 secret key（仅后端 siteverify 用，勿泄露）
 
 var TelegramBotToken = ""
 var TelegramBotName = ""

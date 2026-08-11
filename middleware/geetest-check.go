@@ -4,13 +4,11 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,13 +22,6 @@ func GeeTestCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if common.GeeTestCaptchaId == "" || common.GeeTestCaptchaKey == "" {
 			// 极验未配置，跳过
-			c.Next()
-			return
-		}
-
-		session := sessions.Default(c)
-		geetestChecked := session.Get("geetest")
-		if geetestChecked != nil {
 			c.Next()
 			return
 		}
@@ -75,7 +66,7 @@ func GeeTestCheck() gin.HandlerFunc {
 		defer rawRes.Body.Close()
 
 		var res geetestValidateResponse
-		err = json.NewDecoder(rawRes.Body).Decode(&res)
+		err = common.DecodeJson(rawRes.Body, &res)
 		if err != nil {
 			common.SysLog("GeeTest响应解析失败: " + err.Error())
 			c.JSON(http.StatusOK, gin.H{
@@ -93,13 +84,6 @@ func GeeTestCheck() gin.HandlerFunc {
 			})
 			c.Abort()
 			return
-		}
-
-		// 验证通过，标记session
-		session.Set("geetest", true)
-		err = session.Save()
-		if err != nil {
-			common.SysLog("GeeTest session保存失败: " + err.Error())
 		}
 
 		c.Next()

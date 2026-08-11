@@ -79,16 +79,16 @@ func category(t int) string {
 
 // ---------- 全局状态 ----------
 var (
-	current   atomicStatus              // 最新状态快照
-	tokenCache = map[string]string{}    // group -> 监控 token key
-	tokenMu    sync.Mutex
-	metricsMu  sync.Mutex
-	metricsAt  int64
-	metricsPub = map[string]interface{}{"overall": map[string]interface{}{}, "groups": map[string]interface{}{}}
-	metricsAdm = map[string]interface{}{}
-	userCache  = map[int]userCacheEntry{}
+	current     atomicStatus          // 最新状态快照
+	tokenCache  = map[string]string{} // group -> 监控 token key
+	tokenMu     sync.Mutex
+	metricsMu   sync.Mutex
+	metricsAt   int64
+	metricsPub  = map[string]interface{}{"overall": map[string]interface{}{}, "groups": map[string]interface{}{}}
+	metricsAdm  = map[string]interface{}{}
+	userCache   = map[int]userCacheEntry{}
 	userCacheMu sync.Mutex
-	startOnce  sync.Once
+	startOnce   sync.Once
 )
 
 type atomicStatus struct {

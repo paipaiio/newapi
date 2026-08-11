@@ -360,10 +360,10 @@ func genStripeLink(referenceId string, customerId string, email string, moneyYua
 
 	// Use custom URLs if provided, otherwise use defaults
 	if successURL == "" {
-		successURL = paymentReturnPath("/console/log")
+		successURL = paymentReturnPath("/usage-logs")
 	}
 	if cancelURL == "" {
-		cancelURL = paymentReturnPath("/console/topup")
+		cancelURL = paymentReturnPath("/wallet")
 	}
 
 	// 用 price_data 按实收金额(人民币)现场定价、数量=1：收银台直接显示

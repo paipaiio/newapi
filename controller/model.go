@@ -8,7 +8,6 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/relay"
 	"github.com/QuantumNous/new-api/relay/channel/ai360"
@@ -17,9 +16,11 @@ import (
 	"github.com/QuantumNous/new-api/relay/channel/moonshot"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
+	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 )
@@ -190,16 +191,16 @@ func getModelListGroups(c *gin.Context) (modelListGroups, error) {
 		return modelListGroups{
 			userGroup:   userGroup,
 			tokenGroup:  tokenGroup,
-			ownerGroups: service.GetUserDisplayAutoGroupsByUser(c.GetInt("id"), userGroup),
+			ownerGroups: service.GetRequestAutoGroups(c, userGroup),
 		}, nil
 	}
 
-	// 多分组令牌(逗号分隔):展示所有绑定分组可用模型的并集
+	// 多分组令牌（逗号分隔）：展示所有绑定分组可用模型的并集。
 	if strings.Contains(tokenGroup, ",") {
 		groups := make([]string, 0)
-		for _, g := range strings.Split(tokenGroup, ",") {
-			if g = strings.TrimSpace(g); g != "" {
-				groups = append(groups, g)
+		for _, group := range strings.Split(tokenGroup, ",") {
+			if group = strings.TrimSpace(group); group != "" {
+				groups = append(groups, group)
 			}
 		}
 		return modelListGroups{
@@ -243,45 +244,28 @@ func ListModels(c *gin.Context, modelType int) {
 	}
 	ownerGroups := groups.ownerGroups
 	modelLimitEnable := common.GetContextKeyBool(c, constant.ContextKeyTokenModelLimitEnabled)
+	var tokenModelLimit map[string]bool
 	if modelLimitEnable {
 		s, ok := common.GetContextKey(c, constant.ContextKeyTokenModelLimit)
-		var tokenModelLimit map[string]bool
 		if ok {
-			tokenModelLimit = s.(map[string]bool)
-		} else {
+			tokenModelLimit, _ = s.(map[string]bool)
+		}
+		if tokenModelLimit == nil {
 			tokenModelLimit = map[string]bool{}
 		}
-		for allowModel, _ := range tokenModelLimit {
-			if !acceptUnsetRatioModel {
-				if !helper.HasModelBillingConfig(allowModel) {
-					continue
-				}
+	}
+	models := service.GetGroupsEnabledModels(ownerGroups)
+	for _, modelName := range models {
+		if modelLimitEnable {
+			matchingName := ratio_setting.FormatMatchingModelName(modelName)
+			if !tokenModelLimit[modelName] && !tokenModelLimit[matchingName] {
+				continue
 			}
-			userModelNames = append(userModelNames, allowModel)
 		}
-	} else {
-		var models []string
-		if len(ownerGroups) > 1 {
-			// auto 分组或多分组令牌:取所有分组可用模型的并集
-			for _, ownerGroup := range ownerGroups {
-				groupModels := model.GetGroupEnabledModels(ownerGroup)
-				for _, g := range groupModels {
-					if !common.StringsContains(models, g) {
-						models = append(models, g)
-					}
-				}
-			}
-		} else {
-			models = model.GetGroupEnabledModels(ownerGroups[0])
+		if !acceptUnsetRatioModel && !helper.HasModelBillingConfig(modelName) {
+			continue
 		}
-		for _, modelName := range models {
-			if !acceptUnsetRatioModel {
-				if !helper.HasModelBillingConfig(modelName) {
-					continue
-				}
-			}
-			userModelNames = append(userModelNames, modelName)
-		}
+		userModelNames = append(userModelNames, modelName)
 	}
 
 	ownerByModel := map[string]string{}
@@ -304,11 +288,17 @@ func ListModels(c *gin.Context, modelType int) {
 				Type:        "model",
 			}
 		}
+		firstID := ""
+		lastID := ""
+		if len(useranthropicModels) > 0 {
+			firstID = useranthropicModels[0].ID
+			lastID = useranthropicModels[len(useranthropicModels)-1].ID
+		}
 		c.JSON(200, gin.H{
 			"data":     useranthropicModels,
-			"first_id": useranthropicModels[0].ID,
+			"first_id": firstID,
 			"has_more": false,
-			"last_id":  useranthropicModels[len(useranthropicModels)-1].ID,
+			"last_id":  lastID,
 		})
 	case constant.ChannelTypeGemini:
 		userGeminiModels := make([]dto.GeminiModel, len(userOpenAiModels))

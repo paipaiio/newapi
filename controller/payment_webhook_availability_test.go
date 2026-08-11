@@ -21,7 +21,7 @@ func confirmPaymentComplianceForTest(t *testing.T) {
 	paymentSetting.ComplianceTermsVersion = operation_setting.CurrentComplianceTermsVersion
 }
 
-func TestStripeWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
+func TestStripeWebhookEnabledRequiresDynamicTopUpAndWebhookConfig(t *testing.T) {
 	confirmPaymentComplianceForTest(t)
 	originalAPISecret := setting.StripeApiSecret
 	originalWebhookSecret := setting.StripeWebhookSecret
@@ -40,7 +40,11 @@ func TestStripeWebhookEnabledRequiresTopUpAndWebhookConfig(t *testing.T) {
 	setting.StripeWebhookSecret = "whsec_test"
 	require.True(t, isStripeWebhookEnabled())
 
+	// Stripe Checkout uses inline price_data, so a pre-created price ID is optional.
 	setting.StripePriceId = ""
+	require.True(t, isStripeWebhookEnabled())
+
+	setting.StripeApiSecret = ""
 	require.False(t, isStripeWebhookEnabled())
 }
 

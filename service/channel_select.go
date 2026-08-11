@@ -8,7 +8,6 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/setting"
 	"github.com/gin-gonic/gin"
 )
 
@@ -83,33 +82,35 @@ func (p *RetryParam) ResetRetryNextTry() {
 //	Retry=3: GroupB, priority1 (startRetryIndex=2, priorityRetry=1)
 //	         分组B, 优先级1
 func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, error) {
-	var channel *model.Channel
-	var err error
 	selectGroup := param.TokenGroup
 	userGroup := common.GetContextKeyString(param.Ctx, constant.ContextKeyUserGroup)
 
 	if param.TokenGroup == "auto" {
-		if len(setting.GetAutoGroups()) == 0 {
+		groups := GetRequestAutoGroups(param.Ctx, userGroup)
+		if len(groups) == 0 {
 			return nil, selectGroup, errors.New("auto groups is not enabled")
 		}
-		userId := common.GetContextKeyInt(param.Ctx, constant.ContextKeyUserId)
-		autoGroups := GetUserAutoGroupByUser(userId, userGroup)
-		channel, selectGroup = selectFromGroupList(param, autoGroups)
-	} else if strings.Contains(param.TokenGroup, ",") {
-		// 多分组令牌:TokenGroup 为逗号分隔的有序分组列表。
-		// 按顺序找第一个有该模型可用渠道的分组,计费跟随命中分组(与 auto 同语义)。
+		channel, selectedGroup := selectFromGroupList(param, groups)
+		return channel, selectedGroup, nil
+	}
+
+	if strings.Contains(param.TokenGroup, ",") {
 		groups := make([]string, 0)
-		for _, g := range strings.Split(param.TokenGroup, ",") {
-			if g = strings.TrimSpace(g); g != "" {
-				groups = append(groups, g)
+		for _, group := range strings.Split(param.TokenGroup, ",") {
+			if group = strings.TrimSpace(group); group != "" {
+				groups = append(groups, group)
 			}
 		}
-		channel, selectGroup = selectFromGroupList(param, groups)
-	} else {
-		channel, err = model.GetRandomSatisfiedChannel(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath)
-		if err != nil {
-			return nil, param.TokenGroup, err
+		if len(groups) == 0 {
+			return nil, selectGroup, errors.New("token groups are empty")
 		}
+		channel, selectedGroup := selectFromGroupList(param, groups)
+		return channel, selectedGroup, nil
+	}
+
+	channel, err := model.GetRandomSatisfiedChannel(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath)
+	if err != nil {
+		return nil, param.TokenGroup, err
 	}
 	return channel, selectGroup, nil
 }

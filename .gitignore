@@ -1,13 +1,31 @@
-# 构建产物 / 依赖
-/new-api
-*.o
+.idea
+.vscode
+.zed
+.history
+upload
 *.exe
-web/node_modules/
-web/*/node_modules/
-node_modules/
-.cache/
-.gocache/
-logs/*.log
+*.db
+build
+*.db-journal
+logs
+web/dist
+web/node_modules
+.env
+one-api
+new-api
+/__debug_bin*
+.DS_Store
+tiktoken_cache
+.eslintcache
+.gocache
+.gomodcache/
+.cache
+plans
+.claude
+.cursor
+
+electron/node_modules
+electron/dist
 /data/
 .gomodcache/
 .gocache-temp
@@ -21,4 +39,5 @@ skills-lock.json
 .local-tests/
 service/relayconvert/chat_responses_live_local_test.go
 service/openaicompat/chat_responses_live_local_test.go
->>>>>>> 57865fc1
+go.work
+go.work.sum

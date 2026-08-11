@@ -12,9 +12,9 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
-	"github.com/QuantumNous/new-api/types"
 
 	"github.com/shopspring/decimal"
 
@@ -49,10 +49,10 @@ type OpenAICreditGrants struct {
 
 type OpenAIUsageResponse struct {
 	Object     string             `json:"object"`
-	TotalUsage float64            `json:"total_usage"`            // 已使用（单位：0.01 dollar）
-	Remaining  float64            `json:"remaining"`              // 剩余额度（单位：0.01 dollar）
-	TotalQuota float64            `json:"total_quota"`            // 总额度（单位：0.01 dollar）
-	ModelUsage []ModelUsageDetail `json:"model_usage,omitempty"`  // 按模型消耗明细（累计），与 total_usage 同口径
+	TotalUsage float64            `json:"total_usage"`           // 已使用（单位：0.01 dollar）
+	Remaining  float64            `json:"remaining"`             // 剩余额度（单位：0.01 dollar）
+	TotalQuota float64            `json:"total_quota"`           // 总额度（单位：0.01 dollar）
+	ModelUsage []ModelUsageDetail `json:"model_usage,omitempty"` // 按模型消耗明细（累计），与 total_usage 同口径
 }
 
 // ModelUsageDetail 单个模型的累计消耗明细，Usage 与 total_usage 同口径（0.01 dollar）。
@@ -154,7 +154,7 @@ func GetResponseBody(method, url string, channel *model.Channel, headers http.He
 	for k := range headers {
 		req.Header.Add(k, headers.Get(k))
 	}
-	client, err := service.NewProxyHttpClient(channel.GetSetting().Proxy)
+	client, err := service.GetHttpClientWithProxy(channel.GetSetting().Proxy)
 	if err != nil {
 		return nil, err
 	}

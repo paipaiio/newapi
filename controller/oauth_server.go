@@ -13,7 +13,6 @@ import (
 	"github.com/QuantumNous/new-api/service/oauthprovider"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -191,36 +190,12 @@ func OAuthAuthorize(c *gin.Context) {
 		return
 	}
 
-	// 3) 解析当前登录用户。SameSite=Strict 下首次跨站进入不会带 session cookie，
-	//    统一引导到 SPA 登录页并带 redirect 回跳；登录后由前端在同源上下文再次发起 authorize（此时 cookie 会带上）。
-	session := sessions.Default(c)
-	idVal := session.Get("id")
-	if idVal == nil {
-		loginURL := "/login?redirect=" + url.QueryEscape(c.Request.URL.RequestURI())
-		c.Redirect(http.StatusFound, loginURL)
-		return
-	}
-	userId, _ := idVal.(int)
-	user, err := model.GetUserById(userId, false)
-	if err != nil || user == nil {
-		loginURL := "/login?redirect=" + url.QueryEscape(c.Request.URL.RequestURI())
-		c.Redirect(http.StatusFound, loginURL)
-		return
-	}
-	if user.Status != common.UserStatusEnabled {
-		redirectWithError(c, redirectURI, "access_denied", "user account is disabled", state)
-		return
-	}
-	if user.Role != common.RoleRootUser && user.LoginDisabled {
-		redirectWithError(c, redirectURI, "access_denied", "user is not allowed to log in", state)
-		return
-	}
-
-	// 4) 创建待处理授权请求。
+	// 3) 创建待处理授权请求。顶层浏览器跳转不会携带前端内存中的
+	// bearer token，因此由随后经过 UserAuth 的 consent API 绑定用户。
 	req := &model.OAuthAuthorizationCode{
 		RequestId:           common.GetUUID(),
 		ClientId:            clientId,
-		UserId:              userId,
+		UserId:              0,
 		RedirectUri:         redirectURI,
 		Scope:               strings.Join(requestedScopes, " "),
 		Nonce:               nonce,
@@ -233,16 +208,6 @@ func OAuthAuthorize(c *gin.Context) {
 		return
 	}
 
-	// 5) 受信任应用免同意，直接签发 code 回跳；否则跳到同意页。
-	if client.AutoApprove && system_setting.GetOAuthServerSettings().ConsentSkipForAutoApprove {
-		code, err := model.ApproveOAuthAuthRequest(req.RequestId, userId)
-		if err != nil {
-			redirectWithError(c, redirectURI, "server_error", "failed to issue code", state)
-			return
-		}
-		redirectWithCode(c, redirectURI, code, state)
-		return
-	}
 	c.Redirect(http.StatusFound, "/oauth/consent?request_id="+url.QueryEscape(req.RequestId))
 }
 
@@ -251,6 +216,10 @@ func OAuthAuthorize(c *gin.Context) {
 func GetOAuthConsent(c *gin.Context) {
 	requestId := c.Param("request_id")
 	userId := c.GetInt("id")
+	if err := model.BindOAuthAuthRequestUser(requestId, userId); err != nil {
+		common.ApiErrorMsg(c, "授权请求不存在或已过期")
+		return
+	}
 	req, err := model.GetOAuthAuthRequestByRequestId(requestId)
 	if err != nil || req == nil {
 		common.ApiErrorMsg(c, "授权请求不存在或已过期")
@@ -270,16 +239,21 @@ func GetOAuthConsent(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, gin.H{
-		"client_name": client.Name,
-		"client_logo": client.Logo,
-		"scopes":      strings.Fields(req.Scope),
-		"request_id":  req.RequestId,
+		"client_name":  client.Name,
+		"client_logo":  client.Logo,
+		"scopes":       strings.Fields(req.Scope),
+		"request_id":   req.RequestId,
+		"auto_approve": client.AutoApprove && system_setting.GetOAuthServerSettings().ConsentSkipForAutoApprove,
 	})
 }
 
 func PostOAuthConsent(c *gin.Context) {
 	requestId := c.Param("request_id")
 	userId := c.GetInt("id")
+	if err := model.BindOAuthAuthRequestUser(requestId, userId); err != nil {
+		common.ApiErrorMsg(c, "授权请求不存在或已过期")
+		return
+	}
 	var body struct {
 		Action string `json:"action"`
 	}
