@@ -39,36 +39,16 @@ func getWechatPayClient() (*core.Client, error) {
 
 	ctx := context.Background()
 	
-	// 优先使用公钥模式（推荐），兜底使用证书模式
-	var opts []core.ClientOption
-	if setting.WechatPayPublicKey != "" {
-		// 公钥模式：直接使用微信支付平台公钥
-		publicKeyBytes := []byte(setting.WechatPayPublicKey)
-		publicKey, err := utils.LoadPublicKeyWithPath(publicKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("加载微信支付平台公钥失败: %w", err)
-		}
-		opts = []core.ClientOption{
-			option.WithWechatPayPublicKey(
-				setting.WechatPayMchId,
-				setting.WechatPaySerialNo,
-				privateKey,
-				publicKey,
-			),
-		}
-	} else {
-		// 证书模式：自动下载证书（需要 APIv3 密钥）
-		opts = []core.ClientOption{
-			option.WithWechatPayAutoAuthCipher(
-				setting.WechatPayMchId,
-				setting.WechatPaySerialNo,
-				privateKey,
-				setting.WechatPayApiV3Key,
-			),
-		}
+	// 使用 APIv3 密钥自动下载证书模式（标准做法）
+	opts := []core.ClientOption{
+		option.WithWechatPayAutoAuthCipher(
+			setting.WechatPayMchId,
+			setting.WechatPaySerialNo,
+			privateKey,
+			setting.WechatPayApiV3Key,
+		),
 	}
 	
-	return core.NewClient(ctx, opts...)
 	return core.NewClient(ctx, opts...)
 }
 
