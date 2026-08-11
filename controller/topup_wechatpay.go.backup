@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -26,10 +25,7 @@ import (
 )
 
 func getWechatPayClient() (*core.Client, error) {
-	// Replace literal \n with actual newlines for PEM format
-	privateKeyContent := strings.ReplaceAll(setting.WechatPayPrivateKey, "\\n", "\n")
-
-	privateKey, err := utils.LoadPrivateKey(privateKeyContent)
+	privateKey, err := utils.LoadPrivateKey(setting.WechatPayPrivateKey)
 	if err != nil {
 		privateKey, err = utils.LoadPrivateKeyWithPath(setting.WechatPayPrivateKey)
 		if err != nil {
