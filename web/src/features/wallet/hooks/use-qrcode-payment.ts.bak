@@ -117,7 +117,7 @@ export function useQRCodePayment(onSuccess: () => void) {
 
         if (!isApiSuccess(res) || !res.data) {
           toast.error(
-            (typeof res.data === 'string' ? res.data : (res as { message?: string }).message) ||
+            (res as { message?: string }).message ||
               i18next.t('Payment request failed')
           )
           return
