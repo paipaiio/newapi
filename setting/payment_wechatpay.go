@@ -18,6 +18,9 @@ var WechatPaySerialNo = ""
 // WechatPayPrivateKey 商户 API 私钥（PEM 内容，apiclient_key.pem）
 var WechatPayPrivateKey = ""
 
+// WechatPayPublicKey 微信支付平台公钥（PEM 内容，用于公钥模式）
+var WechatPayPublicKey = ""
+
 // WechatPayNotifyUrl 回调地址，留空时由系统自动拼接
 var WechatPayNotifyUrl = ""
 

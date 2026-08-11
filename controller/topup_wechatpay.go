@@ -38,14 +38,37 @@ func getWechatPayClient() (*core.Client, error) {
 	}
 
 	ctx := context.Background()
-	opts := []core.ClientOption{
-		option.WithWechatPayAutoAuthCipher(
-			setting.WechatPayMchId,
-			setting.WechatPaySerialNo,
-			privateKey,
-			setting.WechatPayApiV3Key,
-		),
+	
+	// 优先使用公钥模式（推荐），兜底使用证书模式
+	var opts []core.ClientOption
+	if setting.WechatPayPublicKey != "" {
+		// 公钥模式：直接使用微信支付平台公钥
+		publicKeyBytes := []byte(setting.WechatPayPublicKey)
+		publicKey, err := utils.LoadPublicKeyWithPath(publicKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("加载微信支付平台公钥失败: %w", err)
+		}
+		opts = []core.ClientOption{
+			option.WithWechatPayPublicKey(
+				setting.WechatPayMchId,
+				setting.WechatPaySerialNo,
+				privateKey,
+				publicKey,
+			),
+		}
+	} else {
+		// 证书模式：自动下载证书（需要 APIv3 密钥）
+		opts = []core.ClientOption{
+			option.WithWechatPayAutoAuthCipher(
+				setting.WechatPayMchId,
+				setting.WechatPaySerialNo,
+				privateKey,
+				setting.WechatPayApiV3Key,
+			),
+		}
 	}
+	
+	return core.NewClient(ctx, opts...)
 	return core.NewClient(ctx, opts...)
 }
 
@@ -198,31 +221,8 @@ func WechatPayNotify(c *gin.Context) {
 	tradeNo := *transaction.OutTradeNo
 	if err := model.UpdatePendingTopUpStatus(tradeNo, model.PaymentProviderWechatPay, common.TopUpStatusSuccess); err != nil {
 		if err != model.ErrTopUpStatusInvalid {
-			logger.LogError(ctx, fmt.Sprintf("wechatpay notify: update failed trade_no=%s error=%v", tradeNo, err))
-			c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "更新订单失败"})
-			return
+			logger.LogError(ctx, "wechatpay notify: update order failed: "+err.Error())
 		}
 	}
-
-	logger.LogInfo(ctx, fmt.Sprintf("wechatpay topup completed trade_no=%s", tradeNo))
 	c.JSON(http.StatusOK, gin.H{"code": "SUCCESS", "message": "OK"})
-}
-
-// QueryWechatPayOrder 查询微信支付订单状态（前端轮询）
-func QueryWechatPayOrder(c *gin.Context) {
-	tradeNo := c.Query("trade_no")
-	if tradeNo == "" {
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "缺少 trade_no"})
-		return
-	}
-	topUp := model.GetTopUpByTradeNo(tradeNo)
-	if topUp == nil {
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "订单不存在"})
-		return
-	}
-	if topUp.UserId != c.GetInt("id") {
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "无权查询"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "success", "data": topUp.Status})
 }
