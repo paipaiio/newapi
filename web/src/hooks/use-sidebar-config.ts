@@ -287,8 +287,9 @@ export function useSidebarConfig(navGroups: NavGroup[]): NavGroup[] {
       const config = parseSidebarConfig(
         status?.SidebarModulesAdmin as string | null | undefined
       )
+      // 合规站只下线管理后台。钱包入口（personal.topup 控制 /wallet）保留：
+      // 用户需要能查询自己的余额与账单，支付 UI 在钱包页内部单独隐藏。
       if (status?.site_mode === 'compliance') {
-        config.personal = { ...config.personal, topup: false }
         config.admin = { ...config.admin, enabled: false }
       }
       return config
@@ -334,8 +335,8 @@ export function useIsSidebarModuleVisible(url: string): boolean {
   const adminConfig = parseSidebarConfig(
     status?.SidebarModulesAdmin as string | null | undefined
   )
+  // 同 useSidebarConfig：合规站保留钱包入口，仅下线管理后台。
   if (status?.site_mode === 'compliance') {
-    adminConfig.personal = { ...adminConfig.personal, topup: false }
     adminConfig.admin = { ...adminConfig.admin, enabled: false }
   }
   const userConfig =

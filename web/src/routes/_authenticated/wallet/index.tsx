@@ -16,11 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createFileRoute, Navigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { Wallet } from '@/features/wallet'
-import { useStatus } from '@/hooks/use-status'
 
 const walletSearchSchema = z.object({
   show_history: z.boolean().optional(),
@@ -31,13 +30,10 @@ export const Route = createFileRoute('/_authenticated/wallet/')({
   validateSearch: walletSearchSchema,
 })
 
+// 合规站保留本页：余额与账单是用户查询自己资产的入口，不属于支付功能。
+// 页面内部按 site_mode 隐藏充值/订阅等支付 UI（见 features/wallet）。
 function RouteComponent() {
-  const { status, loading } = useStatus()
   const { show_history } = Route.useSearch()
-
-  if (!loading && status?.site_mode === 'compliance') {
-    return <Navigate to='/dashboard' replace />
-  }
 
   return <Wallet initialShowHistory={show_history} />
 }

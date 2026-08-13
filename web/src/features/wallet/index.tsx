@@ -16,10 +16,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Receipt } from 'lucide-react'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
+import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
@@ -87,6 +89,9 @@ export function Wallet(props: WalletProps) {
   const { status } = useStatus()
   const { currency } = useSystemConfig()
   const { topupInfo, presetAmounts, loading: topupLoading } = useTopupInfo()
+
+  // 合规站：本页只保留「查询自己的余额/用量/账单」，隐藏一切充值与订阅购买入口。
+  const isCompliance = status?.site_mode === 'compliance'
 
   // Calculate effective exchange rate - when display type is USD, use rate of 1
   const effectiveUsdExchangeRate = useMemo(() => {
@@ -305,13 +310,29 @@ export function Wallet(props: WalletProps) {
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
             <WalletStatsCard user={user} loading={userLoading} />
 
-            <div
-              className={
-                showSubscriptionPanel
-                  ? 'grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:items-start'
-                  : 'grid gap-4'
-              }
-            >
+            {/* 合规站没有充值卡，账单入口原本挂在充值卡上，这里单独补一个 */}
+            {isCompliance && (
+              <div className='flex justify-end'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setBillingDialogOpen(true)}
+                  className='w-full gap-2 sm:w-auto'
+                >
+                  <Receipt className='h-4 w-4' />
+                  {t('Order History')}
+                </Button>
+              </div>
+            )}
+
+            {!isCompliance && (
+              <div
+                className={
+                  showSubscriptionPanel
+                    ? 'grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:items-start'
+                    : 'grid gap-4'
+                }
+              >
               <div id='wallet-add-funds' className='scroll-mt-4 space-y-3'>
                 {!topupLoading && topupInfo?.allow_topup === false ? (
                   <div className='text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm'>
@@ -377,13 +398,14 @@ export function Wallet(props: WalletProps) {
                 )}
               </div>
 
-              <SubscriptionPlansCard
-                topupInfo={topupInfo}
-                onAvailabilityChange={handleSubscriptionAvailabilityChange}
-                userQuota={user?.quota}
-                onPurchaseSuccess={fetchUser}
-              />
-            </div>
+                <SubscriptionPlansCard
+                  topupInfo={topupInfo}
+                  onAvailabilityChange={handleSubscriptionAvailabilityChange}
+                  userQuota={user?.quota}
+                  onPurchaseSuccess={fetchUser}
+                />
+              </div>
+            )}
 
             <AffiliateRewardsCard
               user={user}

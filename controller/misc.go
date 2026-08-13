@@ -56,7 +56,10 @@ func compliancePublicStatus(data gin.H) {
 	data["announcements_enabled"] = false
 	data["faq_enabled"] = false
 	data["HeaderNavModules"] = "{}"
-	data["SidebarModulesAdmin"] = `{"chat":{"enabled":true,"playground":true,"chat":true},"console":{"enabled":true,"detail":true,"token":true,"log":true,"midjourney":true,"task":true},"personal":{"enabled":true,"topup":false,"personal":true},"admin":{"enabled":false,"channel":false,"models":false,"redemption":false,"user":false,"setting":false,"subscription":false,"firstTokenTest":false,"monitor":false,"burnTool":false}}`
+	// personal.topup 控制的是钱包页(/wallet)入口，不是"能不能付款"。合规站保留它，
+	// 用户才能查自己的余额与账单；充值/订阅等支付 UI 由前端按 site_mode 单独隐藏，
+	// 后端另有 payments_enabled=false 与各 topup 接口的拦截兜底。
+	data["SidebarModulesAdmin"] = `{"chat":{"enabled":true,"playground":true,"chat":true},"console":{"enabled":true,"detail":true,"token":true,"log":true,"midjourney":true,"task":true},"personal":{"enabled":true,"topup":true,"personal":true},"admin":{"enabled":false,"channel":false,"models":false,"redemption":false,"user":false,"setting":false,"subscription":false,"firstTokenTest":false,"monitor":false,"burnTool":false}}`
 	if constant.SitePublicURL != "" {
 		data["server_address"] = constant.SitePublicURL
 	} else {
