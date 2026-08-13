@@ -5806,6 +5806,13 @@
     "Merchant private key (PEM)": "商户私钥（PEM）",
     "Content of apiclient_key.pem. Leave blank to keep existing.": "apiclient_key.pem 文件内容。留空保留当前值。",
     "Callback URL (optional)": "回调地址（可选）",
-    "Leave blank to auto-generate from system address": "留空将根据系统地址自动生成"
+    "Leave blank to auto-generate from system address": "留空将根据系统地址自动生成",
+    "User Groups": "用户分组",
+    "Pure user groups": "纯用户分组",
+    "Default model group": "默认模型分组",
+    "Duplicate user group": "用户分组重复",
+    "e.g. reseller": "例如 reseller",
+    "No user groups yet. Add one to get started.": "还没有用户分组，添加一个开始配置。",
+    "A group listed here is only an identity label and has no channels of its own: it stops being offered as a selectable model group, and tokens that pick no group route to the default model group set here. Groups not listed keep the existing behaviour. Which model groups each user group may pick is configured under Group Management.": "列在这里的分组只是用户身份标签，本身没有渠道：它不会再作为可选模型分组出现，未指定分组的令牌会路由到这里配置的默认模型分组。未列出的分组保持原有行为。每个用户分组能选哪些模型分组，在「分组管理」里配置。"
   }
 }
