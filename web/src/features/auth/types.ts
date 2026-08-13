@@ -95,6 +95,8 @@ export interface SystemStatus {
   message?: string
   data?: {
     version?: string
+    site_mode?: 'normal' | 'compliance'
+    payments_enabled?: boolean
     system_name?: string
     logo?: string
     github_oauth?: boolean
@@ -145,6 +147,8 @@ export interface SystemStatus {
   }
   // Allow direct access to common properties
   version?: string
+  site_mode?: 'normal' | 'compliance'
+  payments_enabled?: boolean
   system_name?: string
   logo?: string
   github_oauth?: boolean

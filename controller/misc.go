@@ -41,6 +41,33 @@ func TestStatus(c *gin.Context) {
 	return
 }
 
+func compliancePublicStatus(data gin.H) {
+	data["site_mode"] = constant.SiteModeCompliance
+	data["payments_enabled"] = false
+	data["footer_html"] = ""
+	data["wechat_qrcode"] = ""
+	data["wechat_login"] = false
+	data["telegram_oauth"] = false
+	data["telegram_bot_name"] = ""
+	data["chats"] = []any{}
+	data["docs_link"] = ""
+	data["stripe_unit_price"] = 0
+	data["api_info_enabled"] = false
+	data["announcements_enabled"] = false
+	data["faq_enabled"] = false
+	data["HeaderNavModules"] = "{}"
+	data["SidebarModulesAdmin"] = `{"chat":{"enabled":true,"playground":true,"chat":true},"console":{"enabled":true,"detail":true,"token":true,"log":true,"midjourney":true,"task":true},"personal":{"enabled":true,"topup":false,"personal":true},"admin":{"enabled":false,"channel":false,"models":false,"redemption":false,"user":false,"setting":false,"subscription":false,"firstTokenTest":false,"monitor":false,"burnTool":false}}`
+	if constant.SitePublicURL != "" {
+		data["server_address"] = constant.SitePublicURL
+	} else {
+		data["server_address"] = ""
+	}
+	delete(data, "api_info")
+	delete(data, "announcements")
+	delete(data, "faq")
+	delete(data, "custom_oauth_providers")
+}
+
 func GetStatus(c *gin.Context) {
 
 	cs := console_setting.GetConsoleSetting()
@@ -170,6 +197,10 @@ func GetStatus(c *gin.Context) {
 		data["custom_oauth_providers"] = providersInfo
 	}
 
+	if constant.IsComplianceSite() {
+		compliancePublicStatus(data)
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -179,6 +210,10 @@ func GetStatus(c *gin.Context) {
 }
 
 func GetNotice(c *gin.Context) {
+	if constant.IsComplianceSite() {
+		common.ApiSuccess(c, "")
+		return
+	}
 	common.OptionMapRWMutex.RLock()
 	defer common.OptionMapRWMutex.RUnlock()
 	c.JSON(http.StatusOK, gin.H{
@@ -190,6 +225,10 @@ func GetNotice(c *gin.Context) {
 }
 
 func GetAbout(c *gin.Context) {
+	if constant.IsComplianceSite() {
+		common.ApiSuccess(c, "")
+		return
+	}
 	common.OptionMapRWMutex.RLock()
 	defer common.OptionMapRWMutex.RUnlock()
 	c.JSON(http.StatusOK, gin.H{
@@ -201,6 +240,10 @@ func GetAbout(c *gin.Context) {
 }
 
 func GetUserAgreement(c *gin.Context) {
+	if constant.IsComplianceSite() {
+		common.ApiSuccess(c, "")
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -210,6 +253,10 @@ func GetUserAgreement(c *gin.Context) {
 }
 
 func GetPrivacyPolicy(c *gin.Context) {
+	if constant.IsComplianceSite() {
+		common.ApiSuccess(c, "")
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -230,6 +277,10 @@ func GetMidjourney(c *gin.Context) {
 }
 
 func GetHomePageContent(c *gin.Context) {
+	if constant.IsComplianceSite() {
+		common.ApiSuccess(c, "")
+		return
+	}
 	common.OptionMapRWMutex.RLock()
 	defer common.OptionMapRWMutex.RUnlock()
 	c.JSON(http.StatusOK, gin.H{

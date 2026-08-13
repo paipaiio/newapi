@@ -21,6 +21,9 @@ var WechatPayPrivateKey = ""
 // WechatPayPublicKey 微信支付平台公钥（PEM 内容，用于公钥模式）
 var WechatPayPublicKey = ""
 
+// WechatPayPublicKeyID 微信支付平台公钥 ID（PUB_KEY_ID_...）
+var WechatPayPublicKeyID = ""
+
 // WechatPayNotifyUrl 回调地址，留空时由系统自动拼接
 var WechatPayNotifyUrl = ""
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -98,7 +99,7 @@ func UpdateSubscriptionPreference(c *gin.Context) {
 }
 
 func SubscriptionRequestBalancePay(c *gin.Context) {
-	if !requirePaymentCompliance(c) {
+	if !constant.IsComplianceSite() && !requirePaymentCompliance(c) {
 		return
 	}
 

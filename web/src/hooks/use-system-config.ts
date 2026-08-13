@@ -39,6 +39,8 @@ interface StatusApiResponse {
     system_name?: string
     logo?: string
     footer_html?: string
+    site_mode?: 'normal' | 'compliance'
+    payments_enabled?: boolean
     demo_site_enabled?: boolean
     display_token_stat_enabled?: boolean
     display_in_currency?: boolean
@@ -95,6 +97,8 @@ export function mapStatusDataToConfig(
   return {
     systemName: data.system_name || DEFAULT_SYSTEM_NAME,
     logo: data.logo || DEFAULT_LOGO,
+    siteMode: data.site_mode ?? 'normal',
+    paymentsEnabled: data.payments_enabled ?? true,
     footerHtml: data.footer_html,
     demoSiteEnabled: data.demo_site_enabled,
     displayTokenStatEnabled: data.display_token_stat_enabled,

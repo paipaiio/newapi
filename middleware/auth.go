@@ -121,14 +121,33 @@ func UserAuth() func(c *gin.Context) {
 	}
 }
 
+func complianceAdminUnavailable(c *gin.Context) bool {
+	if !constant.IsComplianceSite() {
+		return false
+	}
+	logger.LogWarn(c.Request.Context(), fmt.Sprintf("compliance site rejected privileged route method=%s path=%s", c.Request.Method, c.Request.URL.Path))
+	c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+		"success": false,
+		"code":    "NOT_FOUND",
+		"message": "Not found",
+	})
+	return true
+}
+
 func AdminAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
+		if complianceAdminUnavailable(c) {
+			return
+		}
 		authHelper(c, common.RoleAdminUser)
 	}
 }
 
 func RootAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
+		if complianceAdminUnavailable(c) {
+			return
+		}
 		authHelper(c, common.RoleRootUser)
 	}
 }

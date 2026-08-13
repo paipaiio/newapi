@@ -23,6 +23,9 @@ type WaffoPancakePayRequest struct {
 }
 
 func RequestWaffoPancakeAmount(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	var req WaffoPancakePayRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "参数错误"})
@@ -335,6 +338,9 @@ func getWaffoPancakeBuyerIdentity(user *model.User) string {
 }
 
 func RequestWaffoPancakePay(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !isWaffoPancakeTopUpEnabled() {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "Waffo Pancake 配置不完整"})
 		return
@@ -424,6 +430,9 @@ func RequestWaffoPancakePay(c *gin.Context) {
 }
 
 func WaffoPancakeWebhook(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !isWaffoPancakeWebhookEnabled() {
 		logger.LogWarn(c.Request.Context(), fmt.Sprintf("Waffo Pancake webhook 被拒绝 reason=webhook_disabled path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
 		c.String(http.StatusForbidden, "webhook disabled")

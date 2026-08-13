@@ -51,6 +51,9 @@ func isMobileUA(ua string) bool {
 // RequestAlipay 创建支付宝支付订单：
 // 手机端走手机网站支付(wap.pay, 同窗跳转可拉起支付宝App)，电脑端走电脑网站支付(page.pay, 新标签页收银台)
 func RequestAlipay(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !checkUserTopupAllowed(c) {
 		return
 	}
@@ -177,7 +180,6 @@ func RequestAlipay(c *gin.Context) {
 	})
 }
 
-
 // alipayQRCodeRe 从 qr_pay_mode=4 返回页面中提取官方收款码短链（qr.alipay.com 域名，App 扫码不触发风控）
 var alipayQRCodeRe = regexp.MustCompile(`name="qrCode"[^>]*value="(https://qr\.alipay\.com/[A-Za-z0-9]+)"`)
 
@@ -200,9 +202,11 @@ func fetchAlipayQRCode(pageURL string) (string, error) {
 	return string(m[1]), nil
 }
 
-
 // AlipayNotify 处理支付宝异步回调
 func AlipayNotify(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	ctx := c.Request.Context()
 	client, err := getAlipayClient()
 	if err != nil {
@@ -238,6 +242,9 @@ func AlipayNotify(c *gin.Context) {
 // QueryAlipayOrder 查询支付宝订单状态（前端轮询）。
 // 订单在本地仍为 pending 时主动向支付宝查询交易状态，异步回调丢失也能到账。
 func QueryAlipayOrder(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	tradeNo := c.Query("trade_no")
 	if tradeNo == "" {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "缺少 trade_no"})

@@ -151,7 +151,10 @@ export function Footer(props: FooterProps) {
     logo: systemLogo,
     footerHtml,
     demoSiteEnabled,
+    siteMode,
   } = useSystemConfig()
+
+  if (siteMode === 'compliance') return null
 
   const displayLogo = systemLogo || props.logo || '/logo.png'
   const displayName = systemName || props.name || 'TUFTech'

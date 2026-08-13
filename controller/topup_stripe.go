@@ -135,6 +135,9 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 }
 
 func RequestStripeAmount(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	var req StripePayRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
@@ -145,6 +148,9 @@ func RequestStripeAmount(c *gin.Context) {
 }
 
 func RequestStripePay(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !checkUserTopupAllowed(c) {
 		return
 	}
@@ -158,6 +164,9 @@ func RequestStripePay(c *gin.Context) {
 }
 
 func StripeWebhook(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	ctx := c.Request.Context()
 	if !isStripeWebhookEnabled() {
 		logger.LogWarn(ctx, fmt.Sprintf("Stripe webhook 被拒绝 reason=webhook_disabled path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))

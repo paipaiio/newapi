@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/gin-gonic/gin"
 )
@@ -27,6 +28,10 @@ func GetCaptchaConfig(c *gin.Context) {
 		captchaType = "cap"
 		siteKey = common.CapSiteKey
 		base := strings.TrimRight(strings.TrimSpace(common.CapPublicEndpoint), "/")
+		// 合规站不得暴露主站域名：改用本站自身公开地址反代 Cap（路径与主站一致）。
+		if constant.IsComplianceSite() && strings.TrimSpace(constant.SitePublicURL) != "" {
+			base = strings.TrimRight(strings.TrimSpace(constant.SitePublicURL), "/") + "/api/cap"
+		}
 		// widget 的 api endpoint = 公共反代地址 + /<siteKey>/（widget 会自动拼 challenge/redeem）
 		endpoint = base + "/" + common.CapSiteKey + "/"
 		// widget.js（含 wasm，经同一反代自托管，国内不依赖 jsdelivr）。Cap 资源服务器路径带 /assets 前缀。

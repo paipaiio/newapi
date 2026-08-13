@@ -283,11 +283,17 @@ export function useSidebarConfig(navGroups: NavGroup[]): NavGroup[] {
   const { auth } = useAuthStore()
 
   const adminConfig = useMemo(
-    () =>
-      parseSidebarConfig(
+    () => {
+      const config = parseSidebarConfig(
         status?.SidebarModulesAdmin as string | null | undefined
-      ),
-    [status?.SidebarModulesAdmin]
+      )
+      if (status?.site_mode === 'compliance') {
+        config.personal = { ...config.personal, topup: false }
+        config.admin = { ...config.admin, enabled: false }
+      }
+      return config
+    },
+    [status?.SidebarModulesAdmin, status?.site_mode]
   )
 
   const userConfig = useMemo(() => {
@@ -328,6 +334,10 @@ export function useIsSidebarModuleVisible(url: string): boolean {
   const adminConfig = parseSidebarConfig(
     status?.SidebarModulesAdmin as string | null | undefined
   )
+  if (status?.site_mode === 'compliance') {
+    adminConfig.personal = { ...adminConfig.personal, topup: false }
+    adminConfig.admin = { ...adminConfig.admin, enabled: false }
+  }
   const userConfig =
     auth?.user?.permissions?.sidebar_settings === false
       ? null

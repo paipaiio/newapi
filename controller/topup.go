@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -37,6 +38,7 @@ func checkUserTopupAllowed(c *gin.Context) bool {
 }
 
 func GetTopUpInfo(c *gin.Context) {
+	complianceSite := constant.IsComplianceSite()
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
 
 	// 检查用户充值权限
@@ -152,7 +154,7 @@ func GetTopUpInfo(c *gin.Context) {
 	}
 
 	data := gin.H{
-		"allow_topup":                      allowTopup,
+		"allow_topup":                      allowTopup && !complianceSite,
 		"user_topup_discount":              userTopupDiscount,
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
@@ -161,7 +163,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"enable_waffo_pancake_topup":       enableWaffoPancake,
 		"enable_alipay_topup":              enableAlipay,
 		"enable_wechatpay_topup":           enableWechatPay,
-		"enable_redemption":                complianceConfirmed,
+		"enable_redemption":                true,
 		"payment_compliance_confirmed":     complianceConfirmed,
 		"payment_compliance_terms_version": operation_setting.CurrentComplianceTermsVersion,
 		"waffo_pay_methods": func() interface{} {
@@ -187,6 +189,19 @@ func GetTopUpInfo(c *gin.Context) {
 		"abuse_pending_bonus":      abusePendingBonus,
 		"abuse_topup_required":     operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold,
 		"abuse_topup_accumulated":  abuseTopupAccumulated,
+	}
+	if complianceSite {
+		data["enable_online_topup"] = false
+		data["enable_stripe_topup"] = false
+		data["enable_creem_topup"] = false
+		data["enable_waffo_topup"] = false
+		data["enable_waffo_pancake_topup"] = false
+		data["enable_alipay_topup"] = false
+		data["enable_wechatpay_topup"] = false
+		data["waffo_pay_methods"] = nil
+		data["creem_products"] = ""
+		data["pay_methods"] = []map[string]string{}
+		data["topup_link"] = ""
 	}
 	common.ApiSuccess(c, data)
 }
@@ -269,6 +284,9 @@ func getMinTopup() int64 {
 }
 
 func RequestEpay(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !checkUserTopupAllowed(c) {
 		return
 	}
@@ -393,6 +411,9 @@ func UnlockOrder(tradeNo string) {
 }
 
 func EpayNotify(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !isEpayWebhookEnabled() {
 		logger.LogWarn(c.Request.Context(), fmt.Sprintf("易支付 webhook 被拒绝 reason=webhook_disabled path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
 		_, _ = c.Writer.Write([]byte("fail"))
@@ -497,6 +518,9 @@ func EpayNotify(c *gin.Context) {
 }
 
 func RequestAmount(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	var req AmountRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {

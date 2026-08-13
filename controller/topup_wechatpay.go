@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"github.com/wechatpay-apiv3/wechatpay-go/core"
+	"github.com/wechatpay-apiv3/wechatpay-go/core/auth"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/auth/verifiers"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/downloader"
 	"github.com/wechatpay-apiv3/wechatpay-go/core/notify"
@@ -25,31 +27,58 @@ import (
 	"github.com/wechatpay-apiv3/wechatpay-go/utils"
 )
 
-func getWechatPayClient() (*core.Client, error) {
-	// Replace literal \n with actual newlines for PEM format
-	privateKeyContent := strings.ReplaceAll(setting.WechatPayPrivateKey, "\\n", "\n")
-
+func loadWechatPayPrivateKey() (*rsa.PrivateKey, error) {
+	privateKeyContent := strings.ReplaceAll(setting.WechatPayPrivateKey, `\n`, "\n")
 	privateKey, err := utils.LoadPrivateKey(privateKeyContent)
 	if err != nil {
-		privateKey, err = utils.LoadPrivateKeyWithPath(privateKeyContent)
-		if err != nil {
-			return nil, fmt.Errorf("加载微信支付私钥失败: %w", err)
-		}
+		return nil, fmt.Errorf("加载微信支付私钥失败: %w", err)
+	}
+	return privateKey, nil
+}
+
+func loadWechatPayPublicKey() (*rsa.PublicKey, error) {
+	publicKeyContent := strings.ReplaceAll(setting.WechatPayPublicKey, `\n`, "\n")
+	publicKey, err := utils.LoadPublicKey(publicKeyContent)
+	if err != nil {
+		return nil, fmt.Errorf("加载微信支付平台公钥失败: %w", err)
+	}
+	return publicKey, nil
+}
+
+func useWechatPayPublicKeyMode() bool {
+	return strings.TrimSpace(setting.WechatPayPublicKeyID) != "" &&
+		strings.TrimSpace(setting.WechatPayPublicKey) != ""
+}
+
+func getWechatPayClient() (*core.Client, error) {
+	privateKey, err := loadWechatPayPrivateKey()
+	if err != nil {
+		return nil, err
 	}
 
-	ctx := context.Background()
-	
-	// 使用 APIv3 密钥自动下载证书模式（标准做法）
-	opts := []core.ClientOption{
-		option.WithWechatPayAutoAuthCipher(
+	var authOption core.ClientOption
+	if useWechatPayPublicKeyMode() {
+		publicKey, err := loadWechatPayPublicKey()
+		if err != nil {
+			return nil, err
+		}
+		authOption = option.WithWechatPayPublicKeyAuthCipher(
+			setting.WechatPayMchId,
+			setting.WechatPaySerialNo,
+			privateKey,
+			setting.WechatPayPublicKeyID,
+			publicKey,
+		)
+	} else {
+		authOption = option.WithWechatPayAutoAuthCipher(
 			setting.WechatPayMchId,
 			setting.WechatPaySerialNo,
 			privateKey,
 			setting.WechatPayApiV3Key,
-		),
+		)
 	}
-	
-	return core.NewClient(ctx, opts...)
+
+	return core.NewClient(context.Background(), authOption)
 }
 
 type WechatPayRequest struct {
@@ -58,6 +87,9 @@ type WechatPayRequest struct {
 
 // RequestWechatPay 创建微信支付 Native 订单，返回 code_url 供前端渲染二维码
 func RequestWechatPay(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !checkUserTopupAllowed(c) {
 		return
 	}
@@ -149,43 +181,48 @@ func RequestWechatPay(c *gin.Context) {
 
 // WechatPayNotify 处理微信支付回调通知
 func WechatPayNotify(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	ctx := c.Request.Context()
-	// Replace literal \n with actual newlines for PEM format
-	privateKeyContent := strings.ReplaceAll(setting.WechatPayPrivateKey, "\\n", "\n")
 
-
-	privateKey, err := utils.LoadPrivateKey(setting.WechatPayPrivateKey)
-	if err != nil {
-		privateKey, err = utils.LoadPrivateKeyWithPath(privateKeyContent)
+	var verifier auth.Verifier
+	if useWechatPayPublicKeyMode() {
+		publicKey, err := loadWechatPayPublicKey()
+		if err != nil {
+			logger.LogError(ctx, "wechatpay notify: load public key failed: "+err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "配置错误"})
+			return
+		}
+		verifier = verifiers.NewSHA256WithRSAPubkeyVerifier(
+			setting.WechatPayPublicKeyID,
+			*publicKey,
+		)
+	} else {
+		privateKey, err := loadWechatPayPrivateKey()
 		if err != nil {
 			logger.LogError(ctx, "wechatpay notify: load private key failed: "+err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "配置错误"})
 			return
 		}
+		if err := downloader.MgrInstance().RegisterDownloaderWithPrivateKey(
+			ctx, privateKey, setting.WechatPaySerialNo, setting.WechatPayMchId, setting.WechatPayApiV3Key,
+		); err != nil {
+			logger.LogError(ctx, "wechatpay notify: register downloader failed: "+err.Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "证书初始化失败"})
+			return
+		}
+		certVisitor := downloader.MgrInstance().GetCertificateVisitor(setting.WechatPayMchId)
+		verifier = verifiers.NewSHA256WithRSAVerifier(certVisitor)
 	}
 
-	// 注册证书下载器（首次需要下载平台证书用于验签）
-	if err := downloader.MgrInstance().RegisterDownloaderWithPrivateKey(
-		ctx, privateKey, setting.WechatPaySerialNo, setting.WechatPayMchId, setting.WechatPayApiV3Key,
-	); err != nil {
-		logger.LogError(ctx, "wechatpay notify: register downloader failed: "+err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "证书初始化失败"})
-		return
-	}
-
-	// GetCertificateVisitor 返回 core.CertificateVisitor，实现了 CertificateGetter 接口
-	certVisitor := downloader.MgrInstance().GetCertificateVisitor(setting.WechatPayMchId)
-	handler, err := notify.NewRSANotifyHandler(
-		setting.WechatPayApiV3Key,
-		verifiers.NewSHA256WithRSAVerifier(certVisitor),
-	)
+	handler, err := notify.NewRSANotifyHandler(setting.WechatPayApiV3Key, verifier)
 	if err != nil {
 		logger.LogError(ctx, "wechatpay notify: create handler failed: "+err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "初始化失败"})
 		return
 	}
 
-	// payments.Transaction 是通用交易结构（native/jsapi/app 共用）
 	transaction := new(payments.Transaction)
 	if _, err := handler.ParseNotifyRequest(ctx, c.Request, transaction); err != nil {
 		logger.LogError(ctx, "wechatpay notify: parse failed: "+err.Error())
@@ -201,8 +238,34 @@ func WechatPayNotify(c *gin.Context) {
 	tradeNo := *transaction.OutTradeNo
 	if err := model.UpdatePendingTopUpStatus(tradeNo, model.PaymentProviderWechatPay, common.TopUpStatusSuccess); err != nil {
 		if err != model.ErrTopUpStatusInvalid {
-			logger.LogError(ctx, "wechatpay notify: update order failed: "+err.Error())
+			logger.LogError(ctx, fmt.Sprintf("wechatpay notify: update failed trade_no=%s error=%v", tradeNo, err))
+			c.JSON(http.StatusInternalServerError, gin.H{"code": "FAIL", "message": "更新订单失败"})
+			return
 		}
 	}
+
+	logger.LogInfo(ctx, fmt.Sprintf("wechatpay topup completed trade_no=%s", tradeNo))
 	c.JSON(http.StatusOK, gin.H{"code": "SUCCESS", "message": "OK"})
+}
+
+// QueryWechatPayOrder 查询微信支付订单状态（前端轮询）
+func QueryWechatPayOrder(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
+	tradeNo := c.Query("trade_no")
+	if tradeNo == "" {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "缺少 trade_no"})
+		return
+	}
+	topUp := model.GetTopUpByTradeNo(tradeNo)
+	if topUp == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "订单不存在"})
+		return
+	}
+	if topUp.UserId != c.GetInt("id") {
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "无权查询"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "success", "data": topUp.Status})
 }
