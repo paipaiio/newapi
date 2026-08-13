@@ -16,12 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Receipt } from 'lucide-react'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
-import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
@@ -309,21 +307,6 @@ export function Wallet(props: WalletProps) {
         <SectionPageLayout.Content>
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
             <WalletStatsCard user={user} loading={userLoading} />
-
-            {/* 合规站没有充值卡，账单入口原本挂在充值卡上，这里单独补一个 */}
-            {isCompliance && (
-              <div className='flex justify-end'>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  onClick={() => setBillingDialogOpen(true)}
-                  className='w-full gap-2 sm:w-auto'
-                >
-                  <Receipt className='h-4 w-4' />
-                  {t('Order History')}
-                </Button>
-              </div>
-            )}
 
             {!isCompliance && (
               <div
