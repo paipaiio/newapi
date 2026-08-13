@@ -6,6 +6,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -109,4 +110,38 @@ func TestFilterByVisibleGroups(t *testing.T) {
 			assert.ElementsMatch(t, tt.want, gotNames)
 		})
 	}
+}
+
+func keysOf(m map[string]string) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}
+
+// 管理员在用户设置里配的「可见分组」是权威的：即使这些分组没开放给所有人自选
+// （不在 UserUsableGroups 里），也要对该用户放出来，否则配了不生效。
+func TestVisibleGroupsGrantsNonPublicGroups(t *testing.T) {
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(
+		`{"default":1,"cc-max":1,"claude":1,"GPT":1}`))
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(
+		`{"default":"默认","cc-max":"CC-Max"}`))
+	t.Cleanup(func() {
+		_ = ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"vip":1,"svip":1}`)
+		_ = setting.UpdateUserUsableGroupsByJSONString(`{"default":"默认"}`)
+	})
+
+	// claude / GPT 系统里有定义但不公开自选，nope 是脏数据（已删除的分组名）。
+	user := seedGroupTestUser(t, "default",
+		`{"visible_groups":["claude","GPT","nope"]}`)
+
+	got := GetUserDisplayGroupsByUser(user.Id, "default")
+
+	assert.ElementsMatch(t, []string{"claude", "GPT"}, keysOf(got))
+	// 未在倍率表里定义的名字要被丢掉，避免选了之后 relay 报「分组已被弃用」。
+	assert.NotContains(t, got, "nope")
+	// 白名单是权威的：没列进白名单的公开分组不再可见。
+	assert.NotContains(t, got, "cc-max")
+	assert.NotContains(t, got, "default")
 }

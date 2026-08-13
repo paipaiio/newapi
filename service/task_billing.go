@@ -291,25 +291,20 @@ func RecalculateTaskQuotaByTokens(ctx context.Context, task *model.Task, totalTo
 		return
 	}
 
-	// 获取用户和组的倍率信息。
-	// GetGroupGroupRatio 是二维的：第一维是用户身份分组，第二维是实际计费的模型分组。
-	// 这两者必须分开取——此前用同一个变量喂两维，在用户分组与模型分组分离后会算错。
-	var userGroup string
-	if user, err := model.GetUserById(task.UserId, false); err == nil {
-		userGroup = user.Group
+	// 获取用户和组的倍率信息
+	group := task.Group
+	if group == "" {
+		user, err := model.GetUserById(task.UserId, false)
+		if err == nil {
+			group = user.Group
+		}
 	}
-
-	usingGroup := task.Group
-	if usingGroup == "" {
-		// 任务未记录分组时按用户分组推导；纯用户分组翻译成它的默认模型分组。
-		usingGroup = ratio_setting.ResolveUsingGroup(userGroup)
-	}
-	if usingGroup == "" {
+	if group == "" {
 		return
 	}
 
-	groupRatio := ratio_setting.GetGroupRatio(usingGroup)
-	userGroupRatio, hasUserGroupRatio := ratio_setting.GetGroupGroupRatio(userGroup, usingGroup)
+	groupRatio := ratio_setting.GetGroupRatio(group)
+	userGroupRatio, hasUserGroupRatio := ratio_setting.GetGroupGroupRatio(group, group)
 
 	var finalGroupRatio float64
 	if hasUserGroupRatio {

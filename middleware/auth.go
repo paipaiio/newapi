@@ -241,10 +241,7 @@ func setDashboardAuthContext(c *gin.Context, user *model.UserBase, identity serv
 	c.Set("username", user.Username)
 	c.Set("role", user.Role)
 	c.Set("id", user.Id)
-	// "group" 是 ContextKeyUsingGroup（选渠道用的模型分组），"user_group" 是
-	// ContextKeyUserGroup（用户身份）。纯用户分组要翻译成默认模型分组，否则会话路径
-	// （含 playground）会拿一个没有渠道的分组去选渠道。
-	c.Set("group", ratio_setting.ResolveUsingGroup(user.Group))
+	c.Set("group", user.Group)
 	c.Set("user_group", user.Group)
 	c.Set("use_access_token", useAccessToken)
 	c.Set("session_id", identity.SessionID)
@@ -530,17 +527,13 @@ func TokenAuth() func(c *gin.Context) {
 				userGroup = tokenGroups[0]
 			}
 		} else {
-			// token 未指定分组时使用用户自身分组。
+			// token 未指定分组时直接使用用户自身分组。
 			// 若该分组为独享分组且用户未被授权（如被移出名单），拒绝访问。
-			// 独享判定用的是原始用户分组（身份），必须在翻译成模型分组之前做。
 			if !isAdmin && model.IsExclusiveGroup(userGroup) && !model.IsUserAllowedExclusive(userCache.Id, userGroup) {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", userGroup))
 				return
 			}
-			// 纯用户分组本身没有渠道，翻译成它配置的默认模型分组再去选渠道。
-			userGroup = ratio_setting.ResolveUsingGroup(userGroup)
 		}
-		// 此处起 userGroup 恒为「模型分组」；用户身份分组见 ContextKeyUserGroup。
 		common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
 
 		err = SetupContextForToken(c, token, parts...)

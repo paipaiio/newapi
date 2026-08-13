@@ -44,7 +44,6 @@ import {
   Timer,
   User,
   Users,
-  UsersRound,
   Wallet,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -176,11 +175,6 @@ export function useSidebarData(): SidebarData {
             title: t('Group Management'),
             url: '/group-management',
             icon: Layers,
-          },
-          {
-            title: t('User Groups'),
-            url: '/user-groups',
-            icon: UsersRound,
           },
         ],
       },

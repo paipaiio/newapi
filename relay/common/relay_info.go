@@ -16,7 +16,6 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/relayconvert/convmeta"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/setting/model_setting"
-	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	hosttypes "github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
@@ -485,12 +484,9 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 	//paramOverride := common.GetContextKeyStringMap(c, constant.ContextKeyChannelParamOverride)
 
 	tokenGroup := common.GetContextKeyString(c, constant.ContextKeyTokenGroup)
-	// 当令牌分组为空时，表示使用用户分组。该值会作为 RetryParam.TokenGroup 参与渠道
-	// 选择，所以纯用户分组必须先翻译成它配置的默认模型分组。
+	// 当令牌分组为空时，表示使用用户分组
 	if tokenGroup == "" {
-		tokenGroup = ratio_setting.ResolveUsingGroup(
-			common.GetContextKeyString(c, constant.ContextKeyUserGroup),
-		)
+		tokenGroup = common.GetContextKeyString(c, constant.ContextKeyUserGroup)
 	}
 
 	startTime := common.GetContextKeyTime(c, constant.ContextKeyRequestStartTime)

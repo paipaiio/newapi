@@ -5806,16 +5806,6 @@
     "Merchant private key (PEM)": "商户私钥（PEM）",
     "Content of apiclient_key.pem. Leave blank to keep existing.": "apiclient_key.pem 文件内容。留空保留当前值。",
     "Callback URL (optional)": "回调地址（可选）",
-    "Leave blank to auto-generate from system address": "留空将根据系统地址自动生成",
-    "User Groups": "用户分组",
-    "Pure user groups": "纯用户分组",
-    "Default model group": "默认模型分组",
-    "Duplicate user group": "用户分组重复",
-    "e.g. reseller": "例如 reseller",
-    "No user groups yet. Add one to get started.": "还没有用户分组，添加一个开始配置。",
-    "Selectable model groups": "可选模型分组",
-    "Select model groups...": "选择模型分组...",
-    "The default model group is always usable even if not selected here. Advanced +:/-: rules stay in Group Management and are preserved.": "默认模型分组即使没在这里勾选也始终可用。+:/-: 高级规则仍在「分组管理」里配置，本页不会覆盖它们。",
-    "A group listed here is only an identity label and has no channels of its own. It uses whitelist mode: it does NOT inherit the globally selectable groups, and its users can only pick the model groups selected below. Tokens that pick no group route to the default model group, which is always usable. Groups not listed here keep the existing behaviour.": "列在这里的分组只是用户身份标签，本身没有渠道。它走白名单模式：不继承全局公开可选分组，该组用户只能选下面勾选的模型分组。未指定分组的令牌路由到默认模型分组，该分组始终可用。未列出的分组保持原有行为。"
+    "Leave blank to auto-generate from system address": "留空将根据系统地址自动生成"
   }
 }
