@@ -100,6 +100,17 @@ func filterByVisibleGroups(userId int, userGroup string, groups map[string]strin
 func GetUserUsableGroups(userGroup string) map[string]string {
 	groupsCopy := setting.GetUserUsableGroupsCopy()
 	if userGroup != "" {
+		// 「纯用户分组」是白名单模式：它不继承全局公开可选分组，能选哪些完全由下面的
+		// GroupSpecialUsableGroup 显式列出。否则把售卖用户圈进一个组之后，还得给每个
+		// 公开分组逐条写 "-:" 才能收窄，实际不可用。
+		if ratio_setting.IsPureUserGroup(userGroup) {
+			groupsCopy = make(map[string]string)
+			// 默认模型分组恒可用：它是该用户组未指定分组时的路由目标，
+			// 不能出现「能路由过去却在列表里看不到」的矛盾，也避免管理员漏配时无组可用。
+			if defaultGroup := ratio_setting.ResolveUsingGroup(userGroup); defaultGroup != "" {
+				groupsCopy[defaultGroup] = setting.GetUsableGroupDescription(defaultGroup)
+			}
+		}
 		specialSettings, b := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.Get(userGroup)
 		if b {
 			// 处理特殊可用分组

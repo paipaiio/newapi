@@ -5813,6 +5813,9 @@
     "Duplicate user group": "用户分组重复",
     "e.g. reseller": "例如 reseller",
     "No user groups yet. Add one to get started.": "还没有用户分组，添加一个开始配置。",
-    "A group listed here is only an identity label and has no channels of its own: it stops being offered as a selectable model group, and tokens that pick no group route to the default model group set here. Groups not listed keep the existing behaviour. Which model groups each user group may pick is configured under Group Management.": "列在这里的分组只是用户身份标签，本身没有渠道：它不会再作为可选模型分组出现，未指定分组的令牌会路由到这里配置的默认模型分组。未列出的分组保持原有行为。每个用户分组能选哪些模型分组，在「分组管理」里配置。"
+    "Selectable model groups": "可选模型分组",
+    "Select model groups...": "选择模型分组...",
+    "The default model group is always usable even if not selected here. Advanced +:/-: rules stay in Group Management and are preserved.": "默认模型分组即使没在这里勾选也始终可用。+:/-: 高级规则仍在「分组管理」里配置，本页不会覆盖它们。",
+    "A group listed here is only an identity label and has no channels of its own. It uses whitelist mode: it does NOT inherit the globally selectable groups, and its users can only pick the model groups selected below. Tokens that pick no group route to the default model group, which is always usable. Groups not listed here keep the existing behaviour.": "列在这里的分组只是用户身份标签，本身没有渠道。它走白名单模式：不继承全局公开可选分组，该组用户只能选下面勾选的模型分组。未指定分组的令牌路由到默认模型分组，该分组始终可用。未列出的分组保持原有行为。"
   }
 }
