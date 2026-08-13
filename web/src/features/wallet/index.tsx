@@ -143,11 +143,12 @@ export function Wallet(props: WalletProps) {
   }, [fetchUser])
 
   useEffect(() => {
-    if (props.initialShowHistory) {
+    // 合规站不暴露充值订单/支付记录，忽略 ?show_history=true 这个入口
+    if (props.initialShowHistory && !isCompliance) {
       setBillingDialogOpen(true)
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [props.initialShowHistory])
+  }, [props.initialShowHistory, isCompliance])
 
   // Initialize topup amount when topup info is loaded
   const topupAmountInitializedRef = useRef(false)
