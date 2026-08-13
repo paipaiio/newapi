@@ -118,8 +118,11 @@ func GetUserUsableGroups(userGroup string) map[string]string {
 				}
 			}
 		}
-		// 如果userGroup不在UserUsableGroups中，返回UserUsableGroups + userGroup
-		if _, ok := groupsCopy[userGroup]; !ok {
+		// 如果userGroup不在UserUsableGroups中，返回UserUsableGroups + userGroup。
+		// 「纯用户分组」除外：它只是用户身份标签，本身没有渠道，注入进来会让用户在
+		// 令牌页看到一个选了也用不了的假分组。它能选哪些模型分组由上面的
+		// GroupSpecialUsableGroup 决定。
+		if _, ok := groupsCopy[userGroup]; !ok && !ratio_setting.IsPureUserGroup(userGroup) {
 			groupsCopy[userGroup] = "用户分组"
 		}
 	}

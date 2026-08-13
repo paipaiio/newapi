@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
 )
@@ -70,9 +71,8 @@ func getTokenRequestUserGroup(c *gin.Context) (string, error) {
 	if userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup); userGroup != "" {
 		return userGroup, nil
 	}
-	if userGroup := c.GetString("group"); userGroup != "" {
-		return userGroup, nil
-	}
+	// 不要回退到 c.GetString("group")——那是 ContextKeyUsingGroup（模型分组）。
+	// 用户分组与模型分组分离后这两者不再等价，读错会把模型分组当成用户身份。
 	return model.GetUserGroup(c.GetInt("id"), false)
 }
 
@@ -262,7 +262,8 @@ func GetTokenUsage(c *gin.Context) {
 }
 
 // validateTokenGroups 校验令牌分组字段(支持逗号分隔的多分组)。
-// 规则:auto 不能与具体分组混选;分组不能重复;返回规范化后的分组字符串(trim+去空)。
+// 规则:auto 不能与具体分组混选;分组不能重复;不能填「纯用户分组」(它没有渠道,
+// 填进来会导致请求找不到可用渠道);返回规范化后的分组字符串(trim+去空)。
 func validateTokenGroups(group string) (string, error) {
 	if strings.TrimSpace(group) == "" {
 		return "", nil
@@ -282,6 +283,9 @@ func validateTokenGroups(group string) (string, error) {
 		seen[g] = true
 		if g == "auto" {
 			hasAuto = true
+		}
+		if ratio_setting.IsPureUserGroup(g) {
+			return "", fmt.Errorf("%s 是用户分组，不能作为令牌分组使用", g)
 		}
 		cleaned = append(cleaned, g)
 	}

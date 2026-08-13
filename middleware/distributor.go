@@ -93,7 +93,10 @@ func Distribute() func(c *gin.Context) {
 						return
 					}
 					if playgroundRequest.Group != "" {
-						if !service.GroupInUserUsableGroups(usingGroup, playgroundRequest.Group) && playgroundRequest.Group != usingGroup {
+						// GroupInUserUsableGroups 的第一个参数是「用户分组」（身份），
+						// 用来查该用户组能选哪些模型分组；这里此前误传了 usingGroup。
+						userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+						if !service.GroupInUserUsableGroups(userGroup, playgroundRequest.Group) && playgroundRequest.Group != usingGroup {
 							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
 							return
 						}
