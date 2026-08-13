@@ -134,6 +134,7 @@ const createGroupSchema = (t: Translate) =>
     MaxTokenAutoGroups: positiveIntegerSchema(t('Enter a positive integer')),
     DefaultUseAutoGroup: z.boolean(),
     GroupSpecialUsableGroup: createJsonStringField(t),
+    UserGroupDefaultGroup: createJsonStringField(t),
   })
 
 type ModelFormValues = z.infer<ReturnType<typeof createModelSchema>>
@@ -211,6 +212,9 @@ export function RatioSettingsCard({
     DefaultUseAutoGroup: groupDefaults.DefaultUseAutoGroup,
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup
+    ),
+    UserGroupDefaultGroup: normalizeJsonString(
+      groupDefaults.UserGroupDefaultGroup
     ),
   })
   const modelSchema = useMemo(() => createModelSchema(t), [t])
@@ -299,6 +303,9 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup
       ),
+      UserGroupDefaultGroup: normalizeJsonString(
+        groupDefaults.UserGroupDefaultGroup
+      ),
     }
 
     groupForm.reset({
@@ -370,12 +377,16 @@ export function RatioSettingsCard({
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup
         ),
+        UserGroupDefaultGroup: normalizeJsonString(
+          values.UserGroupDefaultGroup
+        ),
       }
 
       // Map form field names to API keys (most are 1:1, except GroupSpecialUsableGroup)
       const apiKeyMap: Record<string, string> = {
         GroupSpecialUsableGroup:
           'group_ratio_setting.group_special_usable_group',
+        UserGroupDefaultGroup: 'group_ratio_setting.user_group_default_group',
       }
 
       const updates = (

@@ -34,6 +34,9 @@ import { safeJsonParse } from '@/features/system-settings/utils/json-parser'
 
 /** API key for the special usable-group rules (differs from the form field name). */
 const SPECIAL_USABLE_API_KEY = 'group_ratio_setting.group_special_usable_group'
+/** API key for the pure-user-group table (user group -> default model group). */
+const USER_GROUP_DEFAULT_API_KEY =
+  'group_ratio_setting.user_group_default_group'
 
 type GroupOptionValues = {
   GroupRatio: string
@@ -42,6 +45,7 @@ type GroupOptionValues = {
   GroupGroupRatio: string
   AutoGroups: string
   GroupSpecialUsableGroup: string
+  UserGroupDefaultGroup: string
   DefaultUseAutoGroup: boolean
 }
 
@@ -52,6 +56,7 @@ const JSON_FIELD_KEYS = [
   'GroupGroupRatio',
   'AutoGroups',
   'GroupSpecialUsableGroup',
+  'UserGroupDefaultGroup',
 ] as const
 
 function extractValues(
@@ -66,6 +71,7 @@ function extractValues(
     GroupGroupRatio: get('GroupGroupRatio'),
     AutoGroups: get('AutoGroups'),
     GroupSpecialUsableGroup: get(SPECIAL_USABLE_API_KEY),
+    UserGroupDefaultGroup: get(USER_GROUP_DEFAULT_API_KEY),
     DefaultUseAutoGroup: get('DefaultUseAutoGroup') === 'true',
   }
 }
@@ -81,6 +87,7 @@ function normalizeValues(values: GroupOptionValues): GroupOptionValues {
     GroupSpecialUsableGroup: normalizeJsonString(
       values.GroupSpecialUsableGroup
     ),
+    UserGroupDefaultGroup: normalizeJsonString(values.UserGroupDefaultGroup),
   }
 }
 
@@ -168,9 +175,13 @@ export function GroupOptionsEditor() {
       return
     }
 
+    const API_KEY_OVERRIDES: Partial<Record<keyof GroupOptionValues, string>> = {
+      GroupSpecialUsableGroup: SPECIAL_USABLE_API_KEY,
+      UserGroupDefaultGroup: USER_GROUP_DEFAULT_API_KEY,
+    }
+
     for (const key of dirtyKeys) {
-      const apiKey =
-        key === 'GroupSpecialUsableGroup' ? SPECIAL_USABLE_API_KEY : key
+      const apiKey = API_KEY_OVERRIDES[key] ?? key
       await updateOption.mutateAsync({ key: apiKey, value: normalized[key] })
     }
     savedRef.current = normalized
@@ -217,6 +228,10 @@ export function GroupOptionsEditor() {
         value={values.GroupSpecialUsableGroup}
         groupOptions={groupNames}
         onChange={(value) => handleChange('GroupSpecialUsableGroup', value)}
+        userGroupDefaultGroup={values.UserGroupDefaultGroup}
+        onUserGroupDefaultGroupChange={(value) =>
+          handleChange('UserGroupDefaultGroup', value)
+        }
       />
 
       <div className='flex items-center justify-between gap-4 rounded-lg border p-4'>

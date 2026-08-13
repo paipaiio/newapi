@@ -172,6 +172,15 @@ type GroupSpecialUsableRulesEditorProps = {
   value: string
   groupOptions: string[]
   onChange: (value: string) => void
+  /**
+   * JSON map of user group -> default model group
+   * (option `group_ratio_setting.user_group_default_group`).
+   * A group listed here is a *pure user group*: it is only an identity label,
+   * has no channels of its own, and is never offered as a selectable model
+   * group. Tokens that pick no group route to the default configured here.
+   */
+  userGroupDefaultGroup?: string
+  onUserGroupDefaultGroupChange?: (value: string) => void
 }
 
 type GroupSectionProps = {
@@ -182,6 +191,9 @@ type GroupSectionProps = {
   onRemove: (id: string) => void
   onAdd: (groupName: string) => void
   onRemoveGroup: (groupName: string) => void
+  /** Empty string means "not a pure user group" (legacy behaviour). */
+  defaultModelGroup?: string
+  onDefaultModelGroupChange?: (value: string) => void
 }
 
 function GroupSection(props: GroupSectionProps) {
@@ -237,6 +249,37 @@ function GroupSection(props: GroupSectionProps) {
         </div>
         <CollapsibleContent>
           <div className='space-y-2 border-t p-3'>
+            {props.onDefaultModelGroupChange && (
+              <div className='bg-muted/40 space-y-2 rounded-md p-2'>
+                <div className='flex items-center gap-2'>
+                  <span className='text-muted-foreground w-[130px] shrink-0 text-sm'>
+                    {t('Default model group')}
+                  </span>
+                  <GroupSelect
+                    className='flex-1'
+                    options={props.groupOptions}
+                    value={props.defaultModelGroup ?? ''}
+                    placeholder={t('Not a pure user group')}
+                    onValueChange={(v) => props.onDefaultModelGroupChange?.(v)}
+                  />
+                  {props.defaultModelGroup ? (
+                    <Button
+                      variant='ghost'
+                      size='sm'
+                      className='h-8 shrink-0 px-2 text-xs'
+                      onClick={() => props.onDefaultModelGroupChange?.('')}
+                    >
+                      {t('Clear')}
+                    </Button>
+                  ) : null}
+                </div>
+                <p className='text-muted-foreground text-xs'>
+                  {t(
+                    'Set this to make it a pure user group: it stops appearing as a selectable model group, and tokens that pick no group route to the default set here.'
+                  )}
+                </p>
+              </div>
+            )}
             {props.items.map((rule) => (
               <div key={rule._id} className='flex items-center gap-2'>
                 <Select
@@ -404,6 +447,35 @@ export function GroupSpecialUsableRulesEditor(
     return props.groupOptions.filter((name) => !used.has(name))
   }, [grouped, props.groupOptions])
 
+  // 「纯用户分组」表与规则表是两个独立的 option，但配置入口在同一处：
+  // 规则表决定该用户组能选哪些模型分组，这张表决定它是否是纯用户分组及默认走哪个。
+  const { userGroupDefaultGroup, onUserGroupDefaultGroupChange } = props
+  const defaultGroupMap = useMemo<Record<string, string>>(() => {
+    if (!userGroupDefaultGroup?.trim()) return {}
+    try {
+      const parsed = JSON.parse(userGroupDefaultGroup)
+      return parsed && typeof parsed === 'object' ? parsed : {}
+    } catch {
+      return {}
+    }
+  }, [userGroupDefaultGroup])
+
+  const setDefaultGroup = useCallback(
+    (userGroup: string, target: string) => {
+      if (!onUserGroupDefaultGroupChange) return
+      const next = { ...defaultGroupMap }
+      if (target === '') {
+        delete next[userGroup]
+      } else {
+        next[userGroup] = target
+      }
+      onUserGroupDefaultGroupChange(
+        Object.keys(next).length === 0 ? '' : JSON.stringify(next, null, 2)
+      )
+    },
+    [defaultGroupMap, onUserGroupDefaultGroupChange]
+  )
+
   return (
     <Card className={sectionCardClassName}>
       <CardHeader className={sectionHeaderClassName}>
@@ -431,6 +503,12 @@ export function GroupSpecialUsableRulesEditor(
                 onRemove={removeRule}
                 onAdd={addRuleToGroup}
                 onRemoveGroup={removeGroup}
+                defaultModelGroup={defaultGroupMap[group.name] ?? ''}
+                onDefaultModelGroupChange={
+                  onUserGroupDefaultGroupChange
+                    ? (target) => setDefaultGroup(group.name, target)
+                    : undefined
+                }
               />
             ))
           )}
