@@ -73,9 +73,6 @@ type GroupFormValues = {
   MaxTokenAutoGroups: number
   DefaultUseAutoGroup: boolean
   GroupSpecialUsableGroup: string
-  /** 用户分组 → 默认模型分组（纯用户分组表）。本表单不直接编辑，但需随表单往返，
-   *  否则从这个遗留页保存时会把该字段清空。主编辑入口在 /group-management。 */
-  UserGroupDefaultGroup: string
 }
 
 type GroupRatioFormProps = {
