@@ -54,9 +54,16 @@ func GetUserDisplayAutoGroupsByUser(userId int, userGroup string) []string {
 	return autoGroups
 }
 
-// filterByVisibleGroups 叠加「可见分组白名单」过滤（仅影响展示）：
-// 用户 Setting.VisibleGroups 非空时，只保留白名单内的分组；为空表示不限制。
-// 兜底：若过滤后为空，回退到用户自身分组 userGroup（含 auto 时保留 auto），避免用户完全无分组可见。
+// filterByVisibleGroups 应用「可见分组白名单」（仅影响展示）：
+// 用户 Setting.VisibleGroups 非空时，该用户能看到的就是白名单本身；为空表示不限制。
+//
+// 白名单是权威的：管理员给某个用户显式配了哪些分组，就以那份配置为准，不再受
+// 「全局公开可选分组」限制。因此白名单里那些系统已定义、但没开放给用户自选的分组
+// （典型场景：分组只分配给特定客户，不公开）也会被放进来，否则管理员配了却不生效。
+// 合法性口径与 relay 一致（ratio_setting.ContainsGroupRatio），保证这里能看到的分组
+// relay 一定放行，不会出现「选得到但用不了」。
+//
+// 兜底：若结果为空，回退到用户自身分组 userGroup，避免用户完全无分组可见。
 func filterByVisibleGroups(userId int, userGroup string, groups map[string]string) map[string]string {
 	cache, err := model.GetUserCache(userId)
 	if err != nil || cache == nil {
@@ -79,6 +86,17 @@ func filterByVisibleGroups(userId int, userGroup string, groups map[string]strin
 	for name, desc := range groups {
 		if _, ok := allow[name]; ok {
 			filtered[name] = desc
+		}
+	}
+	// 白名单里未出现在 groups 中的分组，是管理员分配给该用户、但没公开给所有人自选的
+	// 分组。它们同样要放出来，否则「设置里配了可见分组却看不到」。
+	// 只接受系统已定义（配了倍率）的分组名，过滤掉改名/删除后残留的脏数据。
+	for name := range allow {
+		if _, ok := filtered[name]; ok {
+			continue
+		}
+		if ratio_setting.ContainsGroupRatio(name) {
+			filtered[name] = setting.GetUsableGroupDescription(name)
 		}
 	}
 	// 独享分组是管理员对该用户的显式授权，优先级高于可见白名单：始终保留，
