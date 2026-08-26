@@ -424,9 +424,25 @@ For commercial licensing, please contact support@quantumnous.com
     will-change: transform;
   }
 
+  /* Horizontal marquee for the model logo strip */
+  @keyframes marquee-x {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee-x {
+    animation: marquee-x 40s linear infinite;
+    will-change: transform;
+  }
+
   /* Pause animation on hover */
   .scroll-container:hover .animate-scroll-up,
-  .scroll-container:hover .animate-scroll-down {
+  .scroll-container:hover .animate-scroll-down,
+  .marquee-container:hover .animate-marquee-x {
     animation-play-state: paused;
   }
 }
@@ -436,6 +452,7 @@ For commercial licensing, please contact support@quantumnous.com
   .animate-appear-zoom,
   .animate-scroll-up,
   .animate-scroll-down,
+  .animate-marquee-x,
   [data-slot='table'] tbody tr {
     animation: none !important;
     opacity: 1;
@@ -444,6 +461,11 @@ For commercial licensing, please contact support@quantumnous.com
 }
 
 /* ── Landing page scroll-triggered animations ── */
+/* NOTE: every keyframe ends at `transform: none` (not translateY(0)/scale(1)).
+ * With `both` fill mode the end state is retained; a retained non-none
+ * transform would keep a containing block on the element, which makes
+ * background-clip: text descendants (shine-text titles) paint as a solid
+ * rectangle behind the glyphs. */
 @keyframes landing-fade-up {
   from {
     opacity: 0;
@@ -451,7 +473,7 @@ For commercial licensing, please contact support@quantumnous.com
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 @keyframes landing-fade-in {
@@ -469,7 +491,7 @@ For commercial licensing, please contact support@quantumnous.com
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 @keyframes landing-fade-left {
@@ -479,7 +501,7 @@ For commercial licensing, please contact support@quantumnous.com
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
   }
 }
 @keyframes landing-fade-right {
@@ -489,7 +511,7 @@ For commercial licensing, please contact support@quantumnous.com
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
   }
 }
 
@@ -509,6 +531,38 @@ For commercial licensing, please contact support@quantumnous.com
   animation: landing-fade-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Ambient drift for large gradient layers (hero / CTA). The layer must be
+ * oversized (e.g. -inset-16) so the drift never reveals edges. */
+@keyframes landing-aurora {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1.02);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.12);
+  }
+}
+
+.landing-aurora {
+  animation: landing-aurora 18s ease-in-out infinite alternate;
+}
+
+/* Slow breathing pulse for glow layers behind feature windows. Only scale is
+ * animated so theme-specific opacity classes (dark:opacity-30 etc.) stay in
+ * charge of brightness. */
+@keyframes landing-glow-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.landing-glow-pulse {
+  animation: landing-glow-pulse 6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .landing-animate-fade-up,
   .landing-animate-fade-in,
@@ -518,6 +572,116 @@ For commercial licensing, please contact support@quantumnous.com
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+  .landing-aurora,
+  .landing-glow-pulse {
+    animation: none !important;
+  }
+}
+
+/* ── Image Studio ── */
+/* Gallery card entrance (staggered via inline animation-delay). */
+@keyframes studio-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.studio-card-enter {
+  animation: studio-card-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Shimmer sweep across the generating placeholder. */
+@keyframes studio-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.studio-shimmer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgb(255 255 255 / 0.13) 50%,
+    transparent 65%
+  );
+  animation: studio-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Scanline travelling down the generating placeholder. */
+@keyframes studio-scan {
+  0% {
+    top: 6%;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    top: 90%;
+    opacity: 0;
+  }
+}
+
+.studio-scanline {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(99 102 241 / 0.9),
+    rgb(20 184 166 / 0.9),
+    transparent
+  );
+  filter: blur(0.5px);
+  animation: studio-scan 2.6s ease-in-out infinite;
+}
+
+/* Breathing gradient behind the generating placeholder. */
+@keyframes studio-breathe {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.studio-breathe {
+  animation: studio-breathe 2.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-card-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .studio-shimmer::before,
+  .studio-scanline,
+  .studio-breathe {
+    animation: none !important;
+  }
+  .studio-scanline {
+    opacity: 0;
   }
 }
 

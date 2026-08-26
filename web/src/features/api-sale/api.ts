@@ -22,6 +22,7 @@ import type {
   ApiResponse,
   ApiSaleItem,
   ApiSaleResult,
+  BatchExportItem,
   BatchStat,
   TokenLookupItem,
 } from './types'
@@ -55,5 +56,31 @@ export async function lookupBatchTokens(
   const res = await api.get(
     `/api/user/token/lookup?keyword=${encodeURIComponent(batchId)}&p=1&page_size=1000`
   )
+  return res.data
+}
+
+/**
+ * Export a sale batch with username, stored password, and existing API keys.
+ */
+export async function exportBatchAccounts(
+  batchId: string
+): Promise<ApiResponse<{ items: BatchExportItem[] }>> {
+  const res = await api.get('/api/user/batch/export', {
+    params: { batch_id: batchId },
+  })
+  return res.data
+}
+
+/**
+ * Set the visible-group whitelist for every account in a sale batch.
+ */
+export async function setBatchVisibleGroups(
+  batchId: string,
+  groups: string[]
+): Promise<ApiResponse<{ count: number }>> {
+  const res = await api.post('/api/user/batch/visible_groups', {
+    batch_id: batchId,
+    groups,
+  })
   return res.data
 }

@@ -15,12 +15,12 @@
 version: '3.4' # For compatibility with older Docker versions
 
 services:
-  new-api:
+  newapi:
     # Build the TUFTech fork locally from the repo Dockerfile instead of pulling
     # the upstream prebuilt image. Deploy with: docker compose up -d --build
-    build: .
-    image: tuftech-api:rc20-sync-sessionlog
-    container_name: new-api
+#    build: .
+    image: calciumion/new-api:rc58-compliance-origin
+    container_name: newapi
     restart: always
     command: --log-dir /app/logs
     ports:
@@ -29,9 +29,15 @@ services:
       - ./data:/data
       - ./logs:/app/logs
     environment:
-#      - SQL_DSN=postgresql://root:123456@postgres:5432/new-api
-      - SQL_DSN=root:eZ1rW9jR6mU6uP4b@tcp(newapi_yieb-mysql-1:3306)/new-api
-      - REDIS_CONN_STRING=redis://:123456@redis:6379
+#      - SQL_DSN=postgresql://root:123456@newapi-postgres:5432/new-api
+      - SQL_DSN=root:123456@tcp(newapi-mysql:3306)/new-api
+      - REDIS_CONN_STRING=redis://:123456@newapi-redis:6379
+      - SESSION_SECRET=y5AEMPNBABrmTWSa
+      - TRUSTED_PROXIES=38.22.93.206/32,152.53.81.85/32,179.253.232.226/32,154.94.236.224/32
+      - TRUSTED_REDIRECT_DOMAINS=muskzhoumq--qwen38-27b-uncensored-serve.modal.run,muskzhoumq--qwen38-snapshot-test-vllmserver-serve.modal.run
+      - CHINA_INGRESS_IPS=179.253.232.226,154.94.236.224
+      - GLOBAL_WEB_RATE_LIMIT=1200
+      - GLOBAL_API_RATE_LIMIT=2400
       - TZ=Asia/Shanghai
       - ERROR_LOG_ENABLED=true # 是否启用错误日志记录 (Whether to enable error log recording)
       - BATCH_UPDATE_ENABLED=true  # 是否启用批量更新 (Whether to enable batch update)
@@ -53,9 +59,10 @@ services:
 #      - UMAMI_SCRIPT_URL=https://analytics.umami.is/script.js  # Umami 脚本 URL，默认为官方地址 (Umami Script URL, defaults to official URL)
 
     depends_on:
-      - redis
+      - newapi-redis
+      - newapi-mysql
     networks:
-      - new-api-network
+      - sub2api-deploy_sub2api-network
       - baota_net
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/api/status | grep -o '\"success\":\\s*true' || exit 1"]
@@ -63,17 +70,17 @@ services:
       timeout: 10s
       retries: 3
 
-  redis:
+  newapi-redis:
     image: redis:latest
-    container_name: redis
+    container_name: newapi-redis
     restart: always
     command: ["redis-server", "--requirepass", "123456"]  # ⚠️ IMPORTANT: Change this password in production!
     networks:
-      - new-api-network
+      - sub2api-deploy_sub2api-network
 
-  postgres:
+  newapi-postgres:
     image: postgres:15
-    container_name: postgres
+    container_name: newapi-postgres
     restart: always
     environment:
       POSTGRES_USER: root
@@ -82,30 +89,30 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
-      - new-api-network
+      - sub2api-deploy_sub2api-network
 #    ports:
 #      - "5432:5432"  # Uncomment if you need to access PostgreSQL from outside Docker
 
-#  mysql:
-#    image: mysql:8.2
-#    container_name: mysql
-#    restart: always
-#    environment:
-#      MYSQL_ROOT_PASSWORD: 123456  # ⚠️ IMPORTANT: Change this password in production!
-#      MYSQL_DATABASE: new-api
-#    volumes:
-#      - mysql_data:/var/lib/mysql
-#    networks:
-#      - new-api-network
+  newapi-mysql:
+    image: mysql:8.2
+    container_name: newapi-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456  # ⚠️ IMPORTANT: Change this password in production!
+      MYSQL_DATABASE: new-api
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sub2api-deploy_sub2api-network
 #    ports:
 #      - "3306:3306"  # Uncomment if you need to access MySQL from outside Docker
 
 volumes:
   pg_data:
-#  mysql_data:
+  mysql_data:
 
 networks:
-  new-api-network:
+  sub2api-deploy_sub2api-network:
+    external: true
   baota_net:
     external: true
-    driver: bridge

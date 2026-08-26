@@ -298,6 +298,85 @@ type BatchStatRow struct {
 	Created     int64  `json:"created" gorm:"column:created"`           // 批次最早创建时间
 }
 
+// BatchExportRow 售卖批次导出行：账户密码 + 已有 API Key + 可见分组。
+type BatchExportRow struct {
+	UserId        int      `json:"user_id"`
+	Username      string   `json:"username"`
+	Password      string   `json:"password"`
+	ApiKey        string   `json:"api_key"`
+	Group         string   `json:"group"`
+	VisibleGroups []string `json:"visible_groups"`
+	Quota         int      `json:"quota"`
+	Unlimited     bool     `json:"unlimited"`
+	BatchId       string   `json:"batch_id"`
+}
+
+// GetBatchExportRows 导出某批次全部售卖账户：明文售卖密码 + 已有 token key（不新生成）。
+func GetBatchExportRows(batchId string) ([]BatchExportRow, error) {
+	batchId = strings.TrimSpace(batchId)
+	if batchId == "" {
+		return nil, errors.New("batch_id 不能为空")
+	}
+	var tokens []Token
+	if err := DB.Where("batch_id = ?", batchId).Order("id asc").Find(&tokens).Error; err != nil {
+		return nil, err
+	}
+	userIDs := make([]int, 0, len(tokens))
+	seen := make(map[int]struct{}, len(tokens))
+	for _, token := range tokens {
+		if _, ok := seen[token.UserId]; ok {
+			continue
+		}
+		seen[token.UserId] = struct{}{}
+		userIDs = append(userIDs, token.UserId)
+	}
+	usersByID := make(map[int]User, len(userIDs))
+	if len(userIDs) > 0 {
+		var users []User
+		if err := DB.Where("id IN ?", userIDs).Find(&users).Error; err != nil {
+			return nil, err
+		}
+		for _, user := range users {
+			usersByID[user.Id] = user
+		}
+	}
+	rows := make([]BatchExportRow, 0, len(tokens))
+	for _, token := range tokens {
+		user := usersByID[token.UserId]
+		group := token.Group
+		if group == "" {
+			group = user.Group
+		}
+		rows = append(rows, BatchExportRow{
+			UserId:        token.UserId,
+			Username:      user.Username,
+			Password:      user.SalePassword,
+			ApiKey:        "sk-" + token.Key,
+			Group:         group,
+			VisibleGroups: user.GetSetting().VisibleGroups,
+			Quota:         user.Quota,
+			Unlimited:     token.UnlimitedQuota,
+			BatchId:       token.BatchId,
+		})
+	}
+	return rows, nil
+}
+
+// GetBatchUserIDs 返回某售卖批次下的去重用户 ID。
+func GetBatchUserIDs(batchId string) ([]int, error) {
+	batchId = strings.TrimSpace(batchId)
+	if batchId == "" {
+		return nil, errors.New("batch_id 不能为空")
+	}
+	var ids []int
+	err := DB.Model(&Token{}).
+		Where("batch_id = ?", batchId).
+		Distinct("user_id").
+		Order("user_id asc").
+		Pluck("user_id", &ids).Error
+	return ids, err
+}
+
 // GetBatchStats 按 batch_id 聚合售卖批次统计。
 // 余额取自 users 表（售卖 token 是 UnlimitedQuota，真实余额在用户账户上）。
 func GetBatchStats() ([]BatchStatRow, error) {

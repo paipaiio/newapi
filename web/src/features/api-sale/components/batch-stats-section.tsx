@@ -17,12 +17,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import { Download, RotateCw } from 'lucide-react'
+import { Download, Eye, RotateCw } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { Dialog } from '@/components/dialog'
+import { MultiSelect } from '@/components/multi-select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -33,7 +37,13 @@ import {
 } from '@/components/ui/table'
 import { formatTimestamp } from '@/lib/format'
 
-import { getBatchStats, lookupBatchTokens } from '../api'
+import {
+  exportBatchAccounts,
+  getAllGroupNames,
+  getBatchStats,
+  setBatchVisibleGroups,
+} from '../api'
+import { downloadCsv } from '../csv'
 import type { BatchStat } from '../types'
 
 /** Internal quota units per USD (matches backend display conversion). */
@@ -48,34 +58,37 @@ async function exportBatch(
   t: (key: string) => string
 ): Promise<void> {
   try {
-    const res = await lookupBatchTokens(batchId)
+    const res = await exportBatchAccounts(batchId)
     if (!res.success) {
       toast.error(res.message || t('Export failed'))
       return
     }
-    const items = (res.data?.items || []).filter(
-      (it) => it.batch_id === batchId
-    )
+    const items = res.data?.items || []
     if (items.length === 0) {
       toast.error(t('No records for this batch'))
       return
     }
-    const header = 'username,email,api_key,group,batch_id\n'
-    const body = items
-      .map(
-        (it) =>
-          `${it.username || ''},${it.email || ''},${it.full_key || ''},${it.group || ''},${it.batch_id || ''}`
-      )
-      .join('\n')
-    const blob = new Blob([`﻿${header}${body}`], {
-      type: 'text/csv;charset=utf-8;',
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `batch_${batchId}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsv(
+      `batch_${batchId}.csv`,
+      [
+        'username',
+        'password',
+        'api_key',
+        'group',
+        'visible_groups',
+        'quota',
+        'batch_id',
+      ],
+      items.map((it) => [
+        it.username || '',
+        it.password || '',
+        it.api_key || '',
+        it.group || '',
+        (it.visible_groups || []).join(';'),
+        it.unlimited ? 'unlimited' : toUsd(it.quota),
+        it.batch_id || batchId,
+      ])
+    )
     toast.success(t('Batch list exported'))
   } catch {
     toast.error(t('Request failed'))
@@ -85,10 +98,13 @@ async function exportBatch(
 function BatchRow({
   stat,
   onExport,
+  onSetVisible,
 }: {
   stat: BatchStat
   onExport: (batchId: string) => void
+  onSetVisible: (batchId: string) => void
 }) {
+  const { t } = useTranslation()
   return (
     <TableRow>
       <TableCell>
@@ -110,13 +126,23 @@ function BatchRow({
         {stat.created ? formatTimestamp(stat.created) : '-'}
       </TableCell>
       <TableCell className='text-right'>
-        <Button
-          variant='outline'
-          size='sm'
-          onClick={() => onExport(stat.batch_id)}
-        >
-          <Download data-icon='inline-start' />
-        </Button>
+        <div className='flex justify-end gap-2'>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => onSetVisible(stat.batch_id)}
+          >
+            <Eye data-icon='inline-start' />
+            {t('Visible groups')}
+          </Button>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={() => onExport(stat.batch_id)}
+          >
+            <Download data-icon='inline-start' />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   )
@@ -124,6 +150,9 @@ function BatchRow({
 
 export function BatchStatsSection() {
   const { t } = useTranslation()
+  const [visibleBatchId, setVisibleBatchId] = useState('')
+  const [visibleGroups, setVisibleGroupsValue] = useState<string[]>([])
+  const [savingVisible, setSavingVisible] = useState(false)
 
   const {
     data: stats = [],
@@ -136,6 +165,30 @@ export function BatchStatsSection() {
       return res.success ? res.data || [] : []
     },
   })
+
+  const { data: groupsData } = useQuery({
+    queryKey: ['groups'],
+    queryFn: getAllGroupNames,
+  })
+  const groups = groupsData?.data || []
+
+  const handleSaveVisible = async () => {
+    if (!visibleBatchId) return
+    setSavingVisible(true)
+    try {
+      const res = await setBatchVisibleGroups(visibleBatchId, visibleGroups)
+      if (res.success) {
+        toast.success(t('Visible groups updated'))
+        setVisibleBatchId('')
+        setVisibleGroupsValue([])
+      } else {
+        toast.error(res.message || t('Operation failed'))
+      }
+    } catch {
+      toast.error(t('Request failed'))
+    }
+    setSavingVisible(false)
+  }
 
   return (
     <div className='mt-6 rounded-lg border p-4'>
@@ -176,11 +229,56 @@ export function BatchStatsSection() {
                 key={stat.batch_id}
                 stat={stat}
                 onExport={(id) => exportBatch(id, t)}
+                onSetVisible={(id) => {
+                  setVisibleBatchId(id)
+                  setVisibleGroupsValue([])
+                }}
               />
             ))}
           </TableBody>
         </Table>
       )}
+
+      <Dialog
+        open={Boolean(visibleBatchId)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setVisibleBatchId('')
+            setVisibleGroupsValue([])
+          }
+        }}
+        title={t('Batch set visible groups')}
+        description={t(
+          'Display-only whitelist for this batch. Empty = all groups visible.'
+        )}
+        contentHeight='auto'
+        footer={
+          <>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setVisibleBatchId('')
+                setVisibleGroupsValue([])
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button onClick={handleSaveVisible} disabled={savingVisible}>
+              {t('Confirm')}
+            </Button>
+          </>
+        }
+      >
+        <div className='grid gap-2 py-2'>
+          <Label>{t('Visible groups')}</Label>
+          <MultiSelect
+            options={groups.map((g) => ({ value: g, label: g }))}
+            selected={visibleGroups}
+            onChange={setVisibleGroupsValue}
+            placeholder={t('All groups visible (no restriction)')}
+          />
+        </div>
+      </Dialog>
     </div>
   )
 }

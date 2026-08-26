@@ -108,6 +108,7 @@ type User struct {
 	DeletedAt              gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId              string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
 	Setting                string                     `json:"setting" gorm:"type:text;column:setting"`
+	SalePassword           string                     `json:"-" gorm:"type:varchar(64);column:sale_password;default:''"` // 售卖明文密码，仅管理员导出 CSV 使用，不进前端 JSON
 	Remark                 string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	StripeCustomer         string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
 	AllowTopup             bool                       `json:"allow_topup" gorm:"column:allow_topup"`
@@ -226,6 +227,7 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 	defaultConfig["chat"] = map[string]interface{}{
 		"enabled":    true,
 		"playground": true,
+		"studio":     true,
 		"chat":       true,
 	}
 

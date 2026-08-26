@@ -35,8 +35,13 @@ export function Features(_props: FeaturesProps) {
       desc: t(
         'Swap the Base URL to connect — no changes to your business code required.'
       ),
-      icon: <Timer className='size-5 text-blue-500' strokeWidth={1.75} />,
-      accent: 'bg-blue-500/10',
+      icon: (
+        <Timer
+          className='size-5 text-indigo-500 dark:text-indigo-400'
+          strokeWidth={1.75}
+        />
+      ),
+      accent: 'bg-indigo-500/10',
     },
     {
       id: 'four-entries',
@@ -44,8 +49,13 @@ export function Features(_props: FeaturesProps) {
       desc: t(
         'OpenAI, Claude, Gemini and Video protocols unified behind one gateway.'
       ),
-      icon: <Layers className='size-5 text-violet-500' strokeWidth={1.75} />,
-      accent: 'bg-violet-500/10',
+      icon: (
+        <Layers
+          className='size-5 text-teal-500 dark:text-teal-400'
+          strokeWidth={1.75}
+        />
+      ),
+      accent: 'bg-teal-500/10',
     },
     {
       id: 'traceable-logs',
@@ -54,9 +64,12 @@ export function Features(_props: FeaturesProps) {
         'Every call is auditable, with real-time usage and billing transparency.'
       ),
       icon: (
-        <ScrollText className='size-5 text-emerald-500' strokeWidth={1.75} />
+        <ScrollText
+          className='size-5 text-indigo-500 dark:text-indigo-400'
+          strokeWidth={1.75}
+        />
       ),
-      accent: 'bg-emerald-500/10',
+      accent: 'bg-indigo-500/10',
     },
     {
       id: 'group-isolation',
@@ -64,8 +77,13 @@ export function Features(_props: FeaturesProps) {
       desc: t(
         'Isolate quota and permissions per group so multiple teams share safely.'
       ),
-      icon: <Boxes className='size-5 text-amber-500' strokeWidth={1.75} />,
-      accent: 'bg-amber-500/10',
+      icon: (
+        <Boxes
+          className='size-5 text-teal-500 dark:text-teal-400'
+          strokeWidth={1.75}
+        />
+      ),
+      accent: 'bg-teal-500/10',
     },
   ]
 
@@ -87,10 +105,10 @@ export function Features(_props: FeaturesProps) {
               key={f.id}
               delay={i * 100}
               animation='scale-in'
-              className='border-border/50 bg-card/40 group hover:border-border hover:bg-card/70 rounded-2xl border p-6 backdrop-blur-xs transition-colors duration-300'
+              className='border-border/50 bg-card/40 group hover:border-indigo-500/30 hover:bg-card/70 rounded-2xl border p-6 backdrop-blur-xs transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-500/5 dark:hover:border-indigo-400/20'
             >
               <div
-                className={`mb-4 flex size-11 items-center justify-center rounded-xl ${f.accent}`}
+                className={`mb-4 flex size-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6 ${f.accent}`}
               >
                 {f.icon}
               </div>

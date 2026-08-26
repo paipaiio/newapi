@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Save } from 'lucide-react'
 import {
   forwardRef,
@@ -61,6 +62,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { getAllGroupNames } from '@/features/users/api'
 import { cn } from '@/lib/utils'
 
 import {
@@ -69,17 +71,24 @@ import {
   buildPreviewRows,
   createInitialLaneState,
   createModelPricingSchema,
+  hasAnyGroupPrice,
   hasValue,
   laneConfigs,
+  laneToGroupField,
   numericDraftRegex,
   ratioFieldByLane,
   toNumberOrNull,
+  type GroupPriceOverride,
   type LaneKey,
   type ModelPricingFormValues,
   type ModelRatioData,
   type PricingMode,
 } from './model-pricing-core'
-import { PriceInput, PriceLane } from './model-pricing-inputs'
+import {
+  GroupPriceFieldList,
+  PriceInput,
+  PriceLane,
+} from './model-pricing-inputs'
 import { formatPricingNumber } from './pricing-format'
 import { TieredPricingEditor } from './tiered-pricing-editor'
 
@@ -156,7 +165,14 @@ export const ModelPricingEditorPanel = forwardRef<
   const [billingExpr, setBillingExpr] = useState('')
   const [requestRuleExpr, setRequestRuleExpr] = useState('')
   const [editorReloadToken, setEditorReloadToken] = useState(0)
+  const [groupPrices, setGroupPrices] = useState<GroupPriceOverride[]>([])
   const isEditMode = !!editData
+
+  const { data: groupsData } = useQuery({
+    queryKey: ['groups'],
+    queryFn: getAllGroupNames,
+  })
+  const groupOptions = groupsData?.data || []
 
   const form = useForm<ModelPricingFormValues>({
     resolver: zodResolver(createModelPricingSchema(t)),
@@ -217,6 +233,7 @@ export const ModelPricingEditorPanel = forwardRef<
     setPromptPrice(nextLaneState.promptPrice)
     setLanePrices(nextLaneState.prices)
     setLaneEnabled(nextLaneState.enabled)
+    setGroupPrices(editData?.groupPrices ? [...editData.groupPrices] : [])
     setEditorReloadToken((token) => token + 1)
   }, [editData, form])
 
@@ -451,6 +468,9 @@ export const ModelPricingEditorPanel = forwardRef<
         imageRatio: values.imageRatio || '',
         audioRatio: values.audioRatio || '',
         audioCompletionRatio: values.audioCompletionRatio || '',
+        groupPrices: groupPrices.filter(
+          (item) => item.group.trim() && hasAnyGroupPrice(item)
+        ),
       }
 
       if (pricingMode === 'tiered_expr') {
@@ -460,7 +480,7 @@ export const ModelPricingEditorPanel = forwardRef<
 
       return data
     },
-    [billingExpr, pricingMode, requestRuleExpr]
+    [billingExpr, groupPrices, pricingMode, requestRuleExpr]
   )
 
   useImperativeHandle(
@@ -568,6 +588,13 @@ export const ModelPricingEditorPanel = forwardRef<
                         <FieldDescription>
                           {t('USD price per 1M input tokens.')}
                         </FieldDescription>
+                        <GroupPriceFieldList
+                          field='input'
+                          placeholder='3'
+                          groupPrices={groupPrices}
+                          groupOptions={groupOptions}
+                          onChange={setGroupPrices}
+                        />
                       </Field>
 
                       <div className='grid gap-3 sm:grid-cols-[repeat(auto-fit,minmax(400px,1fr))]'>
@@ -590,6 +617,15 @@ export const ModelPricingEditorPanel = forwardRef<
                               }
                               onChange={(value) =>
                                 handleLanePriceChange(lane.key, value)
+                              }
+                              extra={
+                                <GroupPriceFieldList
+                                  field={laneToGroupField[lane.key]}
+                                  placeholder={lane.placeholder}
+                                  groupPrices={groupPrices}
+                                  groupOptions={groupOptions}
+                                  onChange={setGroupPrices}
+                                />
                               }
                             />
                           )
@@ -632,6 +668,14 @@ export const ModelPricingEditorPanel = forwardRef<
                                 )}
                               </FieldDescription>
                               <FormMessage />
+                              <GroupPriceFieldList
+                                field='input'
+                                placeholder='0.01'
+                                suffix={t('per request')}
+                                groupPrices={groupPrices}
+                                groupOptions={groupOptions}
+                                onChange={setGroupPrices}
+                              />
                             </Field>
                           </FormItem>
                         )}

@@ -20,7 +20,7 @@ import { formatCurrencyFromUSD } from '@/lib/currency'
 
 import { QUOTA_TYPE_VALUES, TOKEN_UNIT_DIVISORS } from '../constants'
 import type { PricingModel, TokenUnit, PriceType } from '../types'
-import { getConfiguredGroupRatio, getDisplayGroupRatio } from './model-helpers'
+import { getConfiguredGroupRatio } from './model-helpers'
 
 // ----------------------------------------------------------------------------
 // Price Calculation Utilities
@@ -60,46 +60,147 @@ export function stripTrailingZeros(formatted: string): string {
  * Returns NaN when the required ratio field is missing/null so callers can
  * skip rendering that price type.
  */
+function resolveTokenRatio(
+  model: PricingModel,
+  selectedGroup?: string
+): number {
+  if (
+    selectedGroup &&
+    model.group_model_ratio &&
+    Number.isFinite(model.group_model_ratio[selectedGroup])
+  ) {
+    return model.group_model_ratio[selectedGroup]
+  }
+  return model.model_ratio
+}
+
+function resolveGroupTokenPrice(
+  model: PricingModel,
+  selectedGroup?: string
+): NonNullable<PricingModel['group_token_price']>[string] | null {
+  if (!selectedGroup || !model.group_token_price) return null
+  return model.group_token_price[selectedGroup] || null
+}
+
+function resolveRequestPrice(
+  model: PricingModel,
+  selectedGroup?: string
+): number {
+  if (
+    selectedGroup &&
+    model.group_model_price &&
+    Number.isFinite(model.group_model_price[selectedGroup])
+  ) {
+    return model.group_model_price[selectedGroup]
+  }
+  return model.model_price || 0
+}
+
 function calculateTokenPrice(
   model: PricingModel,
   type: PriceType,
-  ratio: number
+  ratio: number,
+  selectedGroup?: string
 ): number {
-  const base = model.model_ratio * 2 * ratio
+  const tokenOverride = resolveGroupTokenPrice(model, selectedGroup)
+  const base =
+    tokenOverride && Number.isFinite(tokenOverride.input)
+      ? Number(tokenOverride.input) * ratio
+      : resolveTokenRatio(model, selectedGroup) * 2 * ratio
+
+  const overrideUsd = (value: number | undefined) =>
+    value !== undefined && Number.isFinite(value) ? value * ratio : null
 
   switch (type) {
     case 'input':
       return base
-    case 'output':
-      return base * model.completion_ratio
-    case 'cache':
+    case 'output': {
+      const usd = overrideUsd(tokenOverride?.output)
+      return usd ?? base * model.completion_ratio
+    }
+    case 'cache': {
+      const usd = overrideUsd(tokenOverride?.cache)
+      if (usd !== null) return usd
       return hasRatio(model.cache_ratio)
         ? base * Number(model.cache_ratio)
         : Number.NaN
-    case 'create_cache':
+    }
+    case 'create_cache': {
+      const usd = overrideUsd(tokenOverride?.create_cache)
+      if (usd !== null) return usd
       return hasRatio(model.create_cache_ratio)
         ? base * Number(model.create_cache_ratio)
         : Number.NaN
-    case 'image':
+    }
+    case 'image': {
+      const usd = overrideUsd(tokenOverride?.image)
+      if (usd !== null) return usd
       return hasRatio(model.image_ratio)
         ? base * Number(model.image_ratio)
         : Number.NaN
-    case 'audio_input':
+    }
+    case 'audio_input': {
+      const usd = overrideUsd(tokenOverride?.audio_input)
+      if (usd !== null) return usd
       return hasRatio(model.audio_ratio)
         ? base * Number(model.audio_ratio)
         : Number.NaN
-    case 'audio_output':
+    }
+    case 'audio_output': {
+      const usd = overrideUsd(tokenOverride?.audio_output)
+      if (usd !== null) return usd
       return hasRatio(model.audio_ratio) &&
         hasRatio(model.audio_completion_ratio)
         ? base *
             Number(model.audio_ratio) *
             Number(model.audio_completion_ratio)
         : Number.NaN
+    }
   }
 }
 
 function hasRatio(value: number | null | undefined): boolean {
   return value !== undefined && value !== null && Number.isFinite(Number(value))
+}
+
+function groupsForDisplayPrice(model: PricingModel): string[] {
+  const groups = Array.isArray(model.enable_groups) ? model.enable_groups : []
+  const overrideGroups = Object.keys(model.group_token_price || {})
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const group of [...groups, ...overrideGroups]) {
+    if (!group || seen.has(group)) continue
+    seen.add(group)
+    out.push(group)
+  }
+  return out
+}
+
+function tokenPriceInUSD(
+  model: PricingModel,
+  type: PriceType,
+  selectedGroup?: string
+): number {
+  const groupRatio = model.group_ratio || {}
+  if (selectedGroup && selectedGroup !== 'all') {
+    const ratio = getConfiguredGroupRatio(groupRatio, selectedGroup)
+    return calculateTokenPrice(model, type, ratio, selectedGroup)
+  }
+
+  const groups = groupsForDisplayPrice(model)
+  if (groups.length === 0) {
+    return calculateTokenPrice(model, type, 1)
+  }
+
+  let min = Number.POSITIVE_INFINITY
+  for (const group of groups) {
+    const ratio = getConfiguredGroupRatio(groupRatio, group)
+    const price = calculateTokenPrice(model, type, ratio, group)
+    if (Number.isFinite(price) && price < min) min = price
+  }
+  return min === Number.POSITIVE_INFINITY
+    ? calculateTokenPrice(model, type, 1)
+    : min
 }
 
 /**
@@ -154,9 +255,7 @@ export function formatPrice(
     return '-'
   }
 
-  const displayGroupRatio = getDisplayGroupRatio(model, selectedGroup)
-
-  let priceInUSD = calculateTokenPrice(model, type, displayGroupRatio)
+  let priceInUSD = tokenPriceInUSD(model, type, selectedGroup)
   priceInUSD = applyRechargeRate(
     priceInUSD,
     showWithRecharge,
@@ -190,7 +289,7 @@ export function formatGroupPrice(
   }
 
   const ratio = getConfiguredGroupRatio(groupRatio, group)
-  let priceInUSD = calculateTokenPrice(model, type, ratio)
+  let priceInUSD = calculateTokenPrice(model, type, ratio, group)
 
   priceInUSD = applyRechargeRate(
     priceInUSD,
@@ -223,7 +322,7 @@ export function formatFixedPrice(
   }
 
   const ratio = getConfiguredGroupRatio(groupRatio, group)
-  let priceInUSD = (model.model_price || 0) * ratio
+  let priceInUSD = resolveRequestPrice(model, group) * ratio
 
   priceInUSD = applyRechargeRate(
     priceInUSD,
@@ -253,9 +352,24 @@ export function formatRequestPrice(
     return '-'
   }
 
-  const displayGroupRatio = getDisplayGroupRatio(model, selectedGroup)
-
-  let priceInUSD = (model.model_price || 0) * displayGroupRatio
+  const groupRatio = model.group_ratio || {}
+  let priceInUSD: number
+  if (selectedGroup && selectedGroup !== 'all') {
+    priceInUSD =
+      resolveRequestPrice(model, selectedGroup) *
+      getConfiguredGroupRatio(groupRatio, selectedGroup)
+  } else {
+    const groups = groupsForDisplayPrice(model)
+    const candidates =
+      groups.length > 0
+        ? groups.map(
+            (group) =>
+              resolveRequestPrice(model, group) *
+              getConfiguredGroupRatio(groupRatio, group)
+          )
+        : [resolveRequestPrice(model) * 1]
+    priceInUSD = Math.min(...candidates)
+  }
 
   priceInUSD = applyRechargeRate(
     priceInUSD,

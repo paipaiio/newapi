@@ -39,6 +39,13 @@ var defaultCacheRatio = map[string]float64{
 	"deepseek-chat":                       0.25,
 	"deepseek-reasoner":                   0.25,
 	"deepseek-coder":                      0.25,
+	"deepseek-v4-flash":                   0.05 / 1.5, // 官方缓存命中/未命中
+	"deepseek-v4-flash-0731":              0.05 / 1.5,
+	"deepseek-v4-flash-none":              0.05 / 1.5,
+	"deepseek-v4-flash-max":               0.05 / 1.5,
+	"deepseek-v4-pro":                     0.15 / 4.5,
+	"deepseek-v4-pro-none":                0.15 / 4.5,
+	"deepseek-v4-pro-max":                 0.15 / 4.5,
 	"claude-3-sonnet-20240229":            0.1,
 	"claude-3-opus-20240229":              0.1,
 	"claude-3-haiku-20240307":             0.1,
@@ -157,6 +164,7 @@ func UpdateCreateCacheRatioByJSONString(jsonStr string) error {
 
 // GetCacheRatio returns the cache ratio for a model
 func GetCacheRatio(name string) (float64, bool) {
+	name = FormatMatchingModelName(name)
 	ratio, ok := cacheRatioMap.Get(name)
 	if !ok {
 		return 1, false // Default to 1 if not found
@@ -165,6 +173,7 @@ func GetCacheRatio(name string) (float64, bool) {
 }
 
 func GetCreateCacheRatio(name string) (float64, bool) {
+	name = FormatMatchingModelName(name)
 	ratio, ok := createCacheRatioMap.Get(name)
 	if !ok {
 		return 1.25, false // Default to 1.25 if not found

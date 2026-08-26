@@ -5,6 +5,7 @@ import (
 
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/samber/lo"
 )
 
@@ -35,16 +36,27 @@ func init() {
 // Read accessors (hot path, must be fast)
 // ---------------------------------------------------------------------------
 
+func lookupBillingMap(m map[string]string, model string) (string, bool) {
+	if v, ok := m[model]; ok {
+		return v, true
+	}
+	if mapped := ratio_setting.FormatMatchingModelName(model); mapped != model {
+		if v, ok := m[mapped]; ok {
+			return v, true
+		}
+	}
+	return "", false
+}
+
 func GetBillingMode(model string) string {
-	if mode, ok := billingSetting.BillingMode[model]; ok {
+	if mode, ok := lookupBillingMap(billingSetting.BillingMode, model); ok {
 		return mode
 	}
 	return BillingModeRatio
 }
 
 func GetBillingExpr(model string) (string, bool) {
-	expr, ok := billingSetting.BillingExpr[model]
-	return expr, ok
+	return lookupBillingMap(billingSetting.BillingExpr, model)
 }
 
 func GetBillingModeCopy() map[string]string {

@@ -27,6 +27,7 @@ import {
   FileClock,
   FileText,
   FlaskConical,
+  Image,
   Key,
   KeyRound,
   Layers,
@@ -70,6 +71,11 @@ export function useSidebarData(): SidebarData {
             title: t('Playground'),
             url: '/playground',
             icon: FlaskConical,
+          },
+          {
+            title: t('Image Studio'),
+            url: '/studio',
+            icon: Image,
           },
           {
             title: t('Chat'),

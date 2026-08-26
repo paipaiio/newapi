@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -213,18 +214,10 @@ type BatchSetVisibleGroupsRequest struct {
 	Groups []string `json:"groups"`
 }
 
-// BatchSetVisibleGroups 批量设置用户「可见分组白名单」（仅影响展示）。
-// POST /api/user/manage/batch_visible_groups
-func BatchSetVisibleGroups(c *gin.Context) {
-	var req BatchSetVisibleGroupsRequest
-	if err := c.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 || len(req.IDs) > 500 {
-		c.JSON(http.StatusOK, gin.H{"success": false, "message": "参数错误：ids 须为 1-500 条"})
-		return
-	}
-	// 规范化分组白名单：去空、去重、保序
-	normalized := make([]string, 0, len(req.Groups))
+func normalizeVisibleGroups(groups []string) []string {
+	normalized := make([]string, 0, len(groups))
 	seen := make(map[string]struct{})
-	for _, g := range req.Groups {
+	for _, g := range groups {
 		g = strings.TrimSpace(g)
 		if g == "" {
 			continue
@@ -235,23 +228,100 @@ func BatchSetVisibleGroups(c *gin.Context) {
 		seen[g] = struct{}{}
 		normalized = append(normalized, g)
 	}
+	return normalized
+}
 
-	for _, id := range req.IDs {
-		user, err := model.GetUserById(id, true)
-		if err != nil || user == nil {
-			continue
+func applyUserVisibleGroups(userId int, groups []string) error {
+	user, err := model.GetUserById(userId, true)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("用户不存在")
+	}
+	setting := user.GetSetting()
+	setting.VisibleGroups = groups
+	user.SetSetting(setting)
+	if err := user.Update(false); err != nil {
+		return err
+	}
+	_ = model.InvalidateUserCache(userId)
+	return nil
+}
+
+func applyVisibleGroupsToUsers(ids []int, groups []string) error {
+	normalized := normalizeVisibleGroups(groups)
+	for _, id := range ids {
+		if err := applyUserVisibleGroups(id, normalized); err != nil {
+			return err
 		}
-		// 读改写：仅改 VisibleGroups，保留用户其他 setting（notify/webhook 等）
-		setting := user.GetSetting()
-		setting.VisibleGroups = normalized
-		user.SetSetting(setting)
-		if err := user.Update(false); err != nil {
-			common.ApiError(c, err)
-			return
-		}
-		_ = model.InvalidateUserCache(id)
+	}
+	return nil
+}
+
+// BatchSetVisibleGroups 批量设置用户「可见分组白名单」（仅影响展示）。
+// POST /api/user/manage/batch_visible_groups
+func BatchSetVisibleGroups(c *gin.Context) {
+	var req BatchSetVisibleGroupsRequest
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 || len(req.IDs) > 500 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "参数错误：ids 须为 1-500 条"})
+		return
+	}
+	if err := applyVisibleGroupsToUsers(req.IDs, req.Groups); err != nil {
+		common.ApiError(c, err)
+		return
 	}
 	common.ApiSuccess(c, nil)
+}
+
+// ExportApiSaleBatch 按批次导出账户：用户名、售卖密码、已有 API Key、可见分组。
+// GET /api/user/batch/export?batch_id=xxx
+func ExportApiSaleBatch(c *gin.Context) {
+	batchId := strings.TrimSpace(c.Query("batch_id"))
+	if batchId == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "batch_id 不能为空"})
+		return
+	}
+	rows, err := model.GetBatchExportRows(batchId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"items": rows})
+}
+
+// BatchSetVisibleGroupsByBatchRequest 按售卖批次设置可见分组。
+type BatchSetVisibleGroupsByBatchRequest struct {
+	BatchId string   `json:"batch_id"`
+	Groups  []string `json:"groups"`
+}
+
+// BatchSetVisibleGroupsByBatch 给某售卖批次下的全部账户设置可见分组白名单。
+// POST /api/user/batch/visible_groups
+func BatchSetVisibleGroupsByBatch(c *gin.Context) {
+	var req BatchSetVisibleGroupsByBatchRequest
+	if err := c.ShouldBindJSON(&req); err != nil || strings.TrimSpace(req.BatchId) == "" {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "参数错误：batch_id 不能为空"})
+		return
+	}
+	ids, err := model.GetBatchUserIDs(req.BatchId)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if len(ids) == 0 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "该批次没有账户"})
+		return
+	}
+	if len(ids) > 500 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "批次账户超过 500，请拆批后再设置"})
+		return
+	}
+	if err := applyVisibleGroupsToUsers(ids, req.Groups); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, gin.H{"count": len(ids)})
 }
 
 // SetUserGroupRatiosRequest 设置个人分组倍率覆写请求。

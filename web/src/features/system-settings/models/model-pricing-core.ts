@@ -49,10 +49,143 @@ export type LaneKey =
   | 'audioInput'
   | 'audioOutput'
 
+export type GroupTokenPriceValue = {
+  input?: number
+  output?: number
+  cache?: number
+  create_cache?: number
+  image?: number
+  audio_input?: number
+  audio_output?: number
+}
+
+export type GroupPriceField =
+  | 'input'
+  | 'output'
+  | 'cache'
+  | 'createCache'
+  | 'image'
+  | 'audioInput'
+  | 'audioOutput'
+
+export type GroupPriceOverride = {
+  group: string
+  input: string
+  output: string
+  cache: string
+  createCache: string
+  image: string
+  audioInput: string
+  audioOutput: string
+}
+
+export const groupPriceFields: GroupPriceField[] = [
+  'input',
+  'output',
+  'cache',
+  'createCache',
+  'image',
+  'audioInput',
+  'audioOutput',
+]
+
+export const groupFieldToTokenKey: Record<
+  GroupPriceField,
+  keyof GroupTokenPriceValue
+> = {
+  input: 'input',
+  output: 'output',
+  cache: 'cache',
+  createCache: 'create_cache',
+  image: 'image',
+  audioInput: 'audio_input',
+  audioOutput: 'audio_output',
+}
+
+export const laneToGroupField: Record<LaneKey, GroupPriceField> = {
+  completion: 'output',
+  cache: 'cache',
+  createCache: 'createCache',
+  image: 'image',
+  audioInput: 'audioInput',
+  audioOutput: 'audioOutput',
+}
+
+export function emptyGroupPriceOverride(): GroupPriceOverride {
+  return {
+    group: '',
+    input: '',
+    output: '',
+    cache: '',
+    createCache: '',
+    image: '',
+    audioInput: '',
+    audioOutput: '',
+  }
+}
+
+function optionalUsd(value: number | undefined | null): string {
+  return value !== undefined && value !== null && Number.isFinite(value)
+    ? String(value)
+    : ''
+}
+
+export function hasAnyGroupPrice(item: GroupPriceOverride): boolean {
+  return groupPriceFields.some((field) => (item[field] || '').trim() !== '')
+}
+
+export function assignOptionalUsd(
+  target: GroupTokenPriceValue,
+  key: keyof GroupTokenPriceValue,
+  raw: string | undefined
+) {
+  if (!raw?.trim()) return
+  const parsed = Number(raw)
+  if (Number.isFinite(parsed)) target[key] = parsed
+}
+
+export function loadGroupPriceOverrides(args: {
+  mode: PricingMode
+  requestPrices?: Record<string, number>
+  tokenPrices?: Record<string, GroupTokenPriceValue>
+  legacyRatios?: Record<string, number>
+}): GroupPriceOverride[] {
+  if (args.mode === 'per-request') {
+    return Object.entries(args.requestPrices || {}).map(([group, value]) => ({
+      ...emptyGroupPriceOverride(),
+      group,
+      input: Number.isFinite(value) ? String(value) : '',
+    }))
+  }
+
+  const tokenEntries = Object.entries(args.tokenPrices || {})
+  if (tokenEntries.length > 0) {
+    return tokenEntries.map(([group, value]) => ({
+      group,
+      input: optionalUsd(value?.input),
+      output: optionalUsd(value?.output),
+      cache: optionalUsd(value?.cache),
+      createCache: optionalUsd(value?.create_cache),
+      image: optionalUsd(value?.image),
+      audioInput: optionalUsd(value?.audio_input),
+      audioOutput: optionalUsd(value?.audio_output),
+    }))
+  }
+
+  // Convert the old group-ratio override into a USD input price so the
+  // editor always shows a price, not a multiplier.
+  return Object.entries(args.legacyRatios || {}).map(([group, value]) => ({
+    ...emptyGroupPriceOverride(),
+    group,
+    input: Number.isFinite(value) ? formatPricingNumber(value * 2) : '',
+  }))
+}
+
 export type ModelRatioData = {
   name: string
   price?: string
   ratio?: string
+  groupPrices?: GroupPriceOverride[]
   cacheRatio?: string
   createCacheRatio?: string
   completionRatio?: string

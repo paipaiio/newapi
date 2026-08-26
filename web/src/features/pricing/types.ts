@@ -46,6 +46,20 @@ export type PricingModel = {
   audio_ratio?: number | null
   audio_completion_ratio?: number | null
   enable_groups: string[]
+  group_model_price?: Record<string, number>
+  group_model_ratio?: Record<string, number>
+  group_token_price?: Record<
+    string,
+    {
+      input?: number
+      output?: number
+      cache?: number
+      create_cache?: number
+      image?: number
+      audio_input?: number
+      audio_output?: number
+    }
+  >
   tags?: string
   supported_endpoint_types?: string[]
   key?: string

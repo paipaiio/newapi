@@ -242,6 +242,16 @@ var defaultModelRatio = map[string]float64{
 	"deepseek-chat":          0.27 / 2,
 	"deepseek-coder":         0.27 / 2,
 	"deepseek-reasoner":      0.55 / 2, // 0.55 / 1k tokens
+	// DeepSeek V4 官方人民币价（2026-08-16 起），站点按美元人民币 1:1 入账。
+	// https://api-docs.deepseek.com/zh-cn/quick_start/pricing
+	// 这里是空闲倍率；高峰（北京 9-12、14-18）由 billing_setting 阶梯表达式按 2 倍结算。
+	"deepseek-v4-flash":      1.5 / 2,
+	"deepseek-v4-flash-0731": 1.5 / 2,
+	"deepseek-v4-flash-none": 1.5 / 2,
+	"deepseek-v4-flash-max":  1.5 / 2,
+	"deepseek-v4-pro":        4.5 / 2,
+	"deepseek-v4-pro-none":   4.5 / 2,
+	"deepseek-v4-pro-max":    4.5 / 2,
 	// Perplexity online 模型对搜索额外收费，有需要应自行调整，此处不计入搜索费用
 	"llama-3-sonar-small-32k-chat":   0.2 / 1000 * USD,
 	"llama-3-sonar-small-32k-online": 0.2 / 1000 * USD,
@@ -326,10 +336,17 @@ var modelRatioMap = types.NewRWMap[string, float64]()
 var completionRatioMap = types.NewRWMap[string, float64]()
 
 var defaultCompletionRatio = map[string]float64{
-	"gpt-4-gizmo-*":  2,
-	"gpt-4o-gizmo-*": 3,
-	"gpt-4-all":      2,
-	"gpt-image-1":    8,
+	"gpt-4-gizmo-*":          2,
+	"gpt-4o-gizmo-*":         3,
+	"gpt-4-all":              2,
+	"gpt-image-1":            8,
+	"deepseek-v4-flash":      3, // 官方输出/输入 = 4.5/1.5
+	"deepseek-v4-flash-0731": 3,
+	"deepseek-v4-flash-none": 3,
+	"deepseek-v4-flash-max":  3,
+	"deepseek-v4-pro":        3, // 官方输出/输入 = 13.5/4.5
+	"deepseek-v4-pro-none":   3,
+	"deepseek-v4-pro-max":    3,
 }
 
 // InitRatioSettings initializes all model related settings maps
@@ -731,6 +748,11 @@ func FormatMatchingModelName(name string) string {
 	}
 	if strings.HasPrefix(name, "gpt-4o-gizmo") {
 		name = "gpt-4o-gizmo-*"
+	}
+	if strings.HasPrefix(name, "deepseek-v4-flash") {
+		name = "deepseek-v4-flash"
+	} else if strings.HasPrefix(name, "deepseek-v4-pro") {
+		name = "deepseek-v4-pro"
 	}
 	return name
 }

@@ -81,6 +81,7 @@ export async function calculateAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/amount', request, {
     skipBusinessError: true,
+    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
@@ -93,6 +94,7 @@ export async function calculateStripeAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/stripe/amount', request, {
     skipBusinessError: true,
+    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
@@ -105,6 +107,7 @@ export async function calculateWaffoAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/waffo/amount', request, {
     skipBusinessError: true,
+    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
@@ -168,6 +171,7 @@ export async function calculateWaffoPancakeAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/waffo-pancake/amount', request, {
     skipBusinessError: true,
+    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }

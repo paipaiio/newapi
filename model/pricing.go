@@ -32,6 +32,9 @@ type Pricing struct {
 	AudioRatio             *float64                `json:"audio_ratio,omitempty"`
 	AudioCompletionRatio   *float64                `json:"audio_completion_ratio,omitempty"`
 	EnableGroup            []string                `json:"enable_groups"`
+	GroupModelPrice        map[string]float64                         `json:"group_model_price,omitempty"`
+	GroupModelRatio        map[string]float64                         `json:"group_model_ratio,omitempty"`
+	GroupTokenPrice        map[string]ratio_setting.GroupTokenPrice   `json:"group_token_price,omitempty"`
 	SupportedEndpointTypes []constant.EndpointType `json:"supported_endpoint_types"`
 	BillingMode            string                  `json:"billing_mode,omitempty"`
 	BillingExpr            string                  `json:"billing_expr,omitempty"`
@@ -389,6 +392,15 @@ func updatePricing() {
 			pricing.ModelRatio = modelRatio
 			pricing.CompletionRatio = ratio_setting.GetCompletionRatio(model)
 			pricing.QuotaType = 0
+		}
+		if overrides := ratio_setting.GetGroupModelPriceCopy()[model]; len(overrides) > 0 {
+			pricing.GroupModelPrice = overrides
+		}
+		if overrides := ratio_setting.GetGroupModelRatioCopy()[model]; len(overrides) > 0 {
+			pricing.GroupModelRatio = overrides
+		}
+		if overrides := ratio_setting.GetGroupModelTokenPriceCopy()[model]; len(overrides) > 0 {
+			pricing.GroupTokenPrice = overrides
 		}
 		if cacheRatio, ok := ratio_setting.GetCacheRatio(model); ok {
 			pricing.CacheRatio = &cacheRatio

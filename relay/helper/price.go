@@ -81,9 +81,12 @@ func HandleGroupRatio(ctx *gin.Context, relayInfo *relaycommon.RelayInfo) hostty
 }
 
 func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens int, meta *types.TokenCountMeta) (hosttypes.PriceData, error) {
-	modelPrice, usePrice := ratio_setting.GetModelPrice(info.OriginModelName, false)
-
 	groupRatioInfo := HandleGroupRatio(c, info)
+	charge := ratio_setting.ResolveModelCharge(info.OriginModelName, info.UsingGroup)
+	modelPrice, usePrice, resolved := charge.Price, charge.UsePrice, charge.OK
+	if !resolved {
+		modelPrice, usePrice = ratio_setting.GetModelPrice(info.OriginModelName, false)
+	}
 
 	// Check if this model uses tiered_expr billing
 	if billing_setting.GetBillingMode(info.OriginModelName) == billing_setting.BillingModeTieredExpr {
@@ -108,7 +111,13 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		}
 		var success bool
 		var matchName string
-		modelRatio, success, matchName = ratio_setting.GetModelRatio(info.OriginModelName)
+		if charge.HasRatio {
+			modelRatio = charge.Ratio
+			success = true
+			matchName = info.OriginModelName
+		} else {
+			modelRatio, success, matchName = ratio_setting.GetModelRatio(info.OriginModelName)
+		}
 		if !success {
 			acceptUnsetRatio := false
 			if info.UserSetting.AcceptUnsetRatioModel {
@@ -118,15 +127,39 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 				return hosttypes.PriceData{}, modelPriceNotConfiguredError(matchName, info.UserId)
 			}
 		}
-		completionRatio = ratio_setting.GetCompletionRatio(info.OriginModelName)
-		cacheRatio, _ = ratio_setting.GetCacheRatio(info.OriginModelName)
-		cacheCreationRatio, _ = ratio_setting.GetCreateCacheRatio(info.OriginModelName)
+		if charge.HasCompletion {
+			completionRatio = charge.CompletionRatio
+		} else {
+			completionRatio = ratio_setting.GetCompletionRatio(info.OriginModelName)
+		}
+		if charge.HasCache {
+			cacheRatio = charge.CacheRatio
+		} else {
+			cacheRatio, _ = ratio_setting.GetCacheRatio(info.OriginModelName)
+		}
+		if charge.HasCreateCache {
+			cacheCreationRatio = charge.CreateCacheRatio
+		} else {
+			cacheCreationRatio, _ = ratio_setting.GetCreateCacheRatio(info.OriginModelName)
+		}
 		cacheCreationRatio5m = cacheCreationRatio
 		// 固定1h和5min缓存写入价格的比例
 		cacheCreationRatio1h = cacheCreationRatio * claudeCacheCreation1hMultiplier
-		imageRatio, _ = ratio_setting.GetImageRatio(info.OriginModelName)
-		audioRatio = ratio_setting.GetAudioRatio(info.OriginModelName)
-		audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
+		if charge.HasImage {
+			imageRatio = charge.ImageRatio
+		} else {
+			imageRatio, _ = ratio_setting.GetImageRatio(info.OriginModelName)
+		}
+		if charge.HasAudio {
+			audioRatio = charge.AudioRatio
+		} else {
+			audioRatio = ratio_setting.GetAudioRatio(info.OriginModelName)
+		}
+		if charge.HasAudioCompletion {
+			audioCompletionRatio = charge.AudioCompletionRatio
+		} else {
+			audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
+		}
 		ratio := modelRatio * groupRatioInfo.GroupRatio
 		quota, err := common.QuotaFromFloatStrict(float64(preConsumedTokens) * ratio)
 		if err != nil {
@@ -197,16 +230,22 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hosttypes.PriceData, error) {
 	groupRatioInfo := HandleGroupRatio(c, info)
 
-	modelPrice, success := ratio_setting.GetModelPrice(info.OriginModelName, true)
-	usePrice := success
-	var modelRatio float64
+	charge := ratio_setting.ResolveModelCharge(info.OriginModelName, info.UsingGroup)
+	modelPrice, modelRatio, usePrice, resolved := charge.Price, charge.Ratio, charge.UsePrice, charge.OK
+	success := resolved && usePrice
+	if !resolved {
+		var priceFound bool
+		modelPrice, priceFound = ratio_setting.GetModelPrice(info.OriginModelName, true)
+		usePrice = priceFound
+		success = priceFound
+	}
 
 	if !success {
 		defaultPrice, ok := ratio_setting.GetDefaultModelPriceMap()[info.OriginModelName]
 		if ok {
 			modelPrice = defaultPrice
 			usePrice = true
-		} else {
+		} else if !resolved {
 			var ratioSuccess bool
 			var matchName string
 			modelRatio, ratioSuccess, matchName = ratio_setting.GetModelRatio(info.OriginModelName)

@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"sort"
+
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -31,6 +33,83 @@ func filterPricingByUsableGroups(pricing []model.Pricing, usableGroup map[string
 		}
 	}
 	return filtered
+}
+
+// restrictPricingEnableGroups 把每个模型的 enable_groups 裁成当前用户可见的分组。
+// 必须新开切片，不能改 GetPricing 缓存里的共享数组。
+func restrictPricingEnableGroups(pricing []model.Pricing, visible map[string]string) []model.Pricing {
+	if len(pricing) == 0 {
+		return pricing
+	}
+	out := make([]model.Pricing, len(pricing))
+	for i, item := range pricing {
+		if common.StringsContains(item.EnableGroup, "all") {
+			names := make([]string, 0, len(visible))
+			for name := range visible {
+				if name == "" || name == "auto" {
+					continue
+				}
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			item.EnableGroup = names
+			item.GroupModelPrice = filterGroupChargeMap(item.GroupModelPrice, visible)
+			item.GroupModelRatio = filterGroupChargeMap(item.GroupModelRatio, visible)
+			item.GroupTokenPrice = filterGroupTokenPriceMap(item.GroupTokenPrice, visible)
+			out[i] = item
+			continue
+		}
+		filtered := make([]string, 0, len(item.EnableGroup))
+		seen := make(map[string]struct{}, len(item.EnableGroup))
+		for _, group := range item.EnableGroup {
+			if _, ok := visible[group]; !ok {
+				continue
+			}
+			if _, dup := seen[group]; dup {
+				continue
+			}
+			seen[group] = struct{}{}
+			filtered = append(filtered, group)
+		}
+		item.EnableGroup = filtered
+		item.GroupModelPrice = filterGroupChargeMap(item.GroupModelPrice, visible)
+		item.GroupModelRatio = filterGroupChargeMap(item.GroupModelRatio, visible)
+		item.GroupTokenPrice = filterGroupTokenPriceMap(item.GroupTokenPrice, visible)
+		out[i] = item
+	}
+	return out
+}
+
+func filterGroupTokenPriceMap(src map[string]ratio_setting.GroupTokenPrice, visible map[string]string) map[string]ratio_setting.GroupTokenPrice {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make(map[string]ratio_setting.GroupTokenPrice)
+	for group, value := range src {
+		if _, ok := visible[group]; ok {
+			out[group] = value
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+func filterGroupChargeMap(src map[string]float64, visible map[string]string) map[string]float64 {
+	if len(src) == 0 {
+		return nil
+	}
+	out := make(map[string]float64)
+	for group, value := range src {
+		if _, ok := visible[group]; ok {
+			out[group] = value
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 func GetPricing(c *gin.Context) {
@@ -81,6 +160,11 @@ func GetPricing(c *gin.Context) {
 			}
 		}
 	}
+	// 详情里的 enable_groups 跟「当前角色能看到的分组」对齐：
+	// 管理员看到全部已定义分组（含 DeepSeek/GPT 这类只配了倍率、未公开自选的运营组），
+	// 普通用户仍只看自己的展示分组。独享组不在 GroupRatio/UserUsableGroups 里，
+	// 不会从这里漏出去。
+	pricing = restrictPricingEnableGroups(pricing, usableGroup)
 
 	c.JSON(200, gin.H{
 		"success":            true,

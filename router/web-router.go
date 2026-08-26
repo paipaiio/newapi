@@ -21,6 +21,8 @@ type WebAssets struct {
 
 func SetWebRouter(router *gin.Engine, assets WebAssets) {
 	frontendFS := common.EmbedFolder(assets.BuildFS, "web/dist")
+	cdnIndex := assets.IndexPage
+	originIndex := common.RewriteIndexAssetsForOrigin(assets.IndexPage)
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
 	router.Use(middleware.GlobalWebRateLimit())
@@ -60,6 +62,15 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 			return
 		}
 		c.Header("Cache-Control", "no-cache")
-		c.Data(http.StatusOK, "text/html; charset=utf-8", assets.IndexPage)
+		c.Header("Vary", "X-Real-IP, X-Forwarded-For, CF-IPCountry")
+		html := cdnIndex
+		clientIP := common.AssetRequestClientIP(c.Request, c.ClientIP())
+		if !common.IsChinaAssetClient(c.Request, clientIP) {
+			html = originIndex
+			c.Header("X-Asset-Route", "origin")
+		} else {
+			c.Header("X-Asset-Route", "cdn")
+		}
+		c.Data(http.StatusOK, "text/html; charset=utf-8", html)
 	})
 }

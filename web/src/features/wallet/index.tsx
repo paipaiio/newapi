@@ -150,19 +150,21 @@ export function Wallet(props: WalletProps) {
     }
   }, [props.initialShowHistory, isCompliance])
 
-  // Initialize topup amount when topup info is loaded
+  // Initialize topup amount when topup info is loaded.
+  // 合规站不拉支付计价：/api/user/amount 会 403 并弹出
+  // “Third-party payment is not available on this site.”
   const topupAmountInitializedRef = useRef(false)
   useEffect(() => {
-    if (topupInfo && !topupAmountInitializedRef.current) {
-      topupAmountInitializedRef.current = true
-      const minTopup = getMinTopupAmount(topupInfo)
-      setTopupAmount(minTopup)
-
-      // Calculate initial payment amount with default payment type
-      const defaultPaymentType = getDefaultPaymentType(topupInfo)
-      calculatePaymentAmount(minTopup, defaultPaymentType)
+    if (isCompliance || !topupInfo || topupAmountInitializedRef.current) {
+      return
     }
-  }, [topupInfo, calculatePaymentAmount])
+    topupAmountInitializedRef.current = true
+    const minTopup = getMinTopupAmount(topupInfo)
+    setTopupAmount(minTopup)
+
+    const defaultPaymentType = getDefaultPaymentType(topupInfo)
+    calculatePaymentAmount(minTopup, defaultPaymentType)
+  }, [isCompliance, topupInfo, calculatePaymentAmount])
 
   // Get current payment type (selected or default)
   const getCurrentPaymentType = useCallback(() => {
@@ -391,15 +393,17 @@ export function Wallet(props: WalletProps) {
               </div>
             )}
 
-            <AffiliateRewardsCard
-              user={user}
-              affiliateLink={affiliateLink}
-              onTransfer={() => setTransferDialogOpen(true)}
-              complianceConfirmed={
-                topupInfo?.payment_compliance_confirmed !== false
-              }
-              loading={affiliateLoading}
-            />
+            {!isCompliance && (
+              <AffiliateRewardsCard
+                user={user}
+                affiliateLink={affiliateLink}
+                onTransfer={() => setTransferDialogOpen(true)}
+                complianceConfirmed={
+                  topupInfo?.payment_compliance_confirmed !== false
+                }
+                loading={affiliateLoading}
+              />
+            )}
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>
