@@ -169,7 +169,7 @@ func WeChatBind(c *gin.Context) {
 		return
 	}
 	// 微信绑定成功 → 释放待解锁的注册赠额（若用户此前密码注册未验证邮件）
-	_ = model.ReleasePendingQuota(user.Id)
+	_ = model.ReleasePendingQuota(userId)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

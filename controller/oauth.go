@@ -286,7 +286,7 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 	// 只有绑定 LinuxDO（在邮箱/LinuxDO/微信白名单中）才释放待解锁的注册赠额。
 	// GitHub、Discord、OIDC 等不在白名单，绑定这些不能解锁赠额。
 	if _, isLinuxDO := provider.(*oauth.LinuxDOProvider); isLinuxDO {
-		_ = model.ReleasePendingQuota(user.Id)
+		_ = model.ReleasePendingQuota(userId)
 	}
 
 	common.ApiSuccessI18n(c, i18n.MsgOAuthBindSuccess, gin.H{
