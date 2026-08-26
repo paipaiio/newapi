@@ -193,7 +193,7 @@ func UpdatePendingTopUpStatus(tradeNo string, expectedPaymentProvider string, ta
 		return txErr
 	}
 	if targetStatus == common.TopUpStatusSuccess && creditedUserId > 0 {
-		InvalidateUserCache(creditedUserId)
+		syncCreditUserQuotaCache(creditedUserId, int(creditedQuota), "topup")
 		RecordTopupLog(creditedUserId, fmt.Sprintf("在线充值成功，充值额度: %s，支付单号: %s", logger.FormatQuota(int(creditedQuota)), tradeNo), "", expectedPaymentProvider, expectedPaymentProvider)
 		// 充值成功后异步检查是否达到滥用赠金解锁门槛（不阻塞事务）
 		go CheckAndReleaseAbusePendingBonus(creditedUserId)

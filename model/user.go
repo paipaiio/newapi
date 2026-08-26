@@ -661,7 +661,7 @@ func CheckAndReleaseAbusePendingBonus(userId int) {
 		))
 	}
 
-	InvalidateUserCache(userId)
+	syncCreditUserQuotaCache(userId, bonus, "abuse pending bonus")
 }
 
 // BackfillAbusePendingBonus 为历史上已标记滥用但尚未设置 abuse_pending_bonus 的用户
@@ -942,7 +942,7 @@ func ReleasePendingQuota(userId int) error {
 		return err
 	}
 	RecordLog(userId, LogTypeSystem, fmt.Sprintf("身份验证通过，解锁注册赠额 %s", logger.LogQuota(pending)))
-	_ = InvalidateUserCache(userId)
+	syncCreditUserQuotaCache(userId, pending, "pending quota unlock")
 	return nil
 }
 
