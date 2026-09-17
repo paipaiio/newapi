@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/stretchr/testify/require"
 )
@@ -29,20 +28,20 @@ func TestFormatWaffoPancakeAmount_UsesDisplayPriceString(t *testing.T) {
 }
 
 func TestGetWaffoPancakePayMoney(t *testing.T) {
-	originalUnitPrice := setting.WaffoPancakeUnitPrice
 	originalQuotaDisplayType := operation_setting.GetGeneralSetting().QuotaDisplayType
+	originalExchangeRate := operation_setting.USDExchangeRate
 	originalDiscounts := make(map[int]float64, len(operation_setting.GetPaymentSetting().AmountDiscount))
 	maps.Copy(originalDiscounts, operation_setting.GetPaymentSetting().AmountDiscount)
 	originalTopupGroupRatio := common.TopupGroupRatio2JSONString()
 
 	t.Cleanup(func() {
-		setting.WaffoPancakeUnitPrice = originalUnitPrice
 		operation_setting.GetGeneralSetting().QuotaDisplayType = originalQuotaDisplayType
+		operation_setting.USDExchangeRate = originalExchangeRate
 		operation_setting.GetPaymentSetting().AmountDiscount = originalDiscounts
 		require.NoError(t, common.UpdateTopupGroupRatioByJSONString(originalTopupGroupRatio))
 	})
 
-	setting.WaffoPancakeUnitPrice = 2.5
+	operation_setting.USDExchangeRate = 7.0
 	operation_setting.GetPaymentSetting().AmountDiscount = map[int]float64{
 		10:                           0.8,
 		int(common.QuotaPerUnit * 3): 0.5,
@@ -58,25 +57,35 @@ func TestGetWaffoPancakePayMoney(t *testing.T) {
 		expected         float64
 	}{
 		{
-			name:             "currency display applies unit price group ratio and discount",
+			// CNY 展示：收取金额 = 钱包展示的数字（amount × 汇率），
+			// 再乘分组倍率与满额折扣。10 × 7 × 1.2 × 0.8 = 67.2
+			name:             "cny display charges the displayed cny amount",
+			amount:           10,
+			group:            "vip",
+			quotaDisplayType: operation_setting.QuotaDisplayTypeCNY,
+			expected:         67.2,
+		},
+		{
+			// USD 展示：展示的数值 1:1 传给收银台。10 × 1.2 × 0.8 = 9.6
+			name:             "usd display passes the number as-is",
 			amount:           10,
 			group:            "vip",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeUSD,
-			expected:         24,
+			expected:         9.6,
 		},
 		{
 			name:             "tokens display converts quota to display units before pricing",
 			amount:           int64(common.QuotaPerUnit * 3),
 			group:            "vip",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeTokens,
-			expected:         4.5,
+			expected:         1.8,
 		},
 		{
 			name:             "non-positive discount falls back to no discount",
 			amount:           20,
 			group:            "default",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeUSD,
-			expected:         50,
+			expected:         20,
 		},
 	}
 

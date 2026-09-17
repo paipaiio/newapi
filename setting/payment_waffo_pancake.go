@@ -8,8 +8,7 @@ var (
 	WaffoPancakeMerchantID string
 	WaffoPancakePrivateKey string
 	WaffoPancakeReturnURL  string
-	WaffoPancakeUnitPrice  float64 = 1.0
-	WaffoPancakeMinTopUp   int     = 1
+	WaffoPancakeMinTopUp   int = 1
 	WaffoPancakeStoreID    string
 	WaffoPancakeProductID  string
 	// 收银台支付方式白/黑名单（JSON 字符串数组，如 ["wechat"]），对应 Pancake

@@ -69,8 +69,11 @@ func getWaffoPancakePayMoney(amount int64, group string) float64 {
 		discount = ds
 	}
 
+	// Pancake 以 CNY 结算：收取金额 = 钱包页面展示的数字（CNY 展示时就是
+	// 人民币金额，USD 展示时按 1:1 数值直传），再乘分组倍率与满额折扣。
+	displayRate := operation_setting.GetUsdToCurrencyRate(operation_setting.USDExchangeRate)
 	payMoney := dAmount.
-		Mul(decimal.NewFromFloat(setting.WaffoPancakeUnitPrice)).
+		Mul(decimal.NewFromFloat(displayRate)).
 		Mul(decimal.NewFromFloat(topupGroupRatio)).
 		Mul(decimal.NewFromFloat(discount))
 
