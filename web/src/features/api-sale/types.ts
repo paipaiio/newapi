@@ -30,6 +30,8 @@ export interface ApiSaleItem {
   /** Additional routing groups appended to the token (comma-joined on the backend).
    *  The user account always stays in the single primary `group`. */
   extra_groups?: string[]
+  /** Display-only group whitelist written to the user setting. */
+  visible_groups?: string[]
   quota: number
   unlimited: boolean
   /** Optional batch label written to token.batch_id for per-batch tracking/export. */
@@ -41,6 +43,7 @@ export interface ApiSaleResult {
   password: string
   api_key: string
   group: string
+  visible_groups?: string[]
   quota: number
   error?: string
 }
@@ -61,4 +64,17 @@ export interface TokenLookupItem {
   full_key?: string
   group?: string
   batch_id?: string
+}
+
+/** One row from GET /api/user/batch/export. */
+export interface BatchExportItem {
+  user_id: number
+  username: string
+  password: string
+  api_key: string
+  group: string
+  visible_groups?: string[]
+  quota: number
+  unlimited: boolean
+  batch_id: string
 }

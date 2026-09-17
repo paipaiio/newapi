@@ -40,6 +40,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
   chat: {
     enabled: true,
     playground: true,
+    studio: true,
     chat: true,
   },
   console: {
@@ -56,6 +57,7 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     topup: true,
     personal: true,
     security: true,
+    otherServices: true,
   },
   admin: {
     enabled: true,
@@ -101,6 +103,7 @@ const mergeWithDefaultSidebarModules = (
  */
 const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/playground': { section: 'chat', module: 'playground' },
+  '/studio': { section: 'chat', module: 'studio' },
   '/first-token-test': { section: 'admin', module: 'firstTokenTest' },
   '/dashboard': { section: 'console', module: 'detail' },
   '/dashboard/overview': { section: 'console', module: 'detail' },
@@ -115,6 +118,7 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/wallet': { section: 'personal', module: 'topup' },
   '/profile': { section: 'personal', module: 'personal' },
   '/security': { section: 'personal', module: 'security' },
+  '/other-services': { section: 'personal', module: 'otherServices' },
   '/channels': { section: 'admin', module: 'channel' },
   '/models': { section: 'admin', module: 'models' },
   '/models/metadata': { section: 'admin', module: 'models' },
@@ -287,11 +291,23 @@ export function useSidebarConfig(navGroups: NavGroup[]): NavGroup[] {
   const { auth } = useAuthStore()
 
   const adminConfig = useMemo(
-    () =>
-      parseSidebarConfig(
+    () => {
+      const config = parseSidebarConfig(
         status?.SidebarModulesAdmin as string | null | undefined
-      ),
-    [status?.SidebarModulesAdmin]
+      )
+      // 合规站只下线管理后台。钱包入口（personal.topup 控制 /wallet）保留：
+      // 用户需要能查询自己的余额与账单，支付 UI 在钱包页内部单独隐藏。
+      // 推荐计划在钱包页隐藏；「其他服务」侧栏入口也一并拿掉。
+      if (status?.site_mode === 'compliance') {
+        config.admin = { ...config.admin, enabled: false }
+        config.personal = {
+          ...config.personal,
+          otherServices: false,
+        }
+      }
+      return config
+    },
+    [status?.SidebarModulesAdmin, status?.site_mode]
   )
 
   const userConfig = useMemo(() => {
@@ -332,6 +348,14 @@ export function useIsSidebarModuleVisible(url: string): boolean {
   const adminConfig = parseSidebarConfig(
     status?.SidebarModulesAdmin as string | null | undefined
   )
+  // 同 useSidebarConfig：合规站保留钱包入口，仅下线管理后台和其他服务。
+  if (status?.site_mode === 'compliance') {
+    adminConfig.admin = { ...adminConfig.admin, enabled: false }
+    adminConfig.personal = {
+      ...adminConfig.personal,
+      otherServices: false,
+    }
+  }
   const userConfig =
     auth?.user?.permissions?.sidebar_settings === false
       ? null

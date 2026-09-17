@@ -43,6 +43,7 @@ import { Route as AuthenticatedBurnToolIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedChannelCostIndexRouteImport } from './routes/_authenticated/channel-cost/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
+import { Route as AuthenticatedContentSafetyIndexRouteImport } from './routes/_authenticated/content-safety/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -64,6 +65,7 @@ import { Route as AuthenticatedSecurityIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedServiceManagementIndexRouteImport } from './routes/_authenticated/service-management/index'
 import { Route as AuthenticatedSessionRecordsIndexRouteImport } from './routes/_authenticated/session-records/index'
 import { Route as AuthenticatedStatusIndexRouteImport } from './routes/_authenticated/status/index'
+import { Route as AuthenticatedStudioIndexRouteImport } from './routes/_authenticated/studio/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
@@ -264,6 +266,12 @@ const AuthenticatedChatChatIdRoute = AuthenticatedChatChatIdRouteImport.update({
   path: '/chat/$chatId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContentSafetyIndexRoute =
+  AuthenticatedContentSafetyIndexRouteImport.update({
+    id: '/content-safety/',
+    path: '/content-safety/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/dashboard/',
@@ -387,6 +395,12 @@ const AuthenticatedStatusIndexRoute =
   AuthenticatedStatusIndexRouteImport.update({
     id: '/status/',
     path: '/status/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedStudioIndexRoute =
+  AuthenticatedStudioIndexRouteImport.update({
+    id: '/studio/',
+    path: '/studio/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSubscriptionsIndexRoute =
@@ -576,6 +590,7 @@ export interface FileRoutesByFullPath {
   '/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
   '/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
+  '/content-safety/': typeof AuthenticatedContentSafetyIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
@@ -594,6 +609,7 @@ export interface FileRoutesByFullPath {
   '/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
   '/status/': typeof AuthenticatedStatusIndexRoute
+  '/studio/': typeof AuthenticatedStudioIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -655,6 +671,7 @@ export interface FileRoutesByTo {
   '/burn-tool': typeof AuthenticatedBurnToolIndexRoute
   '/channel-cost': typeof AuthenticatedChannelCostIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
+  '/content-safety': typeof AuthenticatedContentSafetyIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/first-token-test': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive': typeof AuthenticatedGroupExclusiveIndexRoute
@@ -673,6 +690,7 @@ export interface FileRoutesByTo {
   '/service-management': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records': typeof AuthenticatedSessionRecordsIndexRoute
   '/status': typeof AuthenticatedStatusIndexRoute
+  '/studio': typeof AuthenticatedStudioIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
@@ -738,6 +756,7 @@ export interface FileRoutesById {
   '/_authenticated/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
   '/_authenticated/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
+  '/_authenticated/content-safety/': typeof AuthenticatedContentSafetyIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/_authenticated/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
@@ -756,6 +775,7 @@ export interface FileRoutesById {
   '/_authenticated/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/_authenticated/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
   '/_authenticated/status/': typeof AuthenticatedStatusIndexRoute
+  '/_authenticated/studio/': typeof AuthenticatedStudioIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
@@ -820,6 +840,7 @@ export interface FileRouteTypes {
     | '/burn-tool/'
     | '/channel-cost/'
     | '/channels/'
+    | '/content-safety/'
     | '/dashboard/'
     | '/first-token-test/'
     | '/group-exclusive/'
@@ -838,6 +859,7 @@ export interface FileRouteTypes {
     | '/service-management/'
     | '/session-records/'
     | '/status/'
+    | '/studio/'
     | '/subscriptions/'
     | '/system-info/'
     | '/system-settings/'
@@ -899,6 +921,7 @@ export interface FileRouteTypes {
     | '/burn-tool'
     | '/channel-cost'
     | '/channels'
+    | '/content-safety'
     | '/dashboard'
     | '/first-token-test'
     | '/group-exclusive'
@@ -917,6 +940,7 @@ export interface FileRouteTypes {
     | '/service-management'
     | '/session-records'
     | '/status'
+    | '/studio'
     | '/subscriptions'
     | '/system-info'
     | '/system-settings'
@@ -981,6 +1005,7 @@ export interface FileRouteTypes {
     | '/_authenticated/burn-tool/'
     | '/_authenticated/channel-cost/'
     | '/_authenticated/channels/'
+    | '/_authenticated/content-safety/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/first-token-test/'
     | '/_authenticated/group-exclusive/'
@@ -999,6 +1024,7 @@ export interface FileRouteTypes {
     | '/_authenticated/service-management/'
     | '/_authenticated/session-records/'
     | '/_authenticated/status/'
+    | '/_authenticated/studio/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
@@ -1286,6 +1312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChatChatIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/content-safety/': {
+      id: '/_authenticated/content-safety/'
+      path: '/content-safety'
+      fullPath: '/content-safety/'
+      preLoaderRoute: typeof AuthenticatedContentSafetyIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard/': {
       id: '/_authenticated/dashboard/'
       path: '/dashboard'
@@ -1431,6 +1464,13 @@ declare module '@tanstack/react-router' {
       path: '/status'
       fullPath: '/status/'
       preLoaderRoute: typeof AuthenticatedStatusIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/studio/': {
+      id: '/_authenticated/studio/'
+      path: '/studio'
+      fullPath: '/studio/'
+      preLoaderRoute: typeof AuthenticatedStudioIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/subscriptions/': {
@@ -1708,6 +1748,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBurnToolIndexRoute: typeof AuthenticatedBurnToolIndexRoute
   AuthenticatedChannelCostIndexRoute: typeof AuthenticatedChannelCostIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
+  AuthenticatedContentSafetyIndexRoute: typeof AuthenticatedContentSafetyIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedFirstTokenTestIndexRoute: typeof AuthenticatedFirstTokenTestIndexRoute
   AuthenticatedGroupExclusiveIndexRoute: typeof AuthenticatedGroupExclusiveIndexRoute
@@ -1726,6 +1767,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedServiceManagementIndexRoute: typeof AuthenticatedServiceManagementIndexRoute
   AuthenticatedSessionRecordsIndexRoute: typeof AuthenticatedSessionRecordsIndexRoute
   AuthenticatedStatusIndexRoute: typeof AuthenticatedStatusIndexRoute
+  AuthenticatedStudioIndexRoute: typeof AuthenticatedStudioIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
   AuthenticatedTaskPluginsIndexRoute: typeof AuthenticatedTaskPluginsIndexRoute
@@ -1750,6 +1792,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBurnToolIndexRoute: AuthenticatedBurnToolIndexRoute,
   AuthenticatedChannelCostIndexRoute: AuthenticatedChannelCostIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
+  AuthenticatedContentSafetyIndexRoute: AuthenticatedContentSafetyIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedFirstTokenTestIndexRoute: AuthenticatedFirstTokenTestIndexRoute,
   AuthenticatedGroupExclusiveIndexRoute: AuthenticatedGroupExclusiveIndexRoute,
@@ -1771,6 +1814,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedServiceManagementIndexRoute,
   AuthenticatedSessionRecordsIndexRoute: AuthenticatedSessionRecordsIndexRoute,
   AuthenticatedStatusIndexRoute: AuthenticatedStatusIndexRoute,
+  AuthenticatedStudioIndexRoute: AuthenticatedStudioIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
   AuthenticatedTaskPluginsIndexRoute: AuthenticatedTaskPluginsIndexRoute,

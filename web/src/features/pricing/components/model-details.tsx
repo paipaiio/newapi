@@ -80,7 +80,12 @@ import {
 import { parseTags } from '../lib/filters'
 import { getAvailableGroups, isTokenBasedModel } from '../lib/model-helpers'
 import { withPluginPricing } from '../lib/plugin-pricing'
-import { formatFixedPrice, formatGroupPrice } from '../lib/price'
+import {
+  formatFixedPrice,
+  formatGroupPrice,
+  formatPrice,
+  formatRequestPrice,
+} from '../lib/price'
 import {
   evaluateTaskUsageExamples,
   getTaskEnumFields,
@@ -663,14 +668,18 @@ function PriceSection(props: {
   usdExchangeRate: number
   tokenUnit: TokenUnit
   showRechargePrice: boolean
+  selectedGroup?: string
+  groupRatio: Record<string, number>
 }) {
   const { t, i18n } = useTranslation()
   const isTokenBased = isTokenBasedModel(props.model)
   const tokenUnitLabel = props.tokenUnit === 'K' ? '1K' : '1M'
-  const baseGroupKey = '_base'
-  const baseGroupRatioMap = { [baseGroupKey]: 1 }
   const currency = useSystemConfigStore((state) => state.config.currency)
   const billingTime = useBillingTime(props.model.billing_expr)
+  const selectedGroup =
+    props.selectedGroup && props.selectedGroup !== 'all'
+      ? props.selectedGroup
+      : undefined
   const dynamicSummary = useMemo(
     () =>
       getDynamicPricingSummary(props.model, {
@@ -863,14 +872,21 @@ function PriceSection(props: {
             {t('Per request')}
           </span>
           <span className='text-foreground font-mono text-sm font-semibold tabular-nums'>
-            {formatFixedPrice(
-              props.model,
-              baseGroupKey,
-              props.showRechargePrice,
-              props.priceRate,
-              props.usdExchangeRate,
-              baseGroupRatioMap
-            )}
+            {selectedGroup
+              ? formatFixedPrice(
+                  props.model,
+                  selectedGroup,
+                  props.showRechargePrice,
+                  props.priceRate,
+                  props.usdExchangeRate,
+                  props.groupRatio
+                )
+              : formatRequestPrice(
+                  props.model,
+                  props.showRechargePrice,
+                  props.priceRate,
+                  props.usdExchangeRate
+                )}
           </span>
         </div>
       </section>
@@ -880,16 +896,25 @@ function PriceSection(props: {
   const secondaryItems = secondaryPriceTypes.filter((p) => p.available)
   const renderPrice = (type: PriceType) => (
     <>
-      {formatGroupPrice(
-        props.model,
-        baseGroupKey,
-        type,
-        props.tokenUnit,
-        props.showRechargePrice,
-        props.priceRate,
-        props.usdExchangeRate,
-        baseGroupRatioMap
-      )}
+      {selectedGroup
+        ? formatGroupPrice(
+            props.model,
+            selectedGroup,
+            type,
+            props.tokenUnit,
+            props.showRechargePrice,
+            props.priceRate,
+            props.usdExchangeRate,
+            props.groupRatio
+          )
+        : formatPrice(
+            props.model,
+            type,
+            props.tokenUnit,
+            props.showRechargePrice,
+            props.priceRate,
+            props.usdExchangeRate
+          )}
       <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
         / {tokenUnitLabel}
       </span>
@@ -1478,6 +1503,7 @@ export interface ModelDetailsContentProps {
   usdExchangeRate: number
   tokenUnit: TokenUnit
   showRechargePrice?: boolean
+  selectedGroup?: string
 }
 
 export function ModelDetailsContent(props: ModelDetailsContentProps) {
@@ -1531,6 +1557,8 @@ export function ModelDetailsContent(props: ModelDetailsContentProps) {
                 usdExchangeRate={props.usdExchangeRate}
                 tokenUnit={props.tokenUnit}
                 showRechargePrice={showRechargePrice}
+                selectedGroup={props.selectedGroup}
+                groupRatio={props.groupRatio}
               />
             )}
             {isDynamic && !simpleTaskPricing && (
@@ -1701,6 +1729,7 @@ export function ModelDetails() {
           usdExchangeRate={usdExchangeRate ?? 1}
           tokenUnit={tokenUnit}
           showRechargePrice={search.rechargePrice ?? false}
+          selectedGroup={search.group}
           endpointMap={
             (endpointMap as Record<
               string,

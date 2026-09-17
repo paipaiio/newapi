@@ -24,7 +24,6 @@ import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
 
-import { AbusePendingBonusBanner } from './components/abuse-pending-bonus-banner'
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
@@ -298,69 +297,38 @@ export function Wallet(props: WalletProps) {
                   : 'grid gap-4'
               }
             >
-              <div id='wallet-add-funds' className='scroll-mt-4 space-y-3'>
-                {!topupLoading && topupInfo?.allow_topup === false ? (
-                  <div className='text-muted-foreground rounded-xl border border-dashed p-8 text-center text-sm'>
-                    {t(
-                      'Top-up is disabled for your account. Please contact an administrator.'
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    {typeof topupInfo?.user_topup_discount === 'number' &&
-                      topupInfo.user_topup_discount > 0 &&
-                      topupInfo.user_topup_discount < 1 && (
-                        <div className='rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300'>
-                          {t(
-                            'You have an exclusive recharge discount: {{pct}}% off',
-                            {
-                              pct: Math.round(
-                                (1 - topupInfo.user_topup_discount) * 100
-                              ),
-                            }
-                          )}
-                        </div>
-                      )}
-                    <AbusePendingBonusBanner
-                      topupInfo={topupInfo}
-                      priceRatio={effectiveUsdExchangeRate}
-                    />
-                    <RechargeFormCard
-                      topupInfo={topupInfo}
-                      presetAmounts={presetAmounts}
-                      selectedPreset={selectedPreset}
-                      onSelectPreset={handleSelectPreset}
-                      topupAmount={topupAmount}
-                      onTopupAmountChange={handleTopupAmountChange}
-                      paymentAmount={paymentAmount}
-                      calculating={calculating}
-                      onPaymentMethodSelect={handlePaymentMethodSelect}
-                      paymentLoading={paymentLoading}
-                      redemptionCode={redemptionCode}
-                      onRedemptionCodeChange={setRedemptionCode}
-                      onRedeem={handleRedeem}
-                      redeeming={redeeming}
-                      topupLink={topupInfo?.topup_link}
-                      loading={topupLoading}
-                      priceRatio={(status?.price as number) || 1}
-                      usdExchangeRate={effectiveUsdExchangeRate}
-                      onOpenBilling={() => setBillingDialogOpen(true)}
-                      creemProducts={topupInfo?.creem_products}
-                      enableCreemTopup={topupInfo?.enable_creem_topup}
-                      onCreemProductSelect={handleCreemProductSelect}
-                      enableWaffoTopup={topupInfo?.enable_waffo_topup}
-                      waffoPayMethods={topupInfo?.waffo_pay_methods}
-                      waffoMinTopup={topupInfo?.waffo_min_topup}
-                      onWaffoMethodSelect={handleWaffoMethodSelect}
-                      enableWaffoPancakeTopup={
-                        topupInfo?.enable_waffo_pancake_topup
-                      }
-                      waffoPancakeUnitPrice={
-                        topupInfo?.waffo_pancake_unit_price
-                      }
-                    />
-                  </>
-                )}
+              <div id='wallet-add-funds' className='scroll-mt-4'>
+                <RechargeFormCard
+                  topupInfo={topupInfo}
+                  presetAmounts={presetAmounts}
+                  selectedPreset={selectedPreset}
+                  onSelectPreset={handleSelectPreset}
+                  topupAmount={topupAmount}
+                  onTopupAmountChange={handleTopupAmountChange}
+                  paymentAmount={paymentAmount}
+                  calculating={calculating}
+                  onPaymentMethodSelect={handlePaymentMethodSelect}
+                  paymentLoading={paymentLoading}
+                  redemptionCode={redemptionCode}
+                  onRedemptionCodeChange={setRedemptionCode}
+                  onRedeem={handleRedeem}
+                  redeeming={redeeming}
+                  topupLink={topupInfo?.topup_link}
+                  loading={topupLoading}
+                  priceRatio={(status?.price as number) || 1}
+                  usdExchangeRate={effectiveUsdExchangeRate}
+                  onOpenBilling={() => setBillingDialogOpen(true)}
+                  creemProducts={topupInfo?.creem_products}
+                  enableCreemTopup={topupInfo?.enable_creem_topup}
+                  onCreemProductSelect={handleCreemProductSelect}
+                  enableWaffoTopup={topupInfo?.enable_waffo_topup}
+                  waffoPayMethods={topupInfo?.waffo_pay_methods}
+                  waffoMinTopup={topupInfo?.waffo_min_topup}
+                  onWaffoMethodSelect={handleWaffoMethodSelect}
+                  enableWaffoPancakeTopup={
+                    topupInfo?.enable_waffo_pancake_topup
+                  }
+                />
               </div>
 
               <SubscriptionPlansCard
@@ -417,7 +385,6 @@ export function Wallet(props: WalletProps) {
         product={selectedCreemProduct}
         processing={creemProcessing}
       />
-
     </>
   )
 }

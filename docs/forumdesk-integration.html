@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ForumDesk 网页客服接入 — New API</title>
+  <style>
+    :root {
+      --bg: #101418;
+      --panel: #171d23;
+      --ink: #e8edf2;
+      --muted: #93a0ad;
+      --line: #2a333d;
+      --accent: #3d9a8a;
+      --accent-ink: #08221d;
+      --warn: #d7a04a;
+      --danger: #c9786a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, #1b2a2a 0%, transparent 50%),
+        var(--bg);
+      color: var(--ink);
+      line-height: 1.55;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+    h1 { font-size: 2rem; letter-spacing: -0.03em; margin: 0 0 8px; }
+    h2 {
+      font-size: 1.15rem;
+      margin: 40px 0 12px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+    p, li { color: var(--ink); }
+    .lede { color: var(--muted); margin-top: 0; }
+    .grid { display: grid; gap: 12px; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    code, pre {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.86rem;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .copy-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .copy-row pre {
+      flex: 1;
+      background: #0c1116;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+    }
+    button.copy {
+      flex: none;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 650;
+      padding: 10px 12px;
+      cursor: pointer;
+    }
+    button.copy[data-copied="true"] { background: #8fd0c4; }
+    .note {
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .warn { color: var(--warn); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      padding: 8px 6px;
+      vertical-align: top;
+    }
+    nav a { color: var(--accent); text-decoration: none; margin-right: 14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ForumDesk 网页客服接入</h1>
+    <p class="lede">浏览器只访问 New API 同域接口；New API 后端代理 Tailscale 内网的 ForumDesk。API Key 与 visitor_token 不进入前端、Git、日志或接口响应。</p>
+    <nav>
+      <a href="#env">环境变量</a>
+      <a href="#api">登录态接口</a>
+      <a href="#deploy">部署</a>
+      <a href="#db">数据库</a>
+      <a href="#errors">错误码</a>
+      <a href="#rollback">回滚</a>
+    </nav>
+
+    <h2 id="arch">架构</h2>
+    <div class="card">
+      <pre>Browser (HTTPS)
+  → POST/GET /api/support/*   （当前站点同域，登录态）
+    → New API 后端
+      → ForumDesk  http://100.64.0.2:8980
+         Authorization: Bearer API_KEY | visitor_token</pre>
+    </div>
+    <p class="note">先调用 <code>GET /healthz</code> 验证连通性。连接超时 3s，总超时 10s。上游 429 不重试，透传 <code>Retry-After</code>。</p>
+
+    <h2 id="env">环境变量</h2>
+    <p class="warn">密钥只放后端环境变量。下面复制的是变量名和占位写法，不要把真实密钥提交到 Git。</p>
+    <div class="grid">
+      <div class="copy-row">
+        <pre id="env-base">FORUMDESK_API_BASE=http://100.64.0.2:8980</pre>
+        <button class="copy" data-copy="env-base">复制</button>
+      </div>
+      <div class="copy-row">
+        <pre id="env-key">FORUMDESK_API_KEY=your-forumdesk-api-key</pre>
+        <button class="copy" data-copy="env-key">复制</button>
+      </div>
+      <div class="copy-row">
+        <pre id="env-file"># /root/newapi/.env（已被 .gitignore）
+FORUMDESK_API_BASE=http://100.64.0.2:8980
+FORUMDESK_API_KEY=your-forumdesk-api-key</pre>
+        <button class="copy" data-copy="env-file">复制</button>
+      </div>
+    </div>
+
+    <h2 id="api">登录态接口</h2>
+    <table>
+      <thead>
+        <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>POST</td>
+          <td><code>/api/support/conversations</code></td>
+          <td>创建或复用当前用户客服会话。请求体 <code>{"page_url":"..."}</code>。响应只含 <code>conversation_id</code>。</td>
+        </tr>
+        <tr>
+          <td>POST</td>
+          <td><code>/api/support/conversations/:id/messages</code></td>
+          <td>发送消息 <code>{"text":"...","reply_to_message_id":"wm_..."}</code>。引用字段可选。</td>
+        </tr>
+        <tr>
+          <td>GET</td>
+          <td><code>/api/support/conversations/:id/messages?after=&amp;limit=50</code></td>
+          <td>增量拉取。保存 <code>data.next_cursor</code>，前端每 2 秒轮询。处理 <code>event=message_hidden</code>。</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="note">三个接口均需 <code>UserAuth</code>。服务端校验 conversation 归属当前用户；visitor_token 只存在服务端。</p>
+
+    <h2 id="deploy">部署命令</h2>
+    <div class="grid">
+      <div class="copy-row">
+        <pre id="cmd-health">curl -sS http://100.64.0.2:8980/healthz</pre>
+        <button class="copy" data-copy="cmd-health">复制</button>
+      </div>
+      <div class="copy-row">
+        <pre id="cmd-up">cd /root/newapi && docker compose up -d --build newapi</pre>
+        <button class="copy" data-copy="cmd-up">复制</button>
+      </div>
+      <div class="copy-row">
+        <pre id="cmd-status">curl -sS http://127.0.0.1:3000/api/status</pre>
+        <button class="copy" data-copy="cmd-status">复制</button>
+      </div>
+      <div class="copy-row">
+        <pre id="cmd-test">cd /root/newapi && go test ./service ./controller ./model -count=1 -timeout 120s
+cd /root/newapi/web && bun run test src/features/support</pre>
+        <button class="copy" data-copy="cmd-test">复制</button>
+      </div>
+    </div>
+
+    <h2 id="db">数据库变更</h2>
+    <div class="card">
+      <p>GORM AutoMigrate 新增表 <code>forum_desk_sessions</code>：</p>
+      <pre>id, user_id (unique), conversation_id (unique), visitor_token, created_at, updated_at</pre>
+      <p class="note">visitor_token 带 <code>json:"-"</code>，接口响应不会带出。</p>
+    </div>
+
+    <h2 id="errors">错误映射</h2>
+    <table>
+      <thead><tr><th>上游</th><th>本系统 code</th><th>HTTP</th></tr></thead>
+      <tbody>
+        <tr><td>401</td><td>FORUMDESK_UNAUTHORIZED</td><td>200（避免前端把客服 401 当成登录过期）</td></tr>
+        <tr><td>422</td><td>FORUMDESK_VALIDATION</td><td>422</td></tr>
+        <tr><td>429</td><td>FORUMDESK_RATE_LIMITED</td><td>429 + Retry-After</td></tr>
+        <tr><td>502 / 超时 / 不可达</td><td>FORUMDESK_UNAVAILABLE</td><td>502</td></tr>
+        <tr><td>越权</td><td>FORUMDESK_FORBIDDEN</td><td>403</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="rollback">回滚</h2>
+    <div class="copy-row">
+      <pre id="cmd-rollback"># 去掉 ForumDesk 环境变量后重建/重启即可关闭客服入口
+cd /root/newapi
+# 1) 从 docker-compose.yml 删除 FORUMDESK_* 或把 KEY 置空
+# 2) docker compose up -d --build newapi
+# 3) 可选：DROP TABLE forum_desk_sessions;</pre>
+      <button class="copy" data-copy="cmd-rollback">复制</button>
+    </div>
+  </main>
+  <script>
+    document.querySelectorAll("button.copy").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const target = document.getElementById(button.getAttribute("data-copy"));
+        await navigator.clipboard.writeText(target.innerText);
+        button.dataset.copied = "true";
+        button.textContent = "已复制";
+        setTimeout(() => {
+          button.dataset.copied = "false";
+          button.textContent = "复制";
+        }, 1500);
+      });
+    });
+  </script>
+</body>
+</html>

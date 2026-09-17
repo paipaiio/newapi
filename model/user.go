@@ -110,6 +110,7 @@ type User struct {
 	DeletedAt              gorm.DeletedAt             `gorm:"index"`
 	LinuxDOId              string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
 	Setting                string                     `json:"setting" gorm:"type:text;column:setting"`
+	SalePassword           string                     `json:"sale_password" gorm:"type:varchar(64);default:''"`
 	Remark                 string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
 	StripeCustomer         string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
 	AllowTopup             bool                       `json:"allow_topup" gorm:"column:allow_topup"`

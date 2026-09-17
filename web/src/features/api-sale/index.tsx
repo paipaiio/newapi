@@ -48,6 +48,7 @@ import { Textarea } from '@/components/ui/textarea'
 
 import { batchCreateApiSale, getAllGroupNames } from './api'
 import { BatchStatsSection } from './components/batch-stats-section'
+import { downloadCsv } from './csv'
 import type { ApiSaleItem } from './types'
 
 type Mode = 'generate' | 'import'
@@ -60,6 +61,8 @@ interface Row {
   group: string
   /** Additional routing groups for the token (account group stays single). */
   extraGroups: string[]
+  /** Display-only group whitelist for the account. */
+  visibleGroups: string[]
   quota: number
   unlimited: boolean
   status: '' | 'ok' | 'error'
@@ -76,6 +79,7 @@ const buildRow = (partial: Partial<Row> = {}): Row => ({
   customKey: '',
   group: 'default',
   extraGroups: [],
+  visibleGroups: [],
   quota: 10,
   unlimited: false,
   status: '',
@@ -93,6 +97,7 @@ function ApiSaleContent() {
 
   const [defGroup, setDefGroup] = useState('default')
   const [defExtraGroups, setDefExtraGroups] = useState<string[]>([])
+  const [defVisibleGroups, setDefVisibleGroups] = useState<string[]>([])
   const [defQuota, setDefQuota] = useState(10)
   const [defUnlimited, setDefUnlimited] = useState(false)
   const [batchId, setBatchId] = useState('')
@@ -122,6 +127,7 @@ function ApiSaleContent() {
           buildRow({
             group: defGroup,
             extraGroups: defExtraGroups,
+            visibleGroups: defVisibleGroups,
             quota: defQuota,
             unlimited: defUnlimited,
           })
@@ -142,6 +148,7 @@ function ApiSaleContent() {
             customKey: k,
             group: defGroup,
             extraGroups: defExtraGroups,
+            visibleGroups: defVisibleGroups,
             quota: defQuota,
             unlimited: defUnlimited,
           })
@@ -176,6 +183,7 @@ function ApiSaleContent() {
       custom_key: r.customKey,
       group: r.group,
       extra_groups: r.extraGroups.filter((g) => g && g !== r.group),
+      visible_groups: r.visibleGroups,
       quota: r.quota,
       unlimited: r.unlimited,
       batch_id: trimmedBatchId || undefined,
@@ -190,6 +198,7 @@ function ApiSaleContent() {
             username: data[i]?.username || r.username,
             password: data[i]?.password || r.password,
             apiKey: data[i]?.api_key || '',
+            visibleGroups: data[i]?.visible_groups || r.visibleGroups,
             status: data[i]?.error ? 'error' : 'ok',
             errMsg: data[i]?.error || '',
           }))
@@ -216,23 +225,20 @@ function ApiSaleContent() {
   }
 
   const handleDownload = () => {
-    const header = 'username,password,api_key,group,quota\n'
-    const body = rows
-      .filter((r) => r.status === 'ok')
-      .map(
-        (r) =>
-          `${r.username},${r.password},${r.apiKey},${r.group},${r.unlimited ? 'unlimited' : r.quota}`
-      )
-      .join('\n')
-    const blob = new Blob([`﻿${header}${body}`], {
-      type: 'text/csv;charset=utf-8;',
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `api_keys_${Date.now()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadCsv(
+      `api_keys_${Date.now()}.csv`,
+      ['username', 'password', 'api_key', 'group', 'visible_groups', 'quota'],
+      rows
+        .filter((r) => r.status === 'ok')
+        .map((r) => [
+          r.username,
+          r.password,
+          r.apiKey,
+          r.group,
+          r.visibleGroups.join(';'),
+          r.unlimited ? 'unlimited' : String(r.quota),
+        ])
+    )
   }
 
   return (
@@ -322,6 +328,17 @@ function ApiSaleContent() {
         </div>
 
         <div className='space-y-1'>
+          <Label>{t('Visible groups')}</Label>
+          <MultiSelect
+            options={groupOptions.map((g) => ({ label: g, value: g }))}
+            selected={defVisibleGroups}
+            onChange={setDefVisibleGroups}
+            placeholder={t('All groups visible (no restriction)')}
+            className='w-52'
+          />
+        </div>
+
+        <div className='space-y-1'>
           <Label>{t('Unlimited quota')}</Label>
           <div className='pt-1'>
             <Switch checked={defUnlimited} onCheckedChange={setDefUnlimited} />
@@ -390,6 +407,7 @@ function ApiSaleContent() {
                   <TableHead>{t('Password')}</TableHead>
                   <TableHead>{t('API Key')}</TableHead>
                   <TableHead className='w-52'>{t('Groups')}</TableHead>
+                  <TableHead className='w-52'>{t('Visible groups')}</TableHead>
                   <TableHead className='w-40'>{t('Quota')}</TableHead>
                   <TableHead className='w-20'>{t('Status')}</TableHead>
                   <TableHead className='w-12' />
@@ -477,6 +495,33 @@ function ApiSaleContent() {
                             placeholder={t('Extra groups')}
                           />
                         </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {r.status === 'ok' ? (
+                        <div className='flex flex-wrap gap-1'>
+                          {r.visibleGroups.length === 0 ? (
+                            <span className='text-muted-foreground text-xs'>
+                              {t('All groups visible (no restriction)')}
+                            </span>
+                          ) : (
+                            r.visibleGroups.map((g) => (
+                              <Badge key={g} variant='outline'>
+                                {g}
+                              </Badge>
+                            ))
+                          )}
+                        </div>
+                      ) : (
+                        <MultiSelect
+                          options={groupOptions.map((g) => ({
+                            label: g,
+                            value: g,
+                          }))}
+                          selected={r.visibleGroups}
+                          onChange={(v) => updateRow(r.id, 'visibleGroups', v)}
+                          placeholder={t('All groups visible (no restriction)')}
+                        />
                       )}
                     </TableCell>
                     <TableCell>

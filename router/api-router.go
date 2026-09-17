@@ -171,6 +171,8 @@ func SetApiRouter(router *gin.Engine) {
 				adminRoute.POST("/token/rate_limit", controller.SetTokenRateLimit)
 				adminRoute.GET("/batch/stats", controller.GetBatchStats)
 				adminRoute.POST("/api-sale/batch", controller.BatchCreateApiSale)
+				adminRoute.GET("/batch/export", controller.ExportApiSaleBatch)
+				adminRoute.POST("/batch/visible_groups", controller.BatchSetVisibleGroupsByBatch)
 				adminRoute.PUT("/", controller.UpdateUser)
 				adminRoute.DELETE("/:id", controller.DeleteUser)
 				adminRoute.DELETE("/:id/reset_passkey", controller.AdminResetPasskey)

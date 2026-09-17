@@ -29,7 +29,8 @@ import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { useStatus } from '@/hooks/use-status'
 
-import { AccessCard } from '../access-card'
+import { HeroTerminalDemo } from '../hero-terminal-demo'
+import { ParticleField } from '../particle-field'
 
 interface HeroProps {
   className?: string
@@ -62,23 +63,20 @@ export function Hero(props: HeroProps) {
 
   return (
     <section className='relative z-10 overflow-hidden px-6 pt-24 pb-16 md:pt-32 md:pb-24 lg:pt-36 lg:pb-28'>
-      {/* Radial gradient background */}
+      {/* Radial gradient background — brand indigo + teal, slowly drifting */}
       <div
         aria-hidden
-        className='pointer-events-none absolute inset-0 -z-10 opacity-25 dark:opacity-[0.12]'
+        className='landing-aurora pointer-events-none absolute -inset-16 -z-10 opacity-25 dark:opacity-[0.12]'
         style={{
           background: [
-            'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.72 0.18 250 / 80%) 0%, transparent 70%)',
-            'radial-gradient(ellipse 50% 40% at 80% 15%, oklch(0.65 0.15 200 / 60%) 0%, transparent 70%)',
-            'radial-gradient(ellipse 40% 35% at 40% 80%, oklch(0.70 0.12 280 / 40%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 60% 50% at 20% 20%, oklch(0.62 0.19 273 / 70%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 50% 40% at 80% 15%, oklch(0.70 0.13 175 / 55%) 0%, transparent 70%)',
+            'radial-gradient(ellipse 40% 35% at 40% 80%, oklch(0.62 0.15 273 / 35%) 0%, transparent 70%)',
           ].join(', '),
         }}
       />
-      {/* Grid pattern */}
-      <div
-        aria-hidden
-        className='absolute inset-0 -z-10 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_30%,black_20%,transparent_100%)] bg-[size:4rem_4rem] opacity-[0.08]'
-      />
+      {/* 3D particle network, drifting toward the camera */}
+      <ParticleField />
       {/* Brand blur balls (indigo/teal), ported from the classic theme */}
       <div aria-hidden className='blur-ball blur-ball-indigo -z-10' />
       <div aria-hidden className='blur-ball blur-ball-teal -z-10' />
@@ -88,12 +86,12 @@ export function Hero(props: HeroProps) {
         <div className='flex flex-col items-start text-left lg:col-span-6'>
           {/* Top Pill Badge */}
           <div
-            className='landing-animate-fade-up mb-5 inline-flex items-center gap-1.5 rounded-full border border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-[11px] font-medium text-blue-600 opacity-0 shadow-xs dark:border-blue-400/20 dark:bg-blue-400/5 dark:text-blue-400'
+            className='landing-animate-fade-up mb-5 inline-flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/5 px-3 py-1.5 text-[11px] font-medium text-indigo-600 opacity-0 shadow-xs dark:border-indigo-400/20 dark:bg-indigo-400/5 dark:text-indigo-400'
             style={{ animationDelay: '0ms' }}
           >
             <span className='relative flex size-1.5'>
-              <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75' />
-              <span className='relative inline-flex size-1.5 rounded-full bg-blue-500 dark:bg-blue-400' />
+              <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75' />
+              <span className='relative inline-flex size-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400' />
             </span>
             <span>{t('OpenAI / Claude / Gemini / Veo unified access')}</span>
           </div>
@@ -104,7 +102,7 @@ export function Hero(props: HeroProps) {
           >
             {t('One Base URL, connect your')}
             <br />
-            <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
+            <span className='shine-text text-indigo-500 dark:text-indigo-400'>
               {t('production-grade AI workflow')}
             </span>
           </h1>
@@ -163,7 +161,7 @@ export function Hero(props: HeroProps) {
               )}
               {inviterReward && (
                 <span className='border-border/40 bg-muted/20 text-muted-foreground/90 inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium backdrop-blur-xs'>
-                  <Users className='size-3.5 text-blue-500' />
+                  <Users className='size-3.5 text-indigo-500' />
                   {t('Invite friends, {{amount}} credits each', {
                     amount: inviterReward,
                   })}
@@ -179,12 +177,23 @@ export function Hero(props: HeroProps) {
           )}
         </div>
 
-        {/* Right Column: access address card */}
+        {/* Right Column: live multi-protocol API terminal demo */}
         <div
-          className='landing-animate-fade-up flex w-full justify-center opacity-0 lg:col-span-6 lg:justify-end'
+          className='landing-animate-fade-left relative flex w-full justify-center opacity-0 lg:col-span-6 lg:justify-end'
           style={{ animationDelay: '320ms' }}
         >
-          <AccessCard className='mt-8 lg:mt-0' />
+          {/* Brand glow behind the terminal window, gently pulsing */}
+          <div
+            aria-hidden
+            className='landing-glow-pulse pointer-events-none absolute -inset-8 -z-10 opacity-50 blur-3xl dark:opacity-30'
+            style={{
+              background: [
+                'radial-gradient(ellipse 55% 45% at 35% 30%, rgba(99, 102, 241, 0.45) 0%, transparent 70%)',
+                'radial-gradient(ellipse 45% 40% at 70% 70%, rgba(20, 184, 166, 0.35) 0%, transparent 70%)',
+              ].join(', '),
+            }}
+          />
+          <HeroTerminalDemo className='mt-8 w-full transition-transform duration-500 hover:-translate-y-1 lg:mt-0 lg:max-w-xl' />
         </div>
       </div>
     </section>

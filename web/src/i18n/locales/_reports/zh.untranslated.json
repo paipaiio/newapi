@@ -1,12 +1,26 @@
 {
+  "32-character APIv3 key. Leave blank to keep existing.": "32 位 APIv3 密钥。留空保留当前值。",
   "Access Key ID": "Access Key ID",
+  "Alipay App ID from the Open Platform console": "支付宝开放平台的应用 AppID",
+  "APIv3 key": "APIv3 密钥",
+  "App ID": "应用 ID（AppID）",
+  "AppID (optional)": "AppID（可选）",
+  "Application private key (RSA2)": "应用私钥（RSA2）",
+  "Content of apiclient_key.pem. Leave blank to keep existing.": "apiclient_key.pem 文件内容。留空保留当前值。",
   "Datacenter / VPN CIDR list (Layer 2 — local)": "机房 / VPN 网段名单（Layer 2 — 本地）",
   "Detect datacenter / VPN IPs (Layer 2)": "检测机房 / VPN IP（Layer 2）",
+  "Enable official WeChat Pay (v3 API) for top-ups": "启用微信支付官方接口（v3 API）用于充值",
   "Flag registrations from hosting or proxy IPs. First checks the local CIDR list, then optionally calls an online IP-reputation API.": "标记来自机房或代理 IP 的注册。先查本地 CIDR 名单，未命中再走在线 IP 信誉 API。",
   "Max invites per inviter (Layer 1 — inviter rate)": "单邀请人最大邀请数（Layer 1 — 邀请速率）",
+  "Merchant ID (MchId)": "商户号（MchId）",
+  "Merchant private key (PEM)": "商户私钥（PEM）",
   "New version {{version}} detected, please refresh for the latest.": "检测到新版本 {{version}}，请刷新页面获取最新版本。",
   "One CIDR per line. Registration IPs hitting any of these ranges are flagged immediately without calling the online API.": "每行一个 CIDR。注册 IP 命中任一网段时立即标记，不调用在线 API。",
+  "Required for JSAPI/Mini-program; leave blank for H5": "JSAPI / 小程序必填；H5 支付留空",
   "Secret Access Key": "Secret Access Key",
+  "Serial number of your merchant API certificate (证书序列号)": "商户 API 证书序列号",
+  "uncensored": "uncensored",
   "Use online IP-reputation API (ip-api.com)": "使用在线 IP 信誉 API（ip-api.com）",
-  "When local CIDR misses, query ip-api.com (1 s timeout, 7-day Redis cache, fail-open). Free, no key required.": "本地 CIDR 未命中时调用 ip-api.com（1 秒超时 + Redis 缓存 7 天 + 失败放行）。免费无需 Key。"
+  "When local CIDR misses, query ip-api.com (1 s timeout, 7-day Redis cache, fail-open). Free, no key required.": "本地 CIDR 未命中时调用 ip-api.com（1 秒超时 + Redis 缓存 7 天 + 失败放行）。免费无需 Key。",
+  "Your application private key (RSA2). Leave blank to keep existing.": "应用私钥（RSA2，PKCS1/PKCS8 PEM 内容）。留空保留当前值。"
 }

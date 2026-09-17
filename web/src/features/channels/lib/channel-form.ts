@@ -270,6 +270,8 @@ export const channelFormSchema = z
     responses_websocket_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
+    normalize_system_messages: z.boolean().optional(),
+    normalize_system_messages_models: z.string().optional(),
     // Type-specific settings (stored in settings JSON)
     is_enterprise_account: z.boolean().optional(), // OpenRouter specific
     vertex_key_type: z.enum(['json', 'api_key']).optional(), // Vertex AI specific
@@ -460,6 +462,8 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   responses_websocket_enabled: false,
   system_prompt: '',
   system_prompt_override: false,
+  normalize_system_messages: false,
+  normalize_system_messages_models: '',
   // Type-specific settings
   is_enterprise_account: false,
   vertex_key_type: 'json',
@@ -503,6 +507,8 @@ export function transformChannelToFormDefaults(
     responses_websocket_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
+    normalize_system_messages: false,
+    normalize_system_messages_models: '',
   }
 
   if (channel.setting) {
@@ -524,6 +530,12 @@ export function transformChannelToFormDefaults(
           parsed.responses_websocket_enabled === true,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
+        normalize_system_messages: parsed.normalize_system_messages || false,
+        normalize_system_messages_models: Array.isArray(
+          parsed.normalize_system_messages_models
+        )
+          ? parsed.normalize_system_messages_models.join(',')
+          : '',
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -653,6 +665,19 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
       formData.responses_websocket_enabled === true,
     system_prompt: formData.system_prompt || '',
     system_prompt_override: formData.system_prompt_override || false,
+    normalize_system_messages: formData.normalize_system_messages || false,
+  }
+
+  const normalizeSystemMessageModels = [
+    ...new Set(
+      String(formData.normalize_system_messages_models || '')
+        .split(',')
+        .map((model) => model.trim())
+        .filter(Boolean)
+    ),
+  ]
+  if (normalizeSystemMessageModels.length > 0) {
+    settingObj.normalize_system_messages_models = normalizeSystemMessageModels
   }
 
   const protocol = normalizeHttpProtocol(formData.http_protocol)

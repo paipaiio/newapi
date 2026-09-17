@@ -73,10 +73,7 @@ export function AnimateInView(props: AnimateInViewProps) {
   return (
     <Tag
       ref={ref as never}
-      className={cn(
-        'opacity-0 will-change-[transform,opacity]',
-        props.className
-      )}
+      className={cn('opacity-0', props.className)}
       style={{ animationDelay: delay ? `${delay}ms` : undefined }}
     >
       {props.children}

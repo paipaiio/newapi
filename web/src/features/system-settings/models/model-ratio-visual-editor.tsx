@@ -57,7 +57,14 @@ import { splitPluginBillingExprKey } from '@/features/pricing/lib/plugin-pricing
 import { useMediaQuery } from '@/hooks'
 
 import { safeJsonParse } from '../utils/json-parser'
-import type { PricingMode } from './model-pricing-core'
+import {
+  assignOptionalUsd,
+  groupFieldToTokenKey,
+  groupPriceFields,
+  loadGroupPriceOverrides,
+  type GroupTokenPriceValue,
+  type PricingMode,
+} from './model-pricing-core'
 import {
   ModelPricingEditorPanel,
   type ModelPricingEditorPanelHandle,
@@ -77,6 +84,9 @@ import {
 
 type ModelRatioVisualEditorProps = {
   savedModelPrice: string
+  savedGroupModelPrice?: string
+  savedGroupModelRatio?: string
+  savedGroupModelTokenPrice?: string
   savedModelRatio: string
   savedCacheRatio: string
   savedCreateCacheRatio: string
@@ -88,6 +98,9 @@ type ModelRatioVisualEditorProps = {
   savedBillingExpr: string
   savedPluginBillingExpr?: string
   modelPrice: string
+  groupModelPrice?: string
+  groupModelRatio?: string
+  groupModelTokenPrice?: string
   modelRatio: string
   cacheRatio: string
   createCacheRatio: string
@@ -129,6 +142,9 @@ const ModelRatioVisualEditorComponent = forwardRef<
     savedBillingExpr,
     savedPluginBillingExpr = '{}',
     modelPrice,
+    groupModelPrice = '{}',
+    groupModelRatio = '{}',
+    groupModelTokenPrice = '{}',
     modelRatio,
     cacheRatio,
     createCacheRatio,
@@ -337,6 +353,17 @@ const ModelRatioVisualEditorComponent = forwardRef<
       } else if (editableModel.price && editableModel.price !== '') {
         editBillingMode = 'per-request'
       }
+      const groupPriceMap = safeJsonParse<Record<string, Record<string, number>>>(
+        groupModelPrice,
+        { fallback: {}, silent: true }
+      )
+      const groupRatioMap = safeJsonParse<Record<string, Record<string, number>>>(
+        groupModelRatio,
+        { fallback: {}, silent: true }
+      )
+      const groupTokenPriceMap = safeJsonParse<
+        Record<string, Record<string, GroupTokenPriceValue>>
+      >(groupModelTokenPrice, { fallback: {}, silent: true })
       setEditData({
         name: editableModel.name,
         price: editableModel.price,
@@ -351,11 +378,17 @@ const ModelRatioVisualEditorComponent = forwardRef<
         billingExpr: editableModel.billingExpr,
         pluginBillingExpr: editableModel.pluginBillingExpr,
         requestRuleExpr: editableModel.requestRuleExpr,
+        groupPrices: loadGroupPriceOverrides({
+          mode: editBillingMode,
+          requestPrices: groupPriceMap[editableModel.name],
+          tokenPrices: groupTokenPriceMap[editableModel.name],
+          legacyRatios: groupRatioMap[editableModel.name],
+        }),
       })
       setEditorOpen(true)
       if (isMobile) setSheetOpen(true)
     },
-    [isMobile]
+    [groupModelPrice, groupModelRatio, groupModelTokenPrice, isMobile]
   )
 
   const handleAdd = useCallback(() => {
@@ -421,6 +454,15 @@ const ModelRatioVisualEditorComponent = forwardRef<
         billingExpr,
         { fallback: {}, silent: true }
       )
+      const groupPriceMap = safeJsonParse<
+        Record<string, Record<string, number>>
+      >(groupModelPrice, { fallback: {}, silent: true })
+      const groupRatioByModel = safeJsonParse<
+        Record<string, Record<string, number>>
+      >(groupModelRatio, { fallback: {}, silent: true })
+      const groupTokenPriceMap = safeJsonParse<
+        Record<string, Record<string, GroupTokenPriceValue>>
+      >(groupModelTokenPrice, { fallback: {}, silent: true })
 
       delete priceMap[name]
       delete ratioMap[name]
@@ -445,8 +487,17 @@ const ModelRatioVisualEditorComponent = forwardRef<
         'billing_setting.plugin_billing_expr',
         JSON.stringify(pluginExprMap)
       )
+      delete groupPriceMap[name]
+      delete groupRatioByModel[name]
+      delete groupTokenPriceMap[name]
 
       onChange('ModelPrice', JSON.stringify(priceMap, null, 2))
+      onChange('GroupModelPrice', JSON.stringify(groupPriceMap, null, 2))
+      onChange('GroupModelRatio', JSON.stringify(groupRatioByModel, null, 2))
+      onChange(
+        'GroupModelTokenPrice',
+        JSON.stringify(groupTokenPriceMap, null, 2)
+      )
       onChange('ModelRatio', JSON.stringify(ratioMap, null, 2))
       onChange('CacheRatio', JSON.stringify(cacheMap, null, 2))
       onChange('CreateCacheRatio', JSON.stringify(createCacheMap, null, 2))
@@ -474,6 +525,9 @@ const ModelRatioVisualEditorComponent = forwardRef<
     },
     [
       modelPrice,
+      groupModelPrice,
+      groupModelRatio,
+      groupModelTokenPrice,
       modelRatio,
       cacheRatio,
       createCacheRatio,
@@ -551,9 +605,67 @@ const ModelRatioVisualEditorComponent = forwardRef<
       })
       const updated = applyPricingDraft(options, data, targetNames)
       for (const [key, value] of Object.entries(updated)) onChange(key, value)
+
+      // Per-group price overrides are a fork extension that applyPricingDraft
+      // does not cover, so commit the group maps separately.
+      const groupPriceMap = safeJsonParse<
+        Record<string, Record<string, number>>
+      >(groupModelPrice, { fallback: {}, silent: true })
+      const groupRatioByModel = safeJsonParse<
+        Record<string, Record<string, number>>
+      >(groupModelRatio, { fallback: {}, silent: true })
+      const groupTokenPriceMap = safeJsonParse<
+        Record<string, Record<string, GroupTokenPriceValue>>
+      >(groupModelTokenPrice, { fallback: {}, silent: true })
+
+      for (const name of targetNames) {
+        delete groupPriceMap[name]
+        delete groupRatioByModel[name]
+        delete groupTokenPriceMap[name]
+      }
+      if (data.price && data.price !== '') {
+        const overrides: Record<string, number> = {}
+        for (const item of data.groupPrices || []) {
+          const group = item.group.trim()
+          const parsed = Number(item.input)
+          if (!group || !Number.isFinite(parsed)) continue
+          overrides[group] = parsed
+        }
+        if (Object.keys(overrides).length > 0) {
+          for (const name of targetNames) {
+            groupPriceMap[name] = overrides
+          }
+        }
+      } else {
+        const overrides: Record<string, GroupTokenPriceValue> = {}
+        for (const item of data.groupPrices || []) {
+          const group = item.group.trim()
+          if (!group) continue
+          const entry: GroupTokenPriceValue = {}
+          for (const field of groupPriceFields) {
+            assignOptionalUsd(entry, groupFieldToTokenKey[field], item[field])
+          }
+          if (Object.keys(entry).length === 0) continue
+          overrides[group] = entry
+        }
+        if (Object.keys(overrides).length > 0) {
+          for (const name of targetNames) {
+            groupTokenPriceMap[name] = overrides
+          }
+        }
+      }
+      onChange('GroupModelPrice', JSON.stringify(groupPriceMap, null, 2))
+      onChange('GroupModelRatio', JSON.stringify(groupRatioByModel, null, 2))
+      onChange(
+        'GroupModelTokenPrice',
+        JSON.stringify(groupTokenPriceMap, null, 2)
+      )
     },
     [
       modelPrice,
+      groupModelPrice,
+      groupModelRatio,
+      groupModelTokenPrice,
       modelRatio,
       completionRatio,
       cacheRatio,

@@ -88,6 +88,7 @@ import {
 import type { BillingUsageSchema } from '@/features/pricing/types'
 import { useDebounce } from '@/hooks/use-debounce'
 import { handleServerError } from '@/lib/handle-server-error'
+import { getAllGroupNames } from '@/features/users/api'
 import { cn } from '@/lib/utils'
 import { usePricingPreferencesStore } from '@/stores/pricing-preferences-store'
 import { useSystemConfigStore } from '@/stores/system-config-store'
@@ -98,16 +99,23 @@ import {
   buildPreviewRows,
   createInitialLaneState,
   createModelPricingSchema,
+  hasAnyGroupPrice,
   hasValue,
   laneConfigs,
+  laneToGroupField,
   ratioFieldByLane,
   toNumberOrNull,
+  type GroupPriceOverride,
   type LaneKey,
   type ModelPricingFormValues,
   type ModelRatioData,
   type PricingMode,
 } from './model-pricing-core'
-import { PriceInput, PriceLane } from './model-pricing-inputs'
+import {
+  GroupPriceFieldList,
+  PriceInput,
+  PriceLane,
+} from './model-pricing-inputs'
 import { formatPricingNumber } from './pricing-format'
 import { TaskPluginPricingEditor } from './task-plugin-pricing-editor'
 import { TaskUsagePricingEditor } from './task-usage-pricing-editor'
@@ -240,6 +248,7 @@ export const ModelPricingEditorPanel = forwardRef<
   >({})
   const [editorReloadToken, setEditorReloadToken] = useState(0)
   const autoSwitchedForRef = useRef<string | null>(null)
+  const [groupPrices, setGroupPrices] = useState<GroupPriceOverride[]>([])
   const isEditMode = !!editData
   const hasLegacyPricing =
     editData &&
@@ -261,6 +270,12 @@ export const ModelPricingEditorPanel = forwardRef<
     editData?.billingExpr ||
     (initialPricingMode === 'tiered_expr' ? DEFAULT_TOKEN_BILLING_EXPR : '')
   const { models: pricingModels } = usePricingData()
+
+  const { data: groupsData } = useQuery({
+    queryKey: ['groups'],
+    queryFn: getAllGroupNames,
+  })
+  const groupOptions = groupsData?.data || []
 
   const form = useForm<ModelPricingFormValues>({
     resolver: zodResolver(createModelPricingSchema(t)),
@@ -390,6 +405,7 @@ export const ModelPricingEditorPanel = forwardRef<
     setPromptPrice(nextLaneState.promptPrice)
     setLanePrices(nextLaneState.prices)
     setLaneEnabled(nextLaneState.enabled)
+    setGroupPrices(editData?.groupPrices ? [...editData.groupPrices] : [])
     setEditorReloadToken((token) => token + 1)
     autoSwitchedForRef.current = null
   }, [editData, form, initialPricingMode, initialBillingExpr])
@@ -693,6 +709,9 @@ export const ModelPricingEditorPanel = forwardRef<
         imageRatio: values.imageRatio || '',
         audioRatio: values.audioRatio || '',
         audioCompletionRatio: values.audioCompletionRatio || '',
+        groupPrices: groupPrices.filter(
+          (item) => item.group.trim() && hasAnyGroupPrice(item)
+        ),
       }
 
       if (pricingMode === 'tiered_expr') {
@@ -709,6 +728,7 @@ export const ModelPricingEditorPanel = forwardRef<
       pluginExpressions,
       editData,
       pluginVariants,
+      groupPrices,
     ]
   )
 
@@ -1057,7 +1077,14 @@ export const ModelPricingEditorPanel = forwardRef<
                             placeholder='3'
                             onChange={handlePromptPriceChange}
                           />
-                        </Field>
+                                                  <GroupPriceFieldList
+                            field='input'
+                            placeholder='3'
+                            groupPrices={groupPrices}
+                            groupOptions={groupOptions}
+                            onChange={setGroupPrices}
+                          />
+</Field>
 
                         {laneConfigs.map((lane) => {
                           const disabled =
@@ -1087,6 +1114,15 @@ export const ModelPricingEditorPanel = forwardRef<
                               }
                               onChange={(value) =>
                                 handleLanePriceChange(lane.key, value)
+                              }
+                              extra={
+                                <GroupPriceFieldList
+                                  field={laneToGroupField[lane.key]}
+                                  placeholder={lane.placeholder}
+                                  groupPrices={groupPrices}
+                                  groupOptions={groupOptions}
+                                  onChange={setGroupPrices}
+                                />
                               }
                             />
                           )
@@ -1128,6 +1164,14 @@ export const ModelPricingEditorPanel = forwardRef<
                                   )}
                                 </FormDescription>
                                 <FormMessage />
+                                <GroupPriceFieldList
+                                  field='input'
+                                  placeholder='0.01'
+                                  suffix={t('per request')}
+                                  groupPrices={groupPrices}
+                                  groupOptions={groupOptions}
+                                  onChange={setGroupPrices}
+                                />
                               </Field>
                             </FormItem>
                           )}

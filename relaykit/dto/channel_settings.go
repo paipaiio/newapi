@@ -28,6 +28,10 @@ type ChannelSettings struct {
 	// HTTP2ConnectionShards spreads HTTP/2 traffic across N independent transports
 	// (1-8). Zero/unset means 1. Ignored when HTTPProtocol is "http1".
 	HTTP2ConnectionShards int `json:"http2_connection_shards,omitempty"`
+
+	// Fork extensions for normalize-system-messages feature
+	NormalizeSystemMessages       bool     `json:"normalize_system_messages,omitempty"`
+	NormalizeSystemMessagesModels []string `json:"normalize_system_messages_models,omitempty"`
 }
 
 const (

@@ -38,6 +38,20 @@ import { routeTree } from './routeTree.gen'
 // Styles
 import './styles/index.css'
 
+// Origin-routed shells (compliance / ASSET_ROUTE=origin) rewrite index.html
+// script tags to same-origin, but the production bundle still bakes
+// webpack publicPath to the CDN. Override before any route chunk is fetched.
+declare let __webpack_public_path__: string
+{
+  const src =
+    document.querySelector('script[src*="/static/js/index."]')?.getAttribute(
+      'src'
+    ) ?? ''
+  if (src.startsWith('/')) {
+    __webpack_public_path__ = src.match(/^\/av[0-9a-f]+\//i)?.[0] ?? '/'
+  }
+}
+
 // Ensure VChart theme is initialized before any chart mounts (prevents white default theme flash)
 // VChart theme is driven by our ThemeProvider (html.light/html.dark) via per-chart `theme` prop.
 initializeFrontendCache()

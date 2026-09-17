@@ -878,7 +878,7 @@ export function PaymentSettingsSection({
           />
           <Tabs defaultValue='general' className='min-w-0'>
             <div className='overflow-x-auto pb-1'>
-              <TabsList className='grid min-w-[44rem] grid-cols-8'>
+              <TabsList className='grid min-w-[44rem] grid-cols-6'>
                 <TabsTrigger value='general'>{t('General')}</TabsTrigger>
                 <TabsTrigger value='epay'>Epay</TabsTrigger>
                 <TabsTrigger value='stripe'>{t('Stripe')}</TabsTrigger>
@@ -1624,7 +1624,6 @@ export function PaymentSettingsSection({
                 onPayMethodsChange={setWaffoPayMethods}
               />
             </TabsContent>
-
           </Tabs>
         </SettingsForm>
       </Form>

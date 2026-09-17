@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-
 /* ============================================================================
  * Brand signature effects, ported from the classic theme so the default theme
  * carries the same visual identity: indigo/teal blur balls behind hero/auth
@@ -38,8 +37,11 @@ For commercial licensing, please contact support@quantumnous.com
   background: #6366f1; /* indigo-500 */
   top: 40px;
   left: 50%;
-  transform: translateX(-50%);
+  /* centered via negative margin so `transform` stays free for the float
+   * animation (an animating transform would override translateX(-50%)) */
+  margin-left: -180px;
   opacity: 0.25;
+  animation: brand-float 16s ease-in-out infinite alternate;
 }
 
 .blur-ball-teal {
@@ -47,6 +49,17 @@ For commercial licensing, please contact support@quantumnous.com
   top: 200px;
   left: 30%;
   opacity: 0.2;
+  animation: brand-float 22s ease-in-out infinite alternate-reverse;
+}
+
+/* Ambient drift for the brand blur balls */
+@keyframes brand-float {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(56px, 36px, 0) scale(1.12);
+  }
 }
 
 .dark .blur-ball-indigo {
@@ -107,6 +120,12 @@ For commercial licensing, please contact support@quantumnous.com
 
 @media (prefers-reduced-motion: reduce) {
   .shine-text {
+    animation: none;
+    /* drop the sweep gradient entirely so no static stripe stays visible */
+    background: none;
+    -webkit-text-fill-color: currentColor;
+  }
+  .blur-ball {
     animation: none;
   }
 }

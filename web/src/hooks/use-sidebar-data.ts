@@ -28,6 +28,7 @@ import {
   FileClock,
   FileText,
   FlaskConical,
+  Image,
   Key,
   KeyRound,
   Layers,
@@ -73,6 +74,11 @@ export function useSidebarData(): SidebarData {
             title: t('Playground'),
             url: '/playground',
             icon: FlaskConical,
+          },
+          {
+            title: t('Image Studio'),
+            url: '/studio',
+            icon: Image,
           },
           {
             title: t('Chat'),
@@ -224,6 +230,11 @@ export function useSidebarData(): SidebarData {
             title: t('Session Records'),
             url: '/session-records',
             icon: FileClock,
+          },
+          {
+            title: t('Content Safety Review'),
+            url: '/content-safety',
+            icon: ShieldAlert,
           },
           {
             title: t('Request Stats'),

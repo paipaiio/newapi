@@ -84,6 +84,15 @@ const serverErrorMessageKeys = {
   TELEGRAM_BIND_USER_DELETED: 'This user account no longer exists.',
   TELEGRAM_BIND_USER_DISABLED: 'This user account is disabled.',
   TELEGRAM_BIND_INTERNAL_ERROR: 'Telegram binding failed. Please try again.',
+  FORUMDESK_UNAUTHORIZED:
+    'Support session is invalid. Please start a new conversation.',
+  FORUMDESK_VALIDATION: 'The support request is invalid.',
+  FORUMDESK_RATE_LIMITED:
+    'Support is rate-limited. Please wait and try again.',
+  FORUMDESK_UNAVAILABLE: 'Customer support is temporarily unavailable.',
+  FORUMDESK_FORBIDDEN: 'You do not have access to this support conversation.',
+  FORUMDESK_NOT_CONFIGURED: 'Customer support is not configured.',
+  FORUMDESK_NOT_FOUND: 'Support conversation not found.',
 } as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {

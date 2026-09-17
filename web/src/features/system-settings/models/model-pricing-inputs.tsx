@@ -16,10 +16,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useId } from 'react'
+import { Plus, Trash2 } from 'lucide-react'
+import { useId, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { InputGroup, InputGroupAddon } from '@/components/ui/input-group'
+import { Button } from '@/components/ui/button'
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   USD_PRICING_CURRENCY,
   type PricingCurrency,
@@ -31,6 +44,14 @@ import {
   SettingsControlGroup,
   SettingsSwitchField,
 } from '../components/settings-form-layout'
+import {
+  emptyGroupPriceOverride,
+  type GroupPriceField,
+  type GroupPriceOverride,
+} from './model-pricing-core'
+
+/** Allow numeric price drafts such as "3", "3.", ".5" while typing. */
+const numericDraftRegex = /^(\d+(\.\d*)?|\.\d*)?$/
 
 export function PriceInput(props: {
   currency?: PricingCurrency
@@ -66,6 +87,86 @@ export function PriceInput(props: {
   )
 }
 
+export function GroupPriceFieldList(props: {
+  field: GroupPriceField
+  placeholder?: string
+  suffix?: string
+  groupPrices: GroupPriceOverride[]
+  groupOptions: string[]
+  onChange: (next: GroupPriceOverride[]) => void
+}) {
+  const { t } = useTranslation()
+  const suffix = props.suffix ?? '$/1M'
+
+  const updateRow = (index: number, patch: Partial<GroupPriceOverride>) => {
+    props.onChange(
+      props.groupPrices.map((item, i) =>
+        i === index ? { ...item, ...patch } : item
+      )
+    )
+  }
+
+  return (
+    <div className='space-y-2'>
+      {props.groupPrices.map((row, index) => (
+        <div key={index} className='flex items-center gap-2'>
+          <Select
+            value={row.group}
+            onValueChange={(value) => updateRow(index, { group: value ?? '' })}
+          >
+            <SelectTrigger className='w-40'>
+              <SelectValue placeholder={t('Select group')} />
+            </SelectTrigger>
+            <SelectContent>
+              {props.groupOptions.map((group) => (
+                <SelectItem key={group} value={group}>
+                  {group}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <InputGroup className='min-w-32 flex-1'>
+            <InputGroupAddon>$</InputGroupAddon>
+            <InputGroupInput
+              inputMode='decimal'
+              placeholder={props.placeholder}
+              value={row[props.field]}
+              onChange={(event) => {
+                const value = event.target.value
+                if (!numericDraftRegex.test(value)) return
+                updateRow(index, { [props.field]: value })
+              }}
+            />
+            <InputGroupAddon align='inline-end'>{suffix}</InputGroupAddon>
+          </InputGroup>
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon'
+            className='h-8 w-8'
+            onClick={() =>
+              props.onChange(props.groupPrices.filter((_, i) => i !== index))
+            }
+          >
+            <Trash2 className='h-4 w-4' />
+          </Button>
+        </div>
+      ))}
+      <Button
+        type='button'
+        variant='outline'
+        size='sm'
+        onClick={() =>
+          props.onChange([...props.groupPrices, emptyGroupPriceOverride()])
+        }
+      >
+        <Plus className='mr-1 h-4 w-4' />
+        {t('Add group price')}
+      </Button>
+    </div>
+  )
+}
+
 export function PriceLane(props: {
   currency?: PricingCurrency
   title: string
@@ -76,6 +177,7 @@ export function PriceLane(props: {
   disabled?: boolean
   compact?: boolean
   disabledReason?: string
+  extra?: ReactNode
   onEnabledChange: (checked: boolean) => void
   onChange: (value: string) => void
 }) {
@@ -120,6 +222,7 @@ export function PriceLane(props: {
             : t('Disabled lanes are omitted on save.')}
         </p>
       )}
+      {props.extra}
     </SettingsControlGroup>
   )
 }

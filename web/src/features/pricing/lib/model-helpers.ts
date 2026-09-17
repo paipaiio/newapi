@@ -34,9 +34,25 @@ export function getAvailableGroups(
     ? model.enable_groups
     : []
 
-  return Object.keys(usableGroup)
-    .filter((g) => !EXCLUDED_GROUPS.includes(g))
-    .filter((g) => modelEnableGroups.includes(g))
+  const overrideGroups = Object.keys(model.group_token_price || {})
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const group of [
+    ...Object.keys(usableGroup),
+    ...modelEnableGroups,
+    ...overrideGroups,
+  ]) {
+    if (!group || EXCLUDED_GROUPS.includes(group) || seen.has(group)) continue
+    if (
+      !modelEnableGroups.includes(group) &&
+      !overrideGroups.includes(group)
+    ) {
+      continue
+    }
+    seen.add(group)
+    out.push(group)
+  }
+  return out
 }
 
 /**

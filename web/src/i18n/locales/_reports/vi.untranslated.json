@@ -7,7 +7,10 @@
   "Click to collapse": "Click to collapse",
   "Click to expand": "Click to expand",
   "Complete payment in the new tab, then return here. This page will update automatically.": "Complete payment in the new tab, then return here. This page will update automatically.",
+  "Ctrl + Enter to generate": "Ctrl + Enter to generate",
+  "Describe the image you want to create...": "Describe the image you want to create...",
   "Display-only whitelist. When set, the user only sees these groups in dropdowns / model market / pricing. Empty = all available groups.": "Display-only whitelist. When set, the user only sees these groups in dropdowns / model market / pricing. Empty = all available groups.",
+  "Drop images here to add as references": "Drop images here to add as references",
   "Email when a single top-up exceeds the threshold.": "Email when a single top-up exceeds the threshold.",
   "Email when a single user spends over the threshold within 5 minutes (anti-abuse).": "Email when a single user spends over the threshold within 5 minutes (anti-abuse).",
   "Emoji or image URL": "Emoji or image URL",
@@ -73,5 +76,6 @@
   "Treat as suspicious when the same device fingerprint registers repeatedly.": "Treat as suspicious when the same device fingerprint registers repeatedly.",
   "Unified model interface, group isolation, transparent pricing, and full log tracing — everything a high-frequency AI stack needs.": "Unified model interface, group isolation, transparent pricing, and full log tracing — everything a high-frequency AI stack needs.",
   "View the stored request and response bodies.": "View the stored request and response bodies.",
-  "With attachments": "With attachments"
+  "With attachments": "With attachments",
+  "You can add up to {{count}} reference images": "You can add up to {{count}} reference images"
 }

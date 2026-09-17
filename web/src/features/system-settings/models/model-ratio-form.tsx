@@ -52,6 +52,9 @@ import {
 
 type ModelFormValues = {
   ModelPrice: string
+  GroupModelPrice: string
+  GroupModelRatio: string
+  GroupModelTokenPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -77,6 +80,9 @@ type ModelRatioFormProps = {
 
 type ModelJsonFieldName =
   | 'ModelPrice'
+  | 'GroupModelPrice'
+  | 'GroupModelRatio'
+  | 'GroupModelTokenPrice'
   | 'ModelRatio'
   | 'CacheRatio'
   | 'CreateCacheRatio'
@@ -95,6 +101,24 @@ const modelJsonFields: Array<{
     labelKey: 'Model fixed pricing',
     descriptionKey:
       'JSON map of model → USD cost per request. Takes precedence over ratio based billing.',
+  },
+  {
+    name: 'GroupModelPrice',
+    labelKey: 'Group model prices',
+    descriptionKey:
+      'Optional JSON map of model → group → USD price. Overrides the global model price for that group.',
+  },
+  {
+    name: 'GroupModelRatio',
+    labelKey: 'Group model ratios',
+    descriptionKey:
+      'Optional JSON map of model → group → ratio. Overrides the global model ratio for that group.',
+  },
+  {
+    name: 'GroupModelTokenPrice',
+    labelKey: 'Group token prices',
+    descriptionKey:
+      'Optional JSON map of model → group → { input, output, cache, create_cache } in USD per 1M tokens.',
   },
   {
     name: 'ModelRatio',
@@ -308,6 +332,9 @@ export const ModelRatioForm = memo(function ModelRatioForm({
             <ModelRatioVisualEditor
               ref={visualEditorRef}
               savedModelPrice={savedValues.ModelPrice}
+              savedGroupModelPrice={savedValues.GroupModelPrice}
+              savedGroupModelRatio={savedValues.GroupModelRatio}
+              savedGroupModelTokenPrice={savedValues.GroupModelTokenPrice}
               savedModelRatio={savedValues.ModelRatio}
               savedCacheRatio={savedValues.CacheRatio}
               savedCreateCacheRatio={savedValues.CreateCacheRatio}
@@ -319,6 +346,9 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               savedBillingExpr={savedValues.BillingExpr}
               savedPluginBillingExpr={savedValues.PluginBillingExpr}
               modelPrice={form.watch('ModelPrice')}
+              groupModelPrice={form.watch('GroupModelPrice')}
+              groupModelRatio={form.watch('GroupModelRatio')}
+              groupModelTokenPrice={form.watch('GroupModelTokenPrice')}
               modelRatio={form.watch('ModelRatio')}
               cacheRatio={form.watch('CacheRatio')}
               createCacheRatio={form.watch('CreateCacheRatio')}

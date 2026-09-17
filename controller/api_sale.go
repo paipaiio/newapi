@@ -11,25 +11,27 @@ import (
 )
 
 type apiSaleItem struct {
-	Username    string   `json:"username"`
-	Password    string   `json:"password"`
-	CustomKey   string   `json:"custom_key"`
-	Group       string   `json:"group"`
-	ExtraGroups []string `json:"extra_groups"` // token 额外路由分组（逗号拼接后写入 token.Group），账户分组仍为单值 Group
-	Quota       float64  `json:"quota"`
-	Unlimited   bool     `json:"unlimited"`
-	Exclusive   bool     `json:"exclusive"` // 是否把新账户加入该分组的独享授权名单
-	BatchId     string   `json:"batch_id"`  // 批次标识，写入 token.batch_id，用于反查整批
+	Username      string   `json:"username"`
+	Password      string   `json:"password"`
+	CustomKey     string   `json:"custom_key"`
+	Group         string   `json:"group"`
+	ExtraGroups   []string `json:"extra_groups"`   // token 额外路由分组（逗号拼接后写入 token.Group），账户分组仍为单值 Group
+	VisibleGroups []string `json:"visible_groups"` // 账户可见分组白名单（仅影响展示）
+	Quota         float64  `json:"quota"`
+	Unlimited     bool     `json:"unlimited"`
+	Exclusive     bool     `json:"exclusive"` // 是否把新账户加入该分组的独享授权名单
+	BatchId       string   `json:"batch_id"`  // 批次标识，写入 token.batch_id，用于反查整批
 }
 
 type ApiSaleResult struct {
-	Username string  `json:"username"`
-	Password string  `json:"password"`
-	ApiKey   string  `json:"api_key"`
-	Group    string  `json:"group"`
-	Quota    float64 `json:"quota"`
-	Error    string  `json:"error,omitempty"`
-	userId   int     // 内部用，不序列化：用于独享授权聚合
+	Username      string   `json:"username"`
+	Password      string   `json:"password"`
+	ApiKey        string   `json:"api_key"`
+	Group         string   `json:"group"`
+	VisibleGroups []string `json:"visible_groups,omitempty"`
+	Quota         float64  `json:"quota"`
+	Error         string   `json:"error,omitempty"`
+	userId        int      // 内部用，不序列化：用于独享授权聚合
 }
 
 func BatchCreateApiSale(c *gin.Context) {
@@ -78,12 +80,16 @@ func createOneSaleItem(item apiSaleItem) ApiSaleResult {
 		group = "default"
 	}
 
+	visibleGroups := normalizeVisibleGroups(item.VisibleGroups)
+	res.VisibleGroups = visibleGroups
+
 	user := model.User{
-		Username:    username,
-		Password:    password,
-		DisplayName: username,
-		Role:        1,
-		Group:       group,
+		Username:     username,
+		Password:     password,
+		DisplayName:  username,
+		Role:         1,
+		Group:        group,
+		SalePassword: password, // 明文另存，供丢失 CSV 后按批次再导出
 	}
 	if err := user.Insert(0); err != nil {
 		res.Error = "创建用户失败: " + err.Error()
@@ -91,7 +97,14 @@ func createOneSaleItem(item apiSaleItem) ApiSaleResult {
 	}
 	res.userId = user.Id
 	// Update group explicitly (Insert may not save non-zero custom group)
-	model.DB.Model(&model.User{}).Where("id = ?", user.Id).Update("group", group)
+	model.DB.Model(&model.User{}).Where("id = ?", user.Id).Updates(map[string]interface{}{
+		"group":         group,
+		"sale_password": password,
+	})
+	if err := applyUserVisibleGroups(user.Id, visibleGroups); err != nil {
+		res.Error = "设置可见分组失败: " + err.Error()
+		return res
+	}
 
 	// 直接设置用户额度为指定值（覆盖 Insert 写入的注册赠送额度，避免叠加）
 	internalQuota := displayQuotaToInternal(item.Quota)

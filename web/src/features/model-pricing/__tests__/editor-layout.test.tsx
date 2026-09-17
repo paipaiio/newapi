@@ -287,6 +287,9 @@ function PricingFormFixture(props: {
     BillingMode: '{}',
     BillingExpr: '{}',
     PluginBillingExpr: '{}',
+    GroupModelPrice: '{}',
+    GroupModelRatio: '{}',
+    GroupModelTokenPrice: '{}',
     ExposeRatioEnabled: false,
   }
   const [actionsContainer, setActionsContainer] =

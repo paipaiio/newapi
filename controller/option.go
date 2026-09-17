@@ -81,6 +81,18 @@ func buildCompletionRatioMetaValue(optionValues map[string]string) string {
 	return string(jsonBytes)
 }
 
+// isSensitiveOptionKey 判断 option key 是否敏感（密钥/密码类），GetOptions 命中即不下发。
+func isSensitiveOptionKey(k string) bool {
+	return strings.HasSuffix(k, "Token") ||
+		strings.HasSuffix(k, "Secret") ||
+		strings.HasSuffix(k, "Key") ||
+		strings.HasSuffix(k, "Password") ||
+		strings.HasSuffix(k, "secret") ||
+		strings.HasSuffix(k, "secret_key") ||
+		strings.HasSuffix(k, "access_key") ||
+		strings.HasSuffix(k, "api_key")
+}
+
 func GetOptions(c *gin.Context) {
 	var options []*model.Option
 	optionValues := make(map[string]string)
@@ -90,12 +102,7 @@ func GetOptions(c *gin.Context) {
 			continue
 		}
 		value := common.Interface2String(v)
-		isSensitiveKey := strings.HasSuffix(k, "Token") ||
-			strings.HasSuffix(k, "Secret") ||
-			strings.HasSuffix(k, "Key") ||
-			strings.HasSuffix(k, "secret") ||
-			strings.HasSuffix(k, "api_key")
-		if isSensitiveKey {
+		if isSensitiveOptionKey(k) {
 			continue
 		}
 		options = append(options, &model.Option{

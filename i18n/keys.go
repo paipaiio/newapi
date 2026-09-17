@@ -342,3 +342,14 @@ const (
 	MsgCustomOAuthBindingNotFound   = "custom_oauth.binding_not_found"
 	MsgCustomOAuthProviderIdInvalid = "custom_oauth.provider_id_field_invalid"
 )
+
+// ForumDesk support proxy related messages
+const (
+	MsgForumDeskNotConfigured = "forumdesk.not_configured"
+	MsgForumDeskUnauthorized  = "forumdesk.unauthorized"
+	MsgForumDeskValidation    = "forumdesk.validation"
+	MsgForumDeskRateLimited   = "forumdesk.rate_limited"
+	MsgForumDeskUnavailable   = "forumdesk.unavailable"
+	MsgForumDeskForbidden     = "forumdesk.forbidden"
+	MsgForumDeskNotFound      = "forumdesk.not_found"
+)

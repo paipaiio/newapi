@@ -278,6 +278,8 @@ const SENSITIVE_FORM_FIELDS = [
   'responses_websocket_enabled',
   'system_prompt',
   'system_prompt_override',
+  'normalize_system_messages',
+  'normalize_system_messages_models',
   'allow_service_tier',
   'disable_store',
   'allow_safety_identifier',
