@@ -589,7 +589,7 @@ export function WaffoPancakeSettingsSection({
           ) : null}
           <p className='text-muted-foreground text-xs'>
             {t(
-              'Note: new-api settles Pancake checkouts in CNY, which currently only supports WeChat Pay — keep only WeChat Pay enabled here unless Pancake adds more CNY methods.'
+              'Checkouts are charged in USD: the CNY amount shown on the wallet page is converted to the equivalent USD before the buyer pays. USD supports all four methods above (card, Apple Pay, Google Pay, WeChat Pay). Waffo settles payouts to mainland-China merchants in CNY at the exchange rate on the day you withdraw.'
             )}
           </p>
         </div>

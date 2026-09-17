@@ -94,9 +94,11 @@ func newWaffoPancakeClientFromCreds(merchantID, privateKey string) (*pancake.Cli
 	})
 }
 
-// waffoPancakeCurrency 固定人民币结算：Pancake 已支持 CNY，钱包页面显示的
-// 人民币金额原样传给收银台，不再做币种转换（CNY 目前仅支持 wechat 支付方式）。
-const waffoPancakeCurrency = "CNY"
+// waffoPancakeCurrency 固定以 USD 向收银台收款：CNY 结算只支持 wechat 一种
+// 支付方式，USD 四种全支持（card/applepay/googlepay/wechat）。展示层的人民币
+// 金额由 new-api 按 USDExchangeRate 换算成美元后传给我方（买家支付美元，
+// 提现时由 Waffo 按提交时汇率结算成 CNY 打款）。订阅支付只支持 USD。
+const waffoPancakeCurrency = "USD"
 
 // parseWaffoPancakePaymentMethods 把持久化的 JSON 数组（如 ["wechat"]）解析成
 // SDK 的支付方式列表；非法元素直接丢弃，解析失败返回 nil（= 不限制）。

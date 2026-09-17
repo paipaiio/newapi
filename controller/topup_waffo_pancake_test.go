@@ -29,19 +29,16 @@ func TestFormatWaffoPancakeAmount_UsesDisplayPriceString(t *testing.T) {
 
 func TestGetWaffoPancakePayMoney(t *testing.T) {
 	originalQuotaDisplayType := operation_setting.GetGeneralSetting().QuotaDisplayType
-	originalExchangeRate := operation_setting.USDExchangeRate
 	originalDiscounts := make(map[int]float64, len(operation_setting.GetPaymentSetting().AmountDiscount))
 	maps.Copy(originalDiscounts, operation_setting.GetPaymentSetting().AmountDiscount)
 	originalTopupGroupRatio := common.TopupGroupRatio2JSONString()
 
 	t.Cleanup(func() {
 		operation_setting.GetGeneralSetting().QuotaDisplayType = originalQuotaDisplayType
-		operation_setting.USDExchangeRate = originalExchangeRate
 		operation_setting.GetPaymentSetting().AmountDiscount = originalDiscounts
 		require.NoError(t, common.UpdateTopupGroupRatioByJSONString(originalTopupGroupRatio))
 	})
 
-	operation_setting.USDExchangeRate = 7.0
 	operation_setting.GetPaymentSetting().AmountDiscount = map[int]float64{
 		10:                           0.8,
 		int(common.QuotaPerUnit * 3): 0.5,
@@ -57,17 +54,16 @@ func TestGetWaffoPancakePayMoney(t *testing.T) {
 		expected         float64
 	}{
 		{
-			// CNY 展示：收取金额 = 钱包展示的数字（amount × 汇率），
-			// 再乘分组倍率与满额折扣。10 × 7 × 1.2 × 0.8 = 67.2
-			name:             "cny display charges the displayed cny amount",
+			// USD 结算：收取美元金额 = topup_amount（美元口径）× 分组倍率
+			// × 满额折扣，与展示类型无关。10 × 1.2 × 0.8 = 9.6
+			name:             "currency display charges usd amount with group ratio and discount",
 			amount:           10,
 			group:            "vip",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeCNY,
-			expected:         67.2,
+			expected:         9.6,
 		},
 		{
-			// USD 展示：展示的数值 1:1 传给收银台。10 × 1.2 × 0.8 = 9.6
-			name:             "usd display passes the number as-is",
+			name:             "usd display charges the same usd amount",
 			amount:           10,
 			group:            "vip",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeUSD,
