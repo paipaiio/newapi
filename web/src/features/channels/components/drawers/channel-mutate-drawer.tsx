@@ -292,6 +292,8 @@ const SENSITIVE_FORM_FIELDS = [
   'pass_through_body_enabled',
   'system_prompt',
   'system_prompt_override',
+  'normalize_system_messages',
+  'normalize_system_messages_models',
   'allow_service_tier',
   'disable_store',
   'allow_safety_identifier',
@@ -344,6 +346,8 @@ function hasAdvancedSettingsValues(values: ChannelFormValues): boolean {
     values.thinking_to_content ||
     values.pass_through_body_enabled ||
     values.system_prompt_override ||
+    values.normalize_system_messages ||
+    values.normalize_system_messages_models?.trim() ||
     (values.http_protocol && values.http_protocol !== 'auto') ||
     (values.http2_connection_shards != null &&
       values.http2_connection_shards > 1) ||
@@ -757,6 +761,12 @@ export function ChannelMutateDrawer({
   const currentHttp2ConnectionShards = form.watch('http2_connection_shards')
   const currentSystemPrompt = form.watch('system_prompt')
   const currentSystemPromptOverride = form.watch('system_prompt_override')
+  const currentNormalizeSystemMessages = form.watch(
+    'normalize_system_messages'
+  )
+  const currentNormalizeSystemMessagesModels = form.watch(
+    'normalize_system_messages_models'
+  )
   const currentAllowServiceTier = form.watch('allow_service_tier')
   const currentDisableStore = form.watch('disable_store')
   const currentAllowSafetyIdentifier = form.watch('allow_safety_identifier')
@@ -1025,6 +1035,8 @@ export function ChannelMutateDrawer({
     currentProxy?.trim() ||
     currentSystemPrompt?.trim() ||
     currentSystemPromptOverride ||
+    currentNormalizeSystemMessages ||
+    currentNormalizeSystemMessagesModels?.trim() ||
     (currentHttpProtocol && currentHttpProtocol !== 'auto') ||
     (currentHttp2ConnectionShards != null && currentHttp2ConnectionShards > 1)
   )
@@ -4127,6 +4139,31 @@ export function ChannelMutateDrawer({
 
                               <FormField
                                 control={form.control}
+                                name='normalize_system_messages'
+                                render={({ field }) => (
+                                  <FormItem className='flex items-center justify-between px-4 py-3'>
+                                    <div className='space-y-0.5'>
+                                      <FormLabel>
+                                        {t('Normalize System Messages')}
+                                      </FormLabel>
+                                      <FormDescription>
+                                        {t(
+                                          'Merge non-leading system messages and move them to the start of messages. Use this for upstream models that require the system message to be first.'
+                                        )}
+                                      </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                      <Switch
+                                        checked={field.value}
+                                        onCheckedChange={field.onChange}
+                                      />
+                                    </FormControl>
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
                                 name='pass_through_body_enabled'
                                 render={({ field }) => (
                                   <FormItem className='flex items-center justify-between px-4 py-3'>
@@ -4175,6 +4212,34 @@ export function ChannelMutateDrawer({
                                 )}
                               />
                             </div>
+
+                            {currentNormalizeSystemMessages && (
+                              <FormField
+                                control={form.control}
+                                name='normalize_system_messages_models'
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>
+                                      {t('Normalize System Messages models')}
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder={t(
+                                          'e.g., qwen3.8-27b-uncensored'
+                                        )}
+                                        {...field}
+                                      />
+                                    </FormControl>
+                                    <FormDescription>
+                                      {t(
+                                        'Comma-separated model names. Leave empty to apply to all models on this channel.'
+                                      )}
+                                    </FormDescription>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            )}
 
                             <FormField
                               control={form.control}

@@ -23,14 +23,14 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
+	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	perfmetrics "github.com/QuantumNous/new-api/pkg/perf_metrics"
+	"github.com/QuantumNous/new-api/pkg/wsmanager"
 	"github.com/QuantumNous/new-api/relay"
 	kitutil "github.com/QuantumNous/new-api/relaykit/relayconvert/kitutil"
 	"github.com/QuantumNous/new-api/router"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
-	"github.com/QuantumNous/new-api/service/oauthprovider"
-	"github.com/QuantumNous/new-api/service/statusmonitor"
 	_ "github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
@@ -48,6 +48,9 @@ var buildFS embed.FS
 var indexPage []byte
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "plugin" {
+		os.Exit(jsplugin.RunCLI(os.Args[2:], os.Stdout, os.Stderr))
+	}
 	startTime := time.Now()
 	kitutil.SetLogging(common.SysLog, func(message string) {
 		logger.LogError(nil, message)
@@ -60,7 +63,7 @@ func main() {
 		return
 	}
 
-	common.SysLog("TUFTech " + common.Version + " started")
+	common.SysLog("New API " + common.Version + " started")
 	if os.Getenv("GIN_MODE") != "debug" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -102,6 +105,7 @@ func main() {
 
 		go model.SyncChannelCache(common.SyncFrequency)
 	}
+	wsmanager.StartSubscriber(context.Background())
 
 	// Warm pricing after channel cache initialization so Advanced Custom
 	// endpoint inference can read cached route settings on first request.
@@ -109,6 +113,7 @@ func main() {
 
 	// 热更新配置
 	go model.SyncOptions(common.SyncFrequency)
+	go controller.SyncTaskPlugins()
 
 	// 周期性重载授权策略，保证多节点/多 master 部署下权限变更能传播到每个实例
 	go authz.StartPolicySync(common.SyncFrequency)
@@ -129,15 +134,6 @@ func main() {
 
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
-
-	// Session conversation organize task (daily at 00:02)
-	service.StartSessionOrganizeTask()
-
-	// Email alert task (abnormal usage + daily report)
-	service.StartAlertTask()
-
-	// Service status monitor (probes gateway + groups, powers the status page)
-	statusmonitor.Start()
 
 	// Report this process as a system instance so the System Info page can show
 	// all currently alive nodes in multi-instance deployments.
@@ -196,30 +192,6 @@ func main() {
 			},
 		})
 	}))
-	// 设置可信代理，防止 X-Forwarded-For 伪造。
-	// gin 从 XFF 最右往左跳过可信代理，返回首个不可信地址=真实客户端；
-	// 伪造值只能加在左侧，扫到真客户端即停，够不到 → 防伪造。
-	// 默认信任回环 + 私网段；额外经 env TRUSTED_PROXIES（逗号分隔，支持 CIDR）追加。
-	// ⚠️ 链路上所有基础设施节点出口 IP（如香港中转、源站公网）必须列入 TRUSTED_PROXIES，
-	// 否则境内用户会塌缩成中转节点单一 IP。节点 IP 变更改环境变量即可，无需重编译。
-	{
-		trustedProxies := []string{
-			"127.0.0.1/32", "::1/128",
-			"172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16",
-		}
-		if extra := os.Getenv("TRUSTED_PROXIES"); extra != "" {
-			for _, p := range strings.Split(extra, ",") {
-				if p = strings.TrimSpace(p); p != "" {
-					trustedProxies = append(trustedProxies, p)
-				}
-			}
-		}
-		if err := server.SetTrustedProxies(trustedProxies); err != nil {
-			common.SysError(fmt.Sprintf("设置可信代理失败 / failed to set trusted proxies: %v", err))
-		} else {
-			common.SysLog(fmt.Sprintf("可信代理已设置 / trusted proxies configured: %v", trustedProxies))
-		}
-	}
 	// This will cause SSE not to work!!!
 	//server.Use(gzip.Gzip(gzip.DefaultCompression))
 	server.Use(middleware.RequestId())
@@ -348,6 +320,12 @@ func InitResources() error {
 		common.FatalLog("failed to initialize authorization: " + err.Error())
 		return err
 	}
+	if common.PasswordLoginEncryptionEnabled {
+		if err = model.InitPasswordEncryption(); err != nil {
+			common.FatalLog("failed to initialize password encryption: " + err.Error())
+			return err
+		}
+	}
 
 	model.CheckSetup()
 
@@ -358,18 +336,6 @@ func InitResources() error {
 		}
 	}
 	model.InitOptionMap()
-
-	// 补填历史滥用标记用户的待发赠金字段（需在 InitOptionMap 之后，依赖 QuotaForNewUser 等选项值）
-	if common.IsMasterNode {
-		go model.BackfillAbusePendingBonus()
-	}
-
-	// 初始化 OAuth Provider 签名密钥（首次启动自动生成并持久化），需在 InitOptionMap 之后
-	if common.IsMasterNode {
-		if err := oauthprovider.InitSigningKey(); err != nil {
-			common.SysError("failed to init oauth provider signing key: " + err.Error())
-		}
-	}
 
 	// 清理旧的磁盘缓存文件
 	common.CleanupOldCacheFiles()

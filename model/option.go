@@ -1,11 +1,14 @@
 package model
 
 import (
+	"maps"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -52,6 +55,11 @@ func InitOptionMap() {
 	common.OptionMap["DisplayTokenStatEnabled"] = strconv.FormatBool(common.DisplayTokenStatEnabled)
 	common.OptionMap["DrawingEnabled"] = strconv.FormatBool(common.DrawingEnabled)
 	common.OptionMap["TaskEnabled"] = strconv.FormatBool(common.TaskEnabled)
+	common.OptionMap["TaskPluginEnabled"] = strconv.FormatBool(constant.TaskPluginEnabled)
+	jsplugin.DefaultRegistry.SetEnabled(constant.TaskPluginEnabled)
+	common.OptionMap[setting.TaskPluginMarketplaceSourcesKey] = setting.TaskPluginMarketplaceSources2JsonString()
+	common.OptionMap[setting.TaskPluginDisabledFactoryKeysKey] = "[]"
+	jsplugin.DefaultRegistry.SetDisabledFactoryKeys(nil)
 	common.OptionMap["DataExportEnabled"] = strconv.FormatBool(common.DataExportEnabled)
 	common.OptionMap["ChannelDisableThreshold"] = strconv.FormatFloat(common.ChannelDisableThreshold, 'f', -1, 64)
 	common.OptionMap["EmailDomainRestrictionEnabled"] = strconv.FormatBool(common.EmailDomainRestrictionEnabled)
@@ -73,6 +81,7 @@ func InitOptionMap() {
 	common.OptionMap["SystemName"] = common.SystemName
 	common.OptionMap["Logo"] = common.Logo
 	common.OptionMap["ServerAddress"] = ""
+	common.OptionMap["TaskPublicAddress"] = system_setting.TaskPublicAddress
 	common.OptionMap["WorkerUrl"] = system_setting.WorkerUrl
 	common.OptionMap["WorkerValidKey"] = system_setting.WorkerValidKey
 	common.OptionMap["WorkerAllowHttpImageRequestEnabled"] = strconv.FormatBool(system_setting.WorkerAllowHttpImageRequestEnabled)
@@ -117,26 +126,6 @@ func InitOptionMap() {
 	common.OptionMap["WaffoPancakeStoreID"] = setting.WaffoPancakeStoreID
 	common.OptionMap["WaffoPancakeProductID"] = setting.WaffoPancakeProductID
 	common.OptionMap["TopupGroupRatio"] = common.TopupGroupRatio2JSONString()
-	// 支付宝官方支付
-	common.OptionMap["AlipayEnabled"] = strconv.FormatBool(setting.AlipayEnabled)
-	common.OptionMap["AlipayAppId"] = setting.AlipayAppId
-	common.OptionMap["AlipayPrivateKey"] = setting.AlipayPrivateKey
-	common.OptionMap["AlipayPublicKey"] = setting.AlipayPublicKey
-	common.OptionMap["AlipaySandbox"] = strconv.FormatBool(setting.AlipaySandbox)
-	common.OptionMap["AlipayUnitPrice"] = strconv.FormatFloat(setting.AlipayUnitPrice, 'f', -1, 64)
-	common.OptionMap["AlipayMinTopUp"] = strconv.FormatFloat(setting.AlipayMinTopUp, 'f', -1, 64)
-	// 微信支付官方支付
-	common.OptionMap["WechatPayEnabled"] = strconv.FormatBool(setting.WechatPayEnabled)
-	common.OptionMap["WechatPayMchId"] = setting.WechatPayMchId
-	common.OptionMap["WechatPayAppId"] = setting.WechatPayAppId
-	common.OptionMap["WechatPayApiV3Key"] = setting.WechatPayApiV3Key
-	common.OptionMap["WechatPaySerialNo"] = setting.WechatPaySerialNo
-	common.OptionMap["WechatPayPrivateKey"] = setting.WechatPayPrivateKey
-	common.OptionMap["WechatPayPublicKey"] = setting.WechatPayPublicKey
-	common.OptionMap["WechatPayPublicKeyID"] = setting.WechatPayPublicKeyID
-	common.OptionMap["WechatPayNotifyUrl"] = setting.WechatPayNotifyUrl
-	common.OptionMap["WechatPayUnitPrice"] = strconv.FormatFloat(setting.WechatPayUnitPrice, 'f', -1, 64)
-	common.OptionMap["WechatPayMinTopUp"] = strconv.FormatFloat(setting.WechatPayMinTopUp, 'f', -1, 64)
 	common.OptionMap["Chats"] = setting.Chats2JsonString()
 	common.OptionMap["AutoGroups"] = setting.AutoGroups2JsonString()
 	common.OptionMap["DefaultUseAutoGroup"] = strconv.FormatBool(setting.DefaultUseAutoGroup)
@@ -151,13 +140,6 @@ func InitOptionMap() {
 	common.OptionMap["WeChatAccountQRCodeImageURL"] = ""
 	common.OptionMap["TurnstileSiteKey"] = ""
 	common.OptionMap["TurnstileSecretKey"] = ""
-	common.OptionMap["GeeTestCaptchaId"] = ""
-	common.OptionMap["GeeTestCaptchaKey"] = ""
-	common.OptionMap["CapEnabled"] = strconv.FormatBool(common.CapEnabled)
-	common.OptionMap["CapServerURL"] = ""
-	common.OptionMap["CapPublicEndpoint"] = ""
-	common.OptionMap["CapSiteKey"] = ""
-	common.OptionMap["CapSecretKey"] = ""
 	common.OptionMap["QuotaForNewUser"] = strconv.Itoa(common.QuotaForNewUser)
 	common.OptionMap["QuotaForInviter"] = strconv.Itoa(common.QuotaForInviter)
 	common.OptionMap["QuotaForInvitee"] = strconv.Itoa(common.QuotaForInvitee)
@@ -169,9 +151,6 @@ func InitOptionMap() {
 	common.OptionMap["ModelRequestRateLimitGroup"] = setting.ModelRequestRateLimitGroup2JSONString()
 	common.OptionMap["ModelRatio"] = ratio_setting.ModelRatio2JSONString()
 	common.OptionMap["ModelPrice"] = ratio_setting.ModelPrice2JSONString()
-	common.OptionMap["GroupModelPrice"] = ratio_setting.GroupModelPrice2JSONString()
-	common.OptionMap["GroupModelRatio"] = ratio_setting.GroupModelRatio2JSONString()
-	common.OptionMap["GroupModelTokenPrice"] = ratio_setting.GroupModelTokenPrice2JSONString()
 	common.OptionMap["CacheRatio"] = ratio_setting.CacheRatio2JSONString()
 	common.OptionMap["CreateCacheRatio"] = ratio_setting.CreateCacheRatio2JSONString()
 	common.OptionMap["GroupRatio"] = ratio_setting.GroupRatio2JSONString()
@@ -209,22 +188,28 @@ func InitOptionMap() {
 
 	// 自动添加所有注册的模型配置
 	modelConfigs := config.GlobalConfig.ExportAllConfigs()
-	for k, v := range modelConfigs {
-		common.OptionMap[k] = v
-	}
+	maps.Copy(common.OptionMap, modelConfigs)
 
 	common.OptionMapRWMutex.Unlock()
 	loadOptionsFromDatabase()
 }
 
 func loadOptionsFromDatabase() {
+	passkeyOptionMutex.Lock()
+	defer passkeyOptionMutex.Unlock()
 	options, _ := AllOption()
+	passkeyOptions := make(map[string]string)
 	for _, option := range options {
+		if IsPasskeyDomainOption(option.Key) {
+			passkeyOptions[option.Key] = option.Value
+			continue
+		}
 		err := updateOptionMap(option.Key, option.Value)
 		if err != nil {
 			common.SysLog("failed to update option map: " + err.Error())
 		}
 	}
+	applyPasskeyDomainOptions(passkeyOptions)
 }
 
 func SyncOptions(frequency int) {
@@ -249,6 +234,13 @@ func validateOptionValue(key string, value string) error {
 }
 
 func UpdateOption(key string, value string) error {
+	if IsPasskeyDomainOption(key) {
+		_, err := UpdatePasskeyDomainOptions(map[string]string{key: value}, false, "")
+		return err
+	}
+	if IsModelPricingOption(key) {
+		return UpdateModelPricingOptions(map[string]string{key: value})
+	}
 	if err := validateOptionValue(key, value); err != nil {
 		return err
 	}
@@ -275,6 +267,12 @@ func UpdateOption(key string, value string) error {
 func UpdateOptionsBulk(values map[string]string) error {
 	if len(values) == 0 {
 		return nil
+	}
+	for key := range values {
+		if IsPasskeyDomainOption(key) {
+			_, err := UpdatePasskeyDomainOptions(values, false, "")
+			return err
+		}
 	}
 	for key, value := range values {
 		if err := validateOptionValue(key, value); err != nil {
@@ -354,8 +352,6 @@ func updateOptionMap(key string, value string) (err error) {
 			common.TelegramOAuthEnabled = boolValue
 		case "TurnstileCheckEnabled":
 			common.TurnstileCheckEnabled = boolValue
-		case "CapEnabled":
-			common.CapEnabled = boolValue
 		case "RegisterEnabled":
 			common.RegisterEnabled = boolValue
 		case "EmailDomainRestrictionEnabled":
@@ -384,6 +380,9 @@ func updateOptionMap(key string, value string) (err error) {
 			common.DrawingEnabled = boolValue
 		case "TaskEnabled":
 			common.TaskEnabled = boolValue
+		case "TaskPluginEnabled":
+			constant.TaskPluginEnabled = boolValue
+			jsplugin.DefaultRegistry.SetEnabled(boolValue)
 		case "DataExportEnabled":
 			common.DataExportEnabled = boolValue
 		case "DefaultCollapseSidebar":
@@ -426,6 +425,9 @@ func updateOptionMap(key string, value string) (err error) {
 			ratio_setting.SetExposeRatioEnabled(boolValue)
 		}
 	}
+	if key == setting.TaskPluginDisabledFactoryKeysKey {
+		jsplugin.DefaultRegistry.SetDisabledFactoryKeys(setting.ParseTaskPluginDisabledFactoryKeys(value))
+	}
 	switch key {
 	case "EmailDomainWhitelist":
 		common.EmailDomainWhitelist = strings.Split(value, ",")
@@ -442,6 +444,8 @@ func updateOptionMap(key string, value string) (err error) {
 		common.SMTPToken = value
 	case "ServerAddress":
 		system_setting.ServerAddress = value
+	case "TaskPublicAddress":
+		system_setting.TaskPublicAddress = value
 	case "WorkerUrl":
 		system_setting.WorkerUrl = value
 	case "WorkerValidKey":
@@ -530,42 +534,6 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.WaffoPancakeUnitPrice, _ = strconv.ParseFloat(value, 64)
 	case "WaffoPancakeMinTopUp":
 		setting.WaffoPancakeMinTopUp, _ = strconv.Atoi(value)
-	case "AlipayEnabled":
-		setting.AlipayEnabled = value == "true"
-	case "AlipayAppId":
-		setting.AlipayAppId = value
-	case "AlipayPrivateKey":
-		setting.AlipayPrivateKey = value
-	case "AlipayPublicKey":
-		setting.AlipayPublicKey = value
-	case "AlipaySandbox":
-		setting.AlipaySandbox = value == "true"
-	case "AlipayUnitPrice":
-		setting.AlipayUnitPrice, _ = strconv.ParseFloat(value, 64)
-	case "AlipayMinTopUp":
-		setting.AlipayMinTopUp, _ = strconv.ParseFloat(value, 64)
-	case "WechatPayEnabled":
-		setting.WechatPayEnabled = value == "true"
-	case "WechatPayMchId":
-		setting.WechatPayMchId = value
-	case "WechatPayAppId":
-		setting.WechatPayAppId = value
-	case "WechatPayApiV3Key":
-		setting.WechatPayApiV3Key = value
-	case "WechatPaySerialNo":
-		setting.WechatPaySerialNo = value
-	case "WechatPayPrivateKey":
-		setting.WechatPayPrivateKey = value
-	case "WechatPayPublicKey":
-		setting.WechatPayPublicKey = value
-	case "WechatPayPublicKeyID":
-		setting.WechatPayPublicKeyID = value
-	case "WechatPayNotifyUrl":
-		setting.WechatPayNotifyUrl = value
-	case "WechatPayUnitPrice":
-		setting.WechatPayUnitPrice, _ = strconv.ParseFloat(value, 64)
-	case "WechatPayMinTopUp":
-		setting.WechatPayMinTopUp, _ = strconv.ParseFloat(value, 64)
 	case "TopupGroupRatio":
 		err = common.UpdateTopupGroupRatioByJSONString(value)
 	case "GitHubClientId":
@@ -598,18 +566,6 @@ func updateOptionMap(key string, value string) (err error) {
 		common.TurnstileSiteKey = value
 	case "TurnstileSecretKey":
 		common.TurnstileSecretKey = value
-	case "GeeTestCaptchaId":
-		common.GeeTestCaptchaId = value
-	case "GeeTestCaptchaKey":
-		common.GeeTestCaptchaKey = value
-	case "CapServerURL":
-		common.CapServerURL = value
-	case "CapPublicEndpoint":
-		common.CapPublicEndpoint = value
-	case "CapSiteKey":
-		common.CapSiteKey = value
-	case "CapSecretKey":
-		common.CapSecretKey = value
 	case "QuotaForNewUser":
 		common.QuotaForNewUser, _ = strconv.Atoi(value)
 	case "QuotaForInviter":
@@ -646,12 +602,6 @@ func updateOptionMap(key string, value string) (err error) {
 		err = ratio_setting.UpdateCompletionRatioByJSONString(value)
 	case "ModelPrice":
 		err = ratio_setting.UpdateModelPriceByJSONString(value)
-	case "GroupModelPrice":
-		err = ratio_setting.UpdateGroupModelPriceByJSONString(value)
-	case "GroupModelRatio":
-		err = ratio_setting.UpdateGroupModelRatioByJSONString(value)
-	case "GroupModelTokenPrice":
-		err = ratio_setting.UpdateGroupModelTokenPriceByJSONString(value)
 	case "CacheRatio":
 		err = ratio_setting.UpdateCacheRatioByJSONString(value)
 	case "CreateCacheRatio":

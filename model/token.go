@@ -27,10 +27,10 @@ type Token struct {
 	AllowIps           *string        `json:"allow_ips" gorm:"default:''"`
 	UsedQuota          int            `json:"used_quota" gorm:"default:0"` // used quota
 	Group              string         `json:"group" gorm:"default:''"`
-	CrossGroupRetry    bool           `json:"cross_group_retry"`                                 // 跨分组重试，仅auto分组有效
-	BatchId            string         `json:"batch_id" gorm:"type:varchar(64);index;default:''"` // API售卖批次标识，用于反查整批账户
-	Rpm                int            `json:"rpm" gorm:"default:0"`                              // 该 token 每分钟最大请求数，0=不限
-	Tpm                int            `json:"tpm" gorm:"default:0"`                              // 该 token 每分钟最大 token 数，0=不限
+	CrossGroupRetry    bool           `json:"cross_group_retry"` // 跨分组重试，仅auto分组有效
+	Rpm                int            `json:"rpm" gorm:"default:0"`
+	Tpm                int            `json:"tpm" gorm:"default:0"`
+	BatchId            string         `json:"batch_id" gorm:"type:varchar(64);default:''"`
 	AutoGroups         string         `json:"-" gorm:"type:text"`
 	DeletedAt          gorm.DeletedAt `gorm:"index"`
 }
@@ -84,27 +84,6 @@ func (token *Token) GetMaskedKey() string {
 	return MaskTokenKey(token.Key)
 }
 
-// GetGroups 返回令牌的有序分组列表。Group 字段以逗号分隔存储多个分组,
-// 单值时返回单元素切片,空值返回空切片。保持顺序(顺序即优先级)。
-func (token *Token) GetGroups() []string {
-	groups := make([]string, 0)
-	if token.Group == "" {
-		return groups
-	}
-	for _, g := range strings.Split(token.Group, ",") {
-		g = strings.TrimSpace(g)
-		if g != "" {
-			groups = append(groups, g)
-		}
-	}
-	return groups
-}
-
-// IsMultiGroup 判断令牌是否绑定了多个分组。
-func (token *Token) IsMultiGroup() bool {
-	return len(token.GetGroups()) > 1
-}
-
 func (token *Token) GetIpLimits() []string {
 	// delete empty spaces
 	//split with \n
@@ -116,8 +95,8 @@ func (token *Token) GetIpLimits() []string {
 	if cleanIps == "" {
 		return ipLimits
 	}
-	ips := strings.Split(cleanIps, "\n")
-	for _, ip := range ips {
+	ips := strings.SplitSeq(cleanIps, "\n")
+	for ip := range ips {
 		ip = strings.TrimSpace(ip)
 		ip = strings.ReplaceAll(ip, ",", "")
 		if ip != "" {
@@ -241,156 +220,6 @@ func SearchUserTokens(userId int, keyword string, token string, offset int, limi
 	return tokens, total, nil
 }
 
-// AdminTokenLookupResult 管理员反查结果：token 字段 + 归属用户名/邮箱。
-type AdminTokenLookupResult struct {
-	Token
-	Username string `json:"username" gorm:"column:username"`
-	Email    string `json:"email" gorm:"column:email"`
-	FullKey  string `json:"full_key" gorm:"-"` // 完整 key（带 sk- 前缀），供复制按钮使用
-}
-
-// AdminSearchTokens 管理员跨用户反查 token（不限 user_id）。
-// keyword 同时模糊匹配 token.name / token.key / token.batch_id / 用户名；
-// 用于丢失 CSV 后按 key、用户名或批次号找回账户归属。
-func AdminSearchTokens(keyword string, offset, limit int) (results []AdminTokenLookupResult, total int64, err error) {
-	if limit <= 0 || limit > searchHardLimit {
-		limit = searchHardLimit
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	kw := strings.TrimSpace(keyword)
-	kw = strings.TrimPrefix(kw, "sk-")
-
-	base := DB.Table("tokens").
-		Joins("left join users on users.id = tokens.user_id").
-		Where("tokens.deleted_at IS NULL")
-
-	if kw != "" {
-		like := "%" + kw + "%"
-		base = base.Where(
-			"tokens.name LIKE ? OR tokens.`key` LIKE ? OR tokens.batch_id LIKE ? OR users.username LIKE ? OR users.email LIKE ?",
-			like, like, like, like, like,
-		)
-	}
-
-	if err = base.Count(&total).Error; err != nil {
-		common.SysError("AdminSearchTokens count failed: " + err.Error())
-		return nil, 0, errors.New("搜索失败")
-	}
-
-	err = base.Select("tokens.*, users.username as username, users.email as email").
-		Order("tokens.id desc").Offset(offset).Limit(limit).Scan(&results).Error
-	if err != nil {
-		common.SysError("AdminSearchTokens query failed: " + err.Error())
-		return nil, 0, errors.New("搜索失败")
-	}
-	return results, total, nil
-}
-
-// BatchStatRow 售卖批次聚合统计行。
-type BatchStatRow struct {
-	BatchId     string `json:"batch_id" gorm:"column:batch_id"`
-	TokenCount  int64  `json:"token_count" gorm:"column:token_count"`
-	UserCount   int64  `json:"user_count" gorm:"column:user_count"`
-	TotalRemain int64  `json:"total_remain" gorm:"column:total_remain"` // 用户账户剩余额度合计
-	TotalUsed   int64  `json:"total_used" gorm:"column:total_used"`     // 用户账户已用额度合计
-	Created     int64  `json:"created" gorm:"column:created"`           // 批次最早创建时间
-}
-
-// BatchExportRow 售卖批次导出行：账户密码 + 已有 API Key + 可见分组。
-type BatchExportRow struct {
-	UserId        int      `json:"user_id"`
-	Username      string   `json:"username"`
-	Password      string   `json:"password"`
-	ApiKey        string   `json:"api_key"`
-	Group         string   `json:"group"`
-	VisibleGroups []string `json:"visible_groups"`
-	Quota         int      `json:"quota"`
-	Unlimited     bool     `json:"unlimited"`
-	BatchId       string   `json:"batch_id"`
-}
-
-// GetBatchExportRows 导出某批次全部售卖账户：明文售卖密码 + 已有 token key（不新生成）。
-func GetBatchExportRows(batchId string) ([]BatchExportRow, error) {
-	batchId = strings.TrimSpace(batchId)
-	if batchId == "" {
-		return nil, errors.New("batch_id 不能为空")
-	}
-	var tokens []Token
-	if err := DB.Where("batch_id = ?", batchId).Order("id asc").Find(&tokens).Error; err != nil {
-		return nil, err
-	}
-	userIDs := make([]int, 0, len(tokens))
-	seen := make(map[int]struct{}, len(tokens))
-	for _, token := range tokens {
-		if _, ok := seen[token.UserId]; ok {
-			continue
-		}
-		seen[token.UserId] = struct{}{}
-		userIDs = append(userIDs, token.UserId)
-	}
-	usersByID := make(map[int]User, len(userIDs))
-	if len(userIDs) > 0 {
-		var users []User
-		if err := DB.Where("id IN ?", userIDs).Find(&users).Error; err != nil {
-			return nil, err
-		}
-		for _, user := range users {
-			usersByID[user.Id] = user
-		}
-	}
-	rows := make([]BatchExportRow, 0, len(tokens))
-	for _, token := range tokens {
-		user := usersByID[token.UserId]
-		group := token.Group
-		if group == "" {
-			group = user.Group
-		}
-		rows = append(rows, BatchExportRow{
-			UserId:        token.UserId,
-			Username:      user.Username,
-			Password:      user.SalePassword,
-			ApiKey:        "sk-" + token.Key,
-			Group:         group,
-			VisibleGroups: user.GetSetting().VisibleGroups,
-			Quota:         user.Quota,
-			Unlimited:     token.UnlimitedQuota,
-			BatchId:       token.BatchId,
-		})
-	}
-	return rows, nil
-}
-
-// GetBatchUserIDs 返回某售卖批次下的去重用户 ID。
-func GetBatchUserIDs(batchId string) ([]int, error) {
-	batchId = strings.TrimSpace(batchId)
-	if batchId == "" {
-		return nil, errors.New("batch_id 不能为空")
-	}
-	var ids []int
-	err := DB.Model(&Token{}).
-		Where("batch_id = ?", batchId).
-		Distinct("user_id").
-		Order("user_id asc").
-		Pluck("user_id", &ids).Error
-	return ids, err
-}
-
-// GetBatchStats 按 batch_id 聚合售卖批次统计。
-// 余额取自 users 表（售卖 token 是 UnlimitedQuota，真实余额在用户账户上）。
-func GetBatchStats() ([]BatchStatRow, error) {
-	var rows []BatchStatRow
-	err := DB.Table("tokens").
-		Joins("left join users on users.id = tokens.user_id").
-		Select("tokens.batch_id as batch_id, count(*) as token_count, count(distinct tokens.user_id) as user_count, sum(users.quota) as total_remain, sum(users.used_quota) as total_used, min(tokens.created_time) as created").
-		Where("tokens.deleted_at IS NULL AND tokens.batch_id != ''").
-		Group("tokens.batch_id").
-		Order("created desc").
-		Scan(&rows).Error
-	return rows, err
-}
-
 func ValidateUserToken(key string) (token *Token, err error) {
 	if key == "" {
 		return nil, ErrTokenNotProvided
@@ -487,7 +316,7 @@ func (token *Token) Update() (err error) {
 		common.SysLog("failed to invalidate token cache before update: " + cacheErr.Error())
 	}
 	return DB.Model(token).Select("name", "status", "expired_time", "remain_quota", "unlimited_quota",
-		"model_limits_enabled", "model_limits", "allow_ips", "group", "cross_group_retry", "rpm", "tpm", "auto_groups").Updates(token).Error
+		"model_limits_enabled", "model_limits", "allow_ips", "group", "cross_group_retry", "auto_groups").Updates(token).Error
 }
 
 func (token *Token) SelectUpdate() (err error) {
@@ -570,7 +399,7 @@ func IncreaseTokenQuota(tokenId int, key string, quota int) (err error) {
 
 func increaseTokenQuota(id int, quota int) (err error) {
 	err = DB.Model(&Token{}).Where("id = ?", id).Updates(
-		map[string]interface{}{
+		map[string]any{
 			"remain_quota":  gorm.Expr("remain_quota + ?", quota),
 			"used_quota":    gorm.Expr("used_quota - ?", quota),
 			"accessed_time": common.GetTimestamp(),
@@ -599,7 +428,7 @@ func DecreaseTokenQuota(id int, key string, quota int) (err error) {
 
 func decreaseTokenQuota(id int, quota int) (err error) {
 	err = DB.Model(&Token{}).Where("id = ?", id).Updates(
-		map[string]interface{}{
+		map[string]any{
 			"remain_quota":  gorm.Expr("remain_quota - ?", quota),
 			"used_quota":    gorm.Expr("used_quota + ?", quota),
 			"accessed_time": common.GetTimestamp(),

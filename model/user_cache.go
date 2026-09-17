@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const userCacheSchemaVersion = 3
+const userCacheSchemaVersion = 2
 
 type UserBase struct {
 	Id          int    `json:"id"`
@@ -22,8 +22,6 @@ type UserBase struct {
 	Role        int    `json:"role"`
 	Username    string `json:"username"`
 	Setting     string `json:"setting"`
-	Rpm         int    `json:"rpm"`
-	Tpm         int    `json:"tpm"`
 	AuthVersion int64  `json:"-"`
 	CacheSchema int    `json:"-"`
 }
@@ -35,8 +33,6 @@ func (user *UserBase) WriteContext(c *gin.Context) {
 	common.SetContextKey(c, constant.ContextKeyUserEmail, user.Email)
 	common.SetContextKey(c, constant.ContextKeyUserName, user.Username)
 	common.SetContextKey(c, constant.ContextKeyUserSetting, user.GetSetting())
-	c.Set("user_rpm", user.Rpm)
-	c.Set("user_tpm", user.Tpm)
 }
 
 func (user *UserBase) GetSetting() dto.UserSetting {
@@ -69,12 +65,6 @@ func invalidateUserCache(userId int) error {
 		return nil
 	}
 	return common.RedisDelKey(getUserCacheKey(userId))
-}
-
-// InvalidateUserCache is the exported alias used by admin/tool controllers
-// outside package model (ban, group change, key transfer, API sale, etc.).
-func InvalidateUserCache(userId int) error {
-	return invalidateUserCache(userId)
 }
 
 func populateUserCache(user User) error {
@@ -263,7 +253,7 @@ func updateUserSettingCache(userId int, setting string) error {
 // updateUserCacheField prevents individual cache refreshes from bypassing the
 // auth-version fence. It intentionally does nothing when the complete hash is
 // absent; the next GetUserCache call will repopulate it from the database.
-func updateUserCacheField(userId int, field string, value interface{}) error {
+func updateUserCacheField(userId int, field string, value any) error {
 	if !common.RedisEnabled {
 		return nil
 	}
@@ -285,4 +275,9 @@ func GetUserLanguage(userId int) string {
 		return ""
 	}
 	return userCache.GetSetting().Language
+}
+
+// InvalidateUserCache invalidates the user cache for the given user ID (fork extension).
+func InvalidateUserCache(userId int) error {
+	return invalidateUserCache(userId)
 }

@@ -51,23 +51,14 @@ export type WaffoPancakePaymentResponse = ApiResponse<
       session_id?: string
       expires_at?: number | string
       order_id?: string
+      // Self-service session token + expiry — surfaced by the backend so
+      // future flows (refund / cancel from new-api's own UI) can use them
+      // without re-issuing checkout. Not consumed by the current handler.
       token?: string
       token_expires_at?: number | string
     }
   | string
 >
-
-export type AlipayPaymentResponse = ApiResponse<{
-  trade_no: string
-  qr_code: string
-}>
-
-export type WechatPayPaymentResponse = ApiResponse<{
-  trade_no: string
-  code_url: string
-}>
-
-export type QRCodeOrderStatusResponse = ApiResponse<string>
 
 /**
  * Creem product configuration
@@ -159,36 +150,12 @@ export interface TopupInfo {
   enable_waffo_pancake_topup?: boolean
   /** Minimum topup amount for Waffo Pancake */
   waffo_pancake_min_topup?: number
-  /** Unit price multiplier for Waffo Pancake (display currency → actual USD) */
-  waffo_pancake_unit_price?: number
   /** Whether redemption code usage is enabled */
   enable_redemption?: boolean
   /** Whether compliance confirmation has been completed */
   payment_compliance_confirmed?: boolean
   /** Current compliance terms version */
   payment_compliance_terms_version?: string
-  /** Fork: whether this user is allowed to top up (false hides recharge UI). */
-  allow_topup?: boolean
-  /** Fork: this user's personal recharge discount rate (0-1, 1 = none). */
-  user_topup_discount?: number
-  /** Whether Alipay topup is enabled */
-  enable_alipay_topup?: boolean
-  /** Minimum topup amount for Alipay (yuan) */
-  alipay_min_topup?: number
-  /** Alipay unit price (CNY per quota unit) */
-  alipay_unit_price?: number
-  /** Whether WeChat Pay topup is enabled */
-  enable_wechatpay_topup?: boolean
-  /** Minimum topup amount for WeChat Pay (yuan) */
-  wechatpay_min_topup?: number
-  /** WeChat Pay unit price (CNY per quota unit) */
-  wechatpay_unit_price?: number
-  /** Abuse-flagged bonus awaiting unlock (quota units, 0 = none or already released) */
-  abuse_pending_bonus?: number
-  /** CNY threshold required to unlock the above bonus */
-  abuse_topup_required?: number
-  /** CNY accumulated from successful topups so far */
-  abuse_topup_accumulated?: number
 }
 
 /**

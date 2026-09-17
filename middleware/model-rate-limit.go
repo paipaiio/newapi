@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -103,7 +104,7 @@ func redisRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) g
 			allowed, err = tb.Allow(
 				ctx,
 				totalKey,
-				limiter.WithCapacity(int64(totalMaxCount)*duration),
+				limiter.WithCapacity(rateLimitCapacity(totalMaxCount, duration)),
 				limiter.WithRate(int64(totalMaxCount)),
 				limiter.WithRequested(duration),
 			)
@@ -167,33 +168,6 @@ func memoryRateLimitHandler(duration int64, totalMaxCount, successMaxCount int) 
 // ModelRequestRateLimit 模型请求限流中间件
 func ModelRequestRateLimit() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		// 多维度限流（用户/token 级 RPM+TPM），独立于全局开关，设了才生效
-		userId := c.GetInt("id")
-		tokenId := c.GetInt("token_id")
-		userRpm := c.GetInt("user_rpm")
-		userTpm := c.GetInt("user_tpm")
-		tokenRpm := c.GetInt("token_rpm")
-		tokenTpm := c.GetInt("token_tpm")
-
-		// TPM 前置检查（事后累计，本次放行下次拦）
-		if !common.CheckTPM("user", userId, userTpm) {
-			abortWithOpenAiMessage(c, http.StatusTooManyRequests, "已达到用户 TPM 限制（每分钟 token 数）")
-			return
-		}
-		if !common.CheckTPM("token", tokenId, tokenTpm) {
-			abortWithOpenAiMessage(c, http.StatusTooManyRequests, "已达到令牌 TPM 限制（每分钟 token 数）")
-			return
-		}
-		// RPM 检查并计数
-		if !common.CheckRPM("user", userId, userRpm) {
-			abortWithOpenAiMessage(c, http.StatusTooManyRequests, "已达到用户 RPM 限制（每分钟请求数）")
-			return
-		}
-		if !common.CheckRPM("token", tokenId, tokenRpm) {
-			abortWithOpenAiMessage(c, http.StatusTooManyRequests, "已达到令牌 RPM 限制（每分钟请求数）")
-			return
-		}
-
 		// 在每个请求时检查是否启用限流
 		if !setting.ModelRequestRateLimitEnabled {
 			c.Next()
@@ -201,7 +175,7 @@ func ModelRequestRateLimit() func(c *gin.Context) {
 		}
 
 		// 计算限流参数
-		duration := int64(setting.ModelRequestRateLimitDurationMinutes * 60)
+		duration := rateLimitDurationSeconds(setting.ModelRequestRateLimitDurationMinutes)
 		totalMaxCount := setting.ModelRequestRateLimitCount
 		successMaxCount := setting.ModelRequestRateLimitSuccessCount
 
@@ -225,4 +199,26 @@ func ModelRequestRateLimit() func(c *gin.Context) {
 			memoryRateLimitHandler(duration, totalMaxCount, successMaxCount)(c)
 		}
 	}
+}
+
+func rateLimitDurationSeconds(durationMinutes int) int64 {
+	if durationMinutes <= 0 {
+		return 0
+	}
+	minutes := int64(durationMinutes)
+	if minutes > math.MaxInt64/60 {
+		return math.MaxInt64
+	}
+	return minutes * 60
+}
+
+func rateLimitCapacity(count int, durationSeconds int64) int64 {
+	if count <= 0 || durationSeconds <= 0 {
+		return 0
+	}
+	c := int64(count)
+	if c > math.MaxInt64/durationSeconds {
+		return math.MaxInt64
+	}
+	return c * durationSeconds
 }

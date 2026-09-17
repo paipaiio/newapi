@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/relay/channel"
@@ -27,7 +28,7 @@ type TaskAdaptor struct {
 // Suno polling uses a dedicated batch-fetch path (service.UpdateSunoTasks) that
 // receives dto.TaskResponse[[]dto.SunoDataResponse] from the upstream /fetch API.
 // This differs from the per-task polling used by video adaptors.
-func (a *TaskAdaptor) ParseTaskResult([]byte) (*relaycommon.TaskInfo, error) {
+func (a *TaskAdaptor) ParseTaskResult(_ *model.Task, _ *http.Response, _ []byte) (*relaycommon.TaskInfo, error) {
 	return nil, fmt.Errorf("suno uses batch polling via UpdateSunoTasks, ParseTaskResult is not applicable")
 }
 
@@ -128,8 +129,9 @@ func (a *TaskAdaptor) GetChannelName() string {
 	return ChannelName
 }
 
-func (a *TaskAdaptor) FetchTask(baseUrl, key string, body map[string]any, proxy string) (*http.Response, error) {
+func (a *TaskAdaptor) FetchTask(baseUrl, key string, task *model.Task, proxy string) (*http.Response, error) {
 	requestUrl := fmt.Sprintf("%s/suno/fetch", baseUrl)
+	body := map[string]any{"task_id": task.TaskID}
 	byteBody, err := common.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -164,4 +166,14 @@ func actionValidate(c *gin.Context, sunoRequest *dto.SunoSubmitReq, action strin
 		err = fmt.Errorf("invalid_action")
 	}
 	return
+}
+
+// ParseResponse implements channel.TaskAdaptor by delegating to the legacy
+// DoResponse method, which writes the HTTP response directly to c.
+func (a *TaskAdaptor) ParseResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (*channel.TaskSubmitResponse, *dto.TaskError) {
+	taskID, taskData, taskErr := a.DoResponse(c, resp, info)
+	if taskErr != nil {
+		return nil, taskErr
+	}
+	return &channel.TaskSubmitResponse{UpstreamTaskID: taskID, TaskData: taskData}, nil
 }

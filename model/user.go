@@ -19,9 +19,6 @@ import (
 
 const UserNameMaxLength = 20
 
-// AbuseBonusTopupThreshold 是滥用用户解锁赠金所需的最低累计充值金额（人民币元）
-const AbuseBonusTopupThreshold = 50.0
-
 var userSortColumns = map[string]string{
 	"id":            "id",
 	"username":      "username",
@@ -80,63 +77,42 @@ func resolveUserSortOptions(sortOptions []UserSortOptions) UserSortOptions {
 // User if you add sensitive fields, don't forget to clean them in setupLogin function.
 // Otherwise, the sensitive information will be saved on local storage in plain text!
 type User struct {
-	Id                     int                        `json:"id"`
-	Username               string                     `json:"username" gorm:"unique;index" validate:"max=20"`
-	Password               string                     `json:"password" gorm:"not null;" validate:"min=8,max=20"`
-	OriginalPassword       string                     `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
-	DisplayName            string                     `json:"display_name" gorm:"index" validate:"max=20"`
-	Role                   int                        `json:"role" gorm:"type:int;default:1"`   // admin, common
-	Status                 int                        `json:"status" gorm:"type:int;default:1"` // enabled, disabled
-	Email                  string                     `json:"email" gorm:"index" validate:"max=50"`
-	GitHubId               string                     `json:"github_id" gorm:"column:github_id;index"`
-	DiscordId              string                     `json:"discord_id" gorm:"column:discord_id;index"`
-	OidcId                 string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
-	WeChatId               string                     `json:"wechat_id" gorm:"column:wechat_id;index"`
-	TelegramId             string                     `json:"telegram_id" gorm:"column:telegram_id;index"`
-	VerificationCode       string                     `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
-	Fingerprint            string                     `json:"fingerprint" gorm:"-:all"`                               // transient: 注册时前端上报的浏览器指纹,不入库(入库的是 RegisterFingerprint 哈希)
-	AccessToken            *string                    `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
-	Quota                  int                        `json:"quota" gorm:"type:int;default:0"`
-	UsedQuota              int                        `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
-	RequestCount           int                        `json:"request_count" gorm:"type:int;default:0;"`               // request number
-	Group                  string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
-	AffCode                string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
-	AffCount               int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
-	AffQuota               int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
-	AffHistoryQuota        int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"` // 邀请历史额度
-	InviterId              int                        `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
-	DeletedAt              gorm.DeletedAt             `gorm:"index"`
-	LinuxDOId              string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
-	Setting                string                     `json:"setting" gorm:"type:text;column:setting"`
-	SalePassword           string                     `json:"-" gorm:"type:varchar(64);column:sale_password;default:''"` // 售卖明文密码，仅管理员导出 CSV 使用，不进前端 JSON
-	Remark                 string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
-	StripeCustomer         string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
-	AllowTopup             bool                       `json:"allow_topup" gorm:"column:allow_topup"`
-	LoginDisabled          bool                       `json:"login_disabled" gorm:"column:login_disabled"` // 禁止登录 Web 控制台（不影响已创建的 API key 调用）
-	Rpm                    int                        `json:"rpm" gorm:"type:int;default:0;column:rpm"`    // 该用户每分钟最大请求数，0=不限
-	Tpm                    int                        `json:"tpm" gorm:"type:int;default:0;column:tpm"`    // 该用户每分钟最大 token 数，0=不限
-	TopupDiscount          float64                    `json:"topup_discount" gorm:"column:topup_discount"` // 该用户专属充值折扣率(0-1,越小越便宜)，1=不打折。与全局折扣取更优(更低)价
-	CreatedAt              int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
-	LastLoginAt            int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
-	RegisterIP             string                     `json:"register_ip" gorm:"type:varchar(64);default:'';column:register_ip;index"`                   // 注册时的客户端 IP（滥用检测用）
-	RegisterFingerprint    string                     `json:"register_fingerprint" gorm:"type:varchar(64);default:'';column:register_fingerprint;index"` // 注册时的浏览器指纹哈希（滥用检测用）
-	InviteAbuseFlagged     bool                       `json:"invite_abuse_flagged" gorm:"column:invite_abuse_flagged"`                                   // 疑似邀请滥用（小号刷返利）；true 时不发邀请返利，待管理员复核
-	InviteAbuseReason      string                     `json:"invite_abuse_reason" gorm:"type:varchar(255);default:'';column:invite_abuse_reason"`        // 判定为疑似滥用的原因（供后台展示）
-	AbusePendingBonus      int                        `json:"abuse_pending_bonus" gorm:"type:int;default:0;column:abuse_pending_bonus"`                  // 滥用标记用户因未达充值门槛而暂扣的赠金额度（本人注册赠额+被邀请赠额），充值满门槛后自动发放
-	PendingQuota           int                        `json:"pending_quota" gorm:"type:int;default:0;column:pending_quota"`                              // 待验证后释放的注册赠额（完成邮件验证或绑定微信/LinuxDO后自动转入 Quota）
-	VerifiedAtRegistration bool                       `json:"-" gorm:"-:all"`                                                                            // 瞬态：OAuth注册时为 true，表示已通过第三方身份验证，直接发放赠额无需等待验证
-	AuthVersion            int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
-	AdminPermissions       map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
-}
-
-// BeforeCreate keeps application defaults portable across SQLite, MySQL, and PostgreSQL.
-// These defaults intentionally live in code instead of dialect-specific column definitions.
-func (user *User) BeforeCreate(_ *gorm.DB) error {
-	user.AllowTopup = true
-	if user.TopupDiscount <= 0 {
-		user.TopupDiscount = 1
-	}
-	return nil
+	Id                   int                        `json:"id"`
+	Username             string                     `json:"username" gorm:"unique;index" validate:"max=20"`
+	Password             string                     `json:"password" gorm:"not null;" validate:"min=8,max=128"`
+	HasPassword          bool                       `json:"-" gorm:"-:all"`
+	OriginalPassword     string                     `json:"original_password" gorm:"-:all"` // this field is only for Password change verification, don't save it to database!
+	DisplayName          string                     `json:"display_name" gorm:"index" validate:"max=20"`
+	Role                 int                        `json:"role" gorm:"type:int;default:1"`   // admin, common
+	Status               int                        `json:"status" gorm:"type:int;default:1"` // enabled, disabled
+	Email                string                     `json:"email" gorm:"index" validate:"max=50"`
+	GitHubId             string                     `json:"github_id" gorm:"column:github_id;index"`
+	DiscordId            string                     `json:"discord_id" gorm:"column:discord_id;index"`
+	OidcId               string                     `json:"oidc_id" gorm:"column:oidc_id;index"`
+	WeChatId             string                     `json:"wechat_id" gorm:"column:wechat_id;index"`
+	TelegramId           string                     `json:"telegram_id" gorm:"column:telegram_id;index"`
+	VerificationCode     string                     `json:"verification_code" gorm:"-:all"`                         // this field is only for Email verification, don't save it to database!
+	AccessToken          *string                    `json:"-" gorm:"type:char(32);column:access_token;uniqueIndex"` // this token is for system management
+	AccessTokenCreatedAt *int64                     `json:"-" gorm:"type:bigint;column:access_token_created_at"`
+	Quota                int                        `json:"quota" gorm:"type:int;default:0"`
+	UsedQuota            int                        `json:"used_quota" gorm:"type:int;default:0;column:used_quota"` // used quota
+	RequestCount         int                        `json:"request_count" gorm:"type:int;default:0;"`               // request number
+	Group                string                     `json:"group" gorm:"type:varchar(64);default:'default'"`
+	AffCode              string                     `json:"aff_code" gorm:"type:varchar(32);column:aff_code;uniqueIndex"`
+	AffCount             int                        `json:"aff_count" gorm:"type:int;default:0;column:aff_count"`
+	AffQuota             int                        `json:"aff_quota" gorm:"type:int;default:0;column:aff_quota"`           // 邀请剩余额度
+	AffHistoryQuota      int                        `json:"aff_history_quota" gorm:"type:int;default:0;column:aff_history"` // 邀请历史额度
+	InviterId            int                        `json:"inviter_id" gorm:"type:int;column:inviter_id;index"`
+	DeletedAt            gorm.DeletedAt             `gorm:"index"`
+	LinuxDOId            string                     `json:"linux_do_id" gorm:"column:linux_do_id;index"`
+	Setting              string                     `json:"setting" gorm:"type:text;column:setting"`
+	Remark               string                     `json:"remark,omitempty" gorm:"type:varchar(255)" validate:"max=255"`
+	SalePassword         string                     `json:"sale_password,omitempty" gorm:"type:varchar(128)"`
+	StripeCustomer       string                     `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
+	CreatedAt            int64                      `json:"created_at" gorm:"autoCreateTime;column:created_at"`
+	LastLoginAt          int64                      `json:"last_login_at" gorm:"default:0;column:last_login_at"`
+	AuthVersion          int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
+	AdminPermissions     map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
 
 func (user *User) ToBaseUser() *UserBase {
@@ -145,12 +121,10 @@ func (user *User) ToBaseUser() *UserBase {
 		Group:       user.Group,
 		Quota:       user.Quota,
 		Status:      user.Status,
+		Role:        user.Role,
 		Username:    user.Username,
 		Setting:     user.Setting,
 		Email:       user.Email,
-		Role:        user.Role,
-		Rpm:         user.Rpm,
-		Tpm:         user.Tpm,
 		AuthVersion: user.AuthVersion,
 		CacheSchema: userCacheSchemaVersion,
 	}
@@ -174,7 +148,9 @@ func UpdateUserAccessToken(id int, token string) error {
 	if id == 0 {
 		return errors.New("id 为空！")
 	}
-	result := DB.Model(&User{}).Where("id = ?", id).Update("access_token", token)
+	result := DB.Model(&User{}).Where("id = ?", id).Updates(map[string]any{
+		"access_token": token, "access_token_created_at": common.GetTimestamp(),
+	})
 	if result.Error != nil {
 		return result.Error
 	}
@@ -182,6 +158,23 @@ func UpdateUserAccessToken(id int, token string) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+// RevokeUserAccessToken returns the generation actually revoked under the row lock.
+func RevokeUserAccessToken(id int) (string, error) {
+	var tokenRef string
+	err := DB.Transaction(func(tx *gorm.DB) error {
+		var user User
+		if err := lockForUpdate(tx).Select("id", "access_token").First(&user, id).Error; err != nil {
+			return err
+		}
+		tokenRef = AccessTokenFingerprint(user.GetAccessToken())
+		if tokenRef == "" {
+			return nil
+		}
+		return tx.Model(&User{}).Where("id = ?", id).Updates(map[string]any{"access_token": nil, "access_token_created_at": nil}).Error
+	})
+	return tokenRef, err
 }
 
 func (user *User) GetSetting() dto.UserSetting {
@@ -245,18 +238,17 @@ func UpdateUserBindColumn(userId int, column string, value string) error {
 
 // 根据用户角色生成默认的边栏配置
 func generateDefaultSidebarConfigForRole(userRole int) string {
-	defaultConfig := map[string]interface{}{}
+	defaultConfig := map[string]any{}
 
 	// 聊天区域 - 所有用户都可以访问
-	defaultConfig["chat"] = map[string]interface{}{
+	defaultConfig["chat"] = map[string]any{
 		"enabled":    true,
 		"playground": true,
-		"studio":     true,
 		"chat":       true,
 	}
 
 	// 控制台区域 - 所有用户都可以访问
-	defaultConfig["console"] = map[string]interface{}{
+	defaultConfig["console"] = map[string]any{
 		"enabled":    true,
 		"detail":     true,
 		"token":      true,
@@ -266,7 +258,7 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 	}
 
 	// 个人中心区域 - 所有用户都可以访问
-	defaultConfig["personal"] = map[string]interface{}{
+	defaultConfig["personal"] = map[string]any{
 		"enabled":  true,
 		"topup":    true,
 		"personal": true,
@@ -275,7 +267,7 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 	// 管理员区域 - 根据角色决定
 	if userRole == common.RoleAdminUser {
 		// 管理员可以访问管理员区域，但不能访问系统设置
-		defaultConfig["admin"] = map[string]interface{}{
+		defaultConfig["admin"] = map[string]any{
 			"enabled":    true,
 			"channel":    true,
 			"models":     true,
@@ -285,7 +277,7 @@ func generateDefaultSidebarConfigForRole(userRole int) string {
 		}
 	} else if userRole == common.RoleRootUser {
 		// 超级管理员可以访问所有功能
-		defaultConfig["admin"] = map[string]interface{}{
+		defaultConfig["admin"] = map[string]any{
 			"enabled":    true,
 			"channel":    true,
 			"models":     true,
@@ -392,9 +384,16 @@ func EnsureEmailAvailable(email string, excludeUserID int) error {
 //
 // An empty email is allowed to repeat and needs no serialization.
 func withNormalizedEmailLock(tx *gorm.DB, email string, fn func(tx *gorm.DB) error) error {
+	if err := lockNormalizedEmail(tx, email); err != nil {
+		return err
+	}
+	return fn(tx)
+}
+
+func lockNormalizedEmail(tx *gorm.DB, email string) error {
 	email = NormalizeEmail(email)
 	if email == "" {
-		return fn(tx)
+		return nil
 	}
 	switch {
 	case common.UsingMainDatabase(common.DatabaseTypePostgreSQL):
@@ -407,7 +406,7 @@ func withNormalizedEmailLock(tx *gorm.DB, email string, fn func(tx *gorm.DB) err
 			return err
 		}
 	}
-	return fn(tx)
+	return nil
 }
 
 func GetMaxUserId() int {
@@ -451,30 +450,7 @@ func GetAllUsers(pageInfo *common.PageInfo, sortOptions ...UserSortOptions) (use
 	return users, total, nil
 }
 
-// GetFlaggedUsers 返回被标记为疑似邀请滥用的用户（分页，含软删除）。
-func GetFlaggedUsers(startIdx int, num int) ([]*User, int64, error) {
-	var users []*User
-	var total int64
-	query := DB.Unscoped().Model(&User{}).Where("invite_abuse_flagged = ?", true)
-	if err := query.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-	err := query.Omit("password", "access_token").Order("id desc").Limit(num).Offset(startIdx).Find(&users).Error
-	if err != nil {
-		return nil, 0, err
-	}
-	return users, total, nil
-}
-
 func SearchUsers(keyword string, group string, role *int, status *int, startIdx int, num int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
-	return searchUsers(keyword, group, role, status, startIdx, num, nil, nil, sortOptions...)
-}
-
-func SearchUsersWithQuota(keyword string, group string, role *int, status *int, startIdx int, num int, quotaMin *int, quotaMax *int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
-	return searchUsers(keyword, group, role, status, startIdx, num, quotaMin, quotaMax, sortOptions...)
-}
-
-func searchUsers(keyword string, group string, role *int, status *int, startIdx int, num int, quotaMin *int, quotaMax *int, sortOptions ...UserSortOptions) ([]*User, int64, error) {
 	var users []*User
 	var total int64
 	var err error
@@ -495,14 +471,14 @@ func searchUsers(keyword string, group string, role *int, status *int, startIdx 
 
 	// 构建搜索条件
 	likeCondition := "username LIKE ? OR email LIKE ? OR display_name LIKE ?"
-	likeArgs := []interface{}{"%" + keyword + "%", "%" + keyword + "%", "%" + keyword + "%"}
+	likeArgs := []any{"%" + keyword + "%", "%" + keyword + "%", "%" + keyword + "%"}
 
 	// 尝试将关键字转换为整数ID
 	keywordInt, err := strconv.Atoi(keyword)
 	if err == nil {
 		// 如果是数字，同时搜索ID和其他字段
 		likeCondition = "id = ? OR " + likeCondition
-		likeArgs = append([]interface{}{keywordInt}, likeArgs...)
+		likeArgs = append([]any{keywordInt}, likeArgs...)
 	}
 
 	query = query.Where("("+likeCondition+")", likeArgs...)
@@ -518,12 +494,6 @@ func searchUsers(keyword string, group string, role *int, status *int, startIdx 
 		} else {
 			query = query.Where("deleted_at IS NULL").Where("status = ?", *status)
 		}
-	}
-	if quotaMin != nil {
-		query = query.Where("quota >= ?", *quotaMin)
-	}
-	if quotaMax != nil {
-		query = query.Where("quota <= ?", *quotaMax)
 	}
 
 	// 获取总数
@@ -563,6 +533,28 @@ func GetUserById(id int, selectAll bool) (*User, error) {
 	return &user, err
 }
 
+// GetSelfUserById reads dashboard profile data and password existence in one
+// query. The password hash and management access token are never selected.
+func GetSelfUserById(id int) (*User, error) {
+	if id == 0 {
+		return nil, errors.New("id 为空！")
+	}
+	var profile struct {
+		User
+		HasPassword bool `gorm:"column:has_password"`
+	}
+	err := DB.Model(&User{}).Select([]string{
+		"id", "username", "display_name", "role", "status", "email",
+		"github_id", "discord_id", "oidc_id", "wechat_id", "telegram_id",
+		"group", "quota", "used_quota", "request_count", "aff_code", "aff_count",
+		"aff_quota", "aff_history", "inviter_id", "linux_do_id", "setting",
+		"stripe_customer", "auth_version",
+		"CASE WHEN password <> '' THEN 1 ELSE 0 END AS has_password",
+	}).First(&profile, "id = ?", id).Error
+	profile.User.HasPassword = profile.HasPassword
+	return &profile.User, err
+}
+
 func GetUserIdByAffCode(affCode string) (int, error) {
 	if affCode == "" {
 		return 0, errors.New("affCode 为空！")
@@ -589,7 +581,7 @@ func HardDeleteUserById(id int) error {
 }
 
 func inviteUser(inviterId int) error {
-	result := DB.Model(&User{}).Where("id = ?", inviterId).Updates(map[string]interface{}{
+	result := DB.Model(&User{}).Where("id = ?", inviterId).Updates(map[string]any{
 		"aff_count":   gorm.Expr("aff_count + ?", 1),
 		"aff_quota":   gorm.Expr("aff_quota + ?", common.QuotaForInviter),
 		"aff_history": gorm.Expr("aff_history + ?", common.QuotaForInviter),
@@ -601,97 +593,6 @@ func inviteUser(inviterId int) error {
 		return gorm.ErrRecordNotFound
 	}
 	return nil
-}
-
-// CheckAndReleaseAbusePendingBonus 检查滥用标记用户是否已累计充值满门槛，
-// 满足条件时一次性发放暂扣的赠金，并触发邀请人返利。
-// 每次充值成功后调用，已释放过则为空操作。
-func CheckAndReleaseAbusePendingBonus(userId int) {
-	threshold := operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold
-	if threshold <= 0 {
-		return // 阈值为0表示关闭自动解锁
-	}
-
-	user, err := GetUserById(userId, false)
-	if err != nil || user == nil {
-		return
-	}
-	// 未标记滥用或赠金已释放
-	if !user.InviteAbuseFlagged || user.AbusePendingBonus <= 0 {
-		return
-	}
-
-	totalTopup := GetUserSuccessTopupMoney(userId)
-	if totalTopup < threshold {
-		return
-	}
-
-	// 达到门槛：原子地清零 abuse_pending_bonus 并增加用户余额
-	bonus := user.AbusePendingBonus
-	err = DB.Transaction(func(tx *gorm.DB) error {
-		result := tx.Model(&User{}).
-			Where("id = ? AND abuse_pending_bonus > 0", userId).
-			Updates(map[string]interface{}{
-				"quota":               gorm.Expr("quota + ?", bonus),
-				"abuse_pending_bonus": 0,
-			})
-		if result.Error != nil {
-			return result.Error
-		}
-		if result.RowsAffected == 0 {
-			return errors.New("already released")
-		}
-		return nil
-	})
-	if err != nil {
-		return
-	}
-
-	RecordLog(userId, LogTypeSystem, fmt.Sprintf(
-		"累计充值已达 ¥%.0f，暂扣赠金 %s 已自动解锁发放",
-		threshold, logger.LogQuota(bonus),
-	))
-
-	// 发放邀请人返利（如果有）
-	if user.InviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && common.QuotaForInviter > 0 {
-		_ = inviteUser(user.InviterId)
-		RecordLog(user.InviterId, LogTypeSystem, fmt.Sprintf(
-			"邀请用户 #%d 充值达门槛，邀请返利 %s 自动发放",
-			userId, logger.LogQuota(common.QuotaForInviter),
-		))
-	}
-
-	syncCreditUserQuotaCache(userId, bonus, "abuse pending bonus")
-}
-
-// BackfillAbusePendingBonus 为历史上已标记滥用但尚未设置 abuse_pending_bonus 的用户
-// 补填待发赠金字段。幂等：已有值的用户跳过。在服务启动时调用一次。
-func BackfillAbusePendingBonus() {
-	if common.QuotaForNewUser <= 0 {
-		return
-	}
-	// 查出所有 invite_abuse_flagged=true 且 abuse_pending_bonus=0 的用户
-	var users []User
-	if err := DB.Where("invite_abuse_flagged = ? AND abuse_pending_bonus = ?", true, 0).
-		Select("id, inviter_id").Find(&users).Error; err != nil || len(users) == 0 {
-		return
-	}
-
-	count := 0
-	for _, u := range users {
-		bonus := common.QuotaForNewUser
-		if u.InviterId != 0 && common.QuotaForInvitee > 0 {
-			bonus += common.QuotaForInvitee
-		}
-		if err := DB.Model(&User{}).Where("id = ? AND abuse_pending_bonus = 0", u.Id).
-			Update("abuse_pending_bonus", bonus).Error; err == nil {
-			count++
-		}
-	}
-
-	if count > 0 {
-		common.SysLog(fmt.Sprintf("BackfillAbusePendingBonus: 已为 %d 名历史滥用标记用户补填待发赠金", count))
-	}
 }
 
 func (user *User) TransferAffQuotaToQuota(quota int) error {
@@ -740,7 +641,7 @@ func (user *User) prepareForInsert(tx *gorm.DB) error {
 		return nil
 	}
 	var err error
-	user.Password, err = common.Password2Hash(user.Password)
+	user.Password, err = common.HashAccountPassword(user.Password)
 	return err
 }
 
@@ -789,20 +690,6 @@ func (user *User) Insert(inviterId int) error {
 				return err
 			}
 			user.Quota = common.QuotaForNewUser
-			if user.InviteAbuseFlagged {
-				user.Quota = 0 // 疑似滥用:不发放注册赠额
-				user.PendingQuota = 0
-			} else if user.VerifiedAtRegistration {
-				// OAuth 注册：已通过第三方身份验证，直接发放赠额
-				user.Quota = common.QuotaForNewUser
-				user.PendingQuota = 0
-			} else {
-				// 其余所有注册方式（密码注册 + 有邮件、密码注册 + 无邮件、GitHub 等第三方
-				// OAuth）：赠额锁定，绑定邮箱（验证后）、LinuxDO 或微信后自动释放。
-				// 此策略统一防止滥用，与注册渠道无关。
-				user.Quota = 0
-				user.PendingQuota = common.QuotaForNewUser
-			}
 			user.AffCode = common.GetRandomString(4)
 
 			// 初始化用户设置，包括默认的边栏配置
@@ -838,17 +725,10 @@ func (user *User) finishInsert(inviterId int) {
 		}
 	}
 
-	if common.QuotaForNewUser > 0 && !user.InviteAbuseFlagged {
-		if user.Quota > 0 {
-			// 赠额已直接发放（OAuth 注册已验证）
-			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
-		} else if user.PendingQuota > 0 {
-			// 赠额待解锁（密码注册 + 有邮件，验证后释放）
-			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("注册赠额 %s 已锁定，完成邮件验证或绑定微信/LinuxDO 后自动解锁", logger.LogQuota(common.QuotaForNewUser)))
-		}
-		// Quota=0 且 PendingQuota=0：无邮件注册，不发放赠额，不记录
+	if common.QuotaForNewUser > 0 {
+		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
-	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && !user.InviteAbuseFlagged {
+	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() {
 		if common.QuotaForInvitee > 0 {
 			_ = IncreaseUserQuota(user.Id, common.QuotaForInvitee, true)
 			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", logger.LogQuota(common.QuotaForInvitee)))
@@ -857,29 +737,6 @@ func (user *User) finishInsert(inviterId int) {
 			//_ = IncreaseUserQuota(inviterId, common.QuotaForInviter)
 			RecordLog(inviterId, LogTypeSystem, fmt.Sprintf("邀请用户赠送 %s", logger.LogQuota(common.QuotaForInviter)))
 			_ = inviteUser(inviterId)
-		}
-	}
-
-	// 滥用标记用户：计算应得赠金存入 abuse_pending_bonus，充值满门槛后自动发放
-	if user.InviteAbuseFlagged {
-		var pendingBonus int
-		if common.QuotaForNewUser > 0 {
-			pendingBonus += common.QuotaForNewUser
-		}
-		if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && common.QuotaForInvitee > 0 {
-			pendingBonus += common.QuotaForInvitee
-		}
-		if pendingBonus > 0 {
-			DB.Model(&User{}).Where("id = ?", user.Id).Update("abuse_pending_bonus", pendingBonus)
-			inviterHint := ""
-			if inviterId != 0 && common.QuotaForInviter > 0 {
-				inviterHint = fmt.Sprintf("，邀请人 #%d 赠金亦待发放", inviterId)
-			}
-			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf(
-				"账号疑似邀请滥用，注册赠额 %s%s 已暂扣，累计充值满 ¥%.0f 元后自动解锁",
-				logger.LogQuota(pendingBonus), inviterHint,
-				operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold,
-			))
 		}
 	}
 }
@@ -897,17 +754,6 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 			return err
 		}
 		user.Quota = common.QuotaForNewUser
-		if user.InviteAbuseFlagged {
-			user.Quota = 0 // 疑似滥用:不发放注册赠额
-			user.PendingQuota = 0
-		} else if user.VerifiedAtRegistration {
-			user.Quota = common.QuotaForNewUser
-			user.PendingQuota = 0
-		} else {
-			// 其余所有注册方式：赠额锁定，绑定邮箱（验证后）、LinuxDO 或微信后自动释放。
-			user.Quota = 0
-			user.PendingQuota = common.QuotaForNewUser
-		}
 		user.AffCode = common.GetRandomString(4)
 
 		// 初始化用户设置
@@ -918,32 +764,6 @@ func (user *User) InsertWithTx(tx *gorm.DB, inviterId int) error {
 
 		return tx.Create(user).Error
 	})
-}
-
-// ReleasePendingQuota 将用户的待验证注册赠额转入可用余额。
-// 当用户完成邮件验证或绑定微信/LinuxDO 等身份验证方式后调用。
-// 若 PendingQuota 为 0 则静默返回（幂等）。
-func ReleasePendingQuota(userId int) error {
-	var u User
-	if err := DB.Select("id, pending_quota").Where("id = ?", userId).First(&u).Error; err != nil {
-		return err
-	}
-	if u.PendingQuota <= 0 {
-		return nil // 已释放或从未有待赠额，幂等
-	}
-	pending := u.PendingQuota
-	err := DB.Model(&User{}).
-		Where("id = ? AND pending_quota > 0", userId).
-		Updates(map[string]interface{}{
-			"quota":         gorm.Expr("quota + ?", pending),
-			"pending_quota": 0,
-		}).Error
-	if err != nil {
-		return err
-	}
-	RecordLog(userId, LogTypeSystem, fmt.Sprintf("身份验证通过，解锁注册赠额 %s", logger.LogQuota(pending)))
-	syncCreditUserQuotaCache(userId, pending, "pending quota unlock")
-	return nil
 }
 
 // FinalizeOAuthUserCreation performs post-transaction tasks for OAuth user creation.
@@ -962,10 +782,10 @@ func (user *User) FinalizeOAuthUserCreation(inviterId int) {
 		}
 	}
 
-	if common.QuotaForNewUser > 0 && !user.InviteAbuseFlagged {
+	if common.QuotaForNewUser > 0 {
 		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", logger.LogQuota(common.QuotaForNewUser)))
 	}
-	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() && !user.InviteAbuseFlagged {
+	if inviterId != 0 && operation_setting.IsPaymentComplianceConfirmed() {
 		if common.QuotaForInvitee > 0 {
 			_ = IncreaseUserQuota(user.Id, common.QuotaForInvitee, true)
 			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", logger.LogQuota(common.QuotaForInvitee)))
@@ -1000,7 +820,7 @@ func (user *User) Update(updatePassword bool) error {
 func (user *User) UpdateWithTx(tx *gorm.DB, updatePassword bool) error {
 	var err error
 	if updatePassword {
-		user.Password, err = common.Password2Hash(user.Password)
+		user.Password, err = common.HashAccountPassword(user.Password)
 		if err != nil {
 			return err
 		}
@@ -1061,14 +881,14 @@ func (user *User) Edit(updatePassword bool) error {
 func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 	var err error
 	if updatePassword {
-		user.Password, err = common.Password2Hash(user.Password)
+		user.Password, err = common.HashAccountPassword(user.Password)
 		if err != nil {
 			return err
 		}
 	}
 
 	newUser := *user
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"username":     newUser.Username,
 		"display_name": newUser.DisplayName,
 		"group":        newUser.Group,
@@ -1076,10 +896,6 @@ func (user *User) EditWithTx(tx *gorm.DB, updatePassword bool) error {
 	}
 	if updatePassword {
 		updates["password"] = newUser.Password
-	}
-	// 充值折扣率仅在传入有效值(>0 且 <=1)时更新，避免前端未回传时被零值覆盖成"0折免费"
-	if newUser.TopupDiscount > 0 && newUser.TopupDiscount <= 1 {
-		updates["topup_discount"] = newUser.TopupDiscount
 	}
 
 	current := User{}
@@ -1139,11 +955,32 @@ func (user *User) ClearBinding(bindingType string) error {
 }
 
 func (user *User) Delete() error {
+	return user.delete(nil)
+}
+
+func DeleteUserForSession(identity AuthSessionIdentity) error {
+	user := User{Id: identity.UserID}
+	return user.delete(&identity)
+}
+
+func (user *User) delete(identity *AuthSessionIdentity) error {
 	if user.Id == 0 {
 		return errors.New("id 为空！")
 	}
 	var nextAuthVersion int64
 	if err := DB.Transaction(func(tx *gorm.DB) error {
+		if identity != nil {
+			if err := ValidateAuthSessionWithTx(tx, *identity); err != nil {
+				return err
+			}
+			var role int
+			if err := tx.Model(&User{}).Where("id = ?", user.Id).Select("role").Scan(&role).Error; err != nil {
+				return err
+			}
+			if role == common.RoleRootUser {
+				return ErrCannotDeleteRootUser
+			}
+		}
 		var err error
 		nextAuthVersion, err = IncrementUserAuthVersionWithTx(tx, user.Id)
 		if err != nil {
@@ -1365,7 +1202,7 @@ func ResetUserPasswordByEmail(email string, password string) error {
 	if err != nil {
 		return err
 	}
-	hashedPassword, err := common.Password2Hash(password)
+	hashedPassword, err := common.HashAccountPassword(password)
 	if err != nil {
 		return err
 	}
@@ -1506,25 +1343,47 @@ func IncreaseUserQuota(id int, quota int, db bool) (err error) {
 	if quota < 0 {
 		return errors.New("quota 不能为负数！")
 	}
+	if err := common.ValidateWalletQuota(quota); err != nil {
+		return err
+	}
+	if !db && common.BatchUpdateEnabled {
+		addNewRecord(BatchUpdateTypeUserQuota, id, quota)
+		gopool.Go(func() {
+			if err := cacheIncrUserQuota(id, int64(quota)); err != nil {
+				common.SysLog("failed to increase user quota: " + err.Error())
+			}
+		})
+		return nil
+	}
+	if err := increaseUserQuota(id, quota); err != nil {
+		return err
+	}
 	gopool.Go(func() {
-		err := cacheIncrUserQuota(id, int64(quota))
-		if err != nil {
+		if err := cacheIncrUserQuota(id, int64(quota)); err != nil {
 			common.SysLog("failed to increase user quota: " + err.Error())
 		}
 	})
-	if !db && common.BatchUpdateEnabled {
-		addNewRecord(BatchUpdateTypeUserQuota, id, quota)
-		return nil
-	}
-	return increaseUserQuota(id, quota)
+	return nil
 }
 
 func increaseUserQuota(id int, quota int) (err error) {
-	err = DB.Model(&User{}).Where("id = ?", id).Update("quota", gorm.Expr("quota + ?", quota)).Error
-	if err != nil {
+	result := DB.Model(&User{}).
+		Where("id = ? AND quota <= ?", id, common.MaxWalletQuota-quota).
+		Update("quota", gorm.Expr("quota + ?", quota))
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 1 {
+		return nil
+	}
+	var count int64
+	if err := DB.Model(&User{}).Where("id = ?", id).Count(&count).Error; err != nil {
 		return err
 	}
-	return err
+	if count == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return ErrWalletQuotaLimitExceeded
 }
 
 func DecreaseUserQuota(id int, quota int, db bool) (err error) {
@@ -1601,7 +1460,7 @@ func UpdateUserUsedQuota(id int, quota int) {
 
 func updateUserUsedQuotaAndRequestCount(id int, quota int, count int) {
 	err := DB.Model(&User{}).Where("id = ?", id).Updates(
-		map[string]interface{}{
+		map[string]any{
 			"used_quota":    gorm.Expr("used_quota + ?", quota),
 			"request_count": gorm.Expr("request_count + ?", count),
 		},
@@ -1623,7 +1482,7 @@ func updateUserQuotaUsedQuotaAndRequestCount(id int, quota int, usedQuota int, r
 	}
 
 	err := DB.Model(&User{}).Where("id = ?", id).Updates(
-		map[string]interface{}{
+		map[string]any{
 			"quota":         gorm.Expr("quota + ?", quota),
 			"used_quota":    gorm.Expr("used_quota + ?", usedQuota),
 			"request_count": gorm.Expr("request_count + ?", requestCount),

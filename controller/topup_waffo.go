@@ -63,7 +63,7 @@ func getWaffoCurrency() string {
 func buildWaffoTopUpGoodsInfo(amount int64) *order.GoodsInfo {
 	appName := strings.TrimSpace(common.SystemName)
 	if appName == "" {
-		appName = "TUFTech"
+		appName = "New API"
 	}
 	return &order.GoodsInfo{
 		GoodsName: fmt.Sprintf("Recharge %d credits", amount),
@@ -86,7 +86,7 @@ func formatWaffoAmount(amount float64, currency string) string {
 // getWaffoPayMoney converts the user-facing amount to USD for Waffo payment.
 // Waffo only accepts USD, so this function handles the conversion from different
 // display types (USD/CNY/TOKENS) to the actual USD amount to charge.
-func getWaffoPayMoney(userId int, amount float64, group string) float64 {
+func getWaffoPayMoney(amount float64, group string) float64 {
 	originalAmount := amount
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
 		amount = amount / common.QuotaPerUnit
@@ -95,8 +95,12 @@ func getWaffoPayMoney(userId int, amount float64, group string) float64 {
 	if topupGroupRatio == 0 {
 		topupGroupRatio = 1
 	}
-	// 全局档位折扣与用户专属折扣取更优(更低)价
-	discount := resolveTopupDiscount(userId, int(originalAmount))
+	discount := 1.0
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(originalAmount)]; ok {
+		if ds > 0 {
+			discount = ds
+		}
+	}
 	return amount * setting.WaffoUnitPrice * topupGroupRatio * discount
 }
 
@@ -108,9 +112,6 @@ type WaffoPayRequest struct {
 }
 
 func RequestWaffoAmount(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	var req WaffoPayRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "参数错误"})
@@ -133,7 +134,7 @@ func RequestWaffoAmount(c *gin.Context) {
 		return
 	}
 
-	payMoney := getWaffoPayMoney(id, float64(req.Amount), group)
+	payMoney := getWaffoPayMoney(float64(req.Amount), group)
 	if payMoney <= 0.01 {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return
@@ -144,14 +145,8 @@ func RequestWaffoAmount(c *gin.Context) {
 
 // RequestWaffoPay 创建 Waffo 支付订单
 func RequestWaffoPay(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	if !setting.WaffoEnabled {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "Waffo 支付未启用"})
-		return
-	}
-	if !checkUserTopupAllowed(c) {
 		return
 	}
 
@@ -209,7 +204,7 @@ func RequestWaffoPay(c *gin.Context) {
 	// resolvedPayMethodType/Name 为空时，Waffo 自动选择支付方式
 
 	group, _ := model.GetUserGroup(id, true)
-	payMoney := getWaffoPayMoney(id, float64(req.Amount), group)
+	payMoney := getWaffoPayMoney(float64(req.Amount), group)
 	if payMoney < 0.01 {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return
@@ -222,10 +217,7 @@ func RequestWaffoPay(c *gin.Context) {
 	// Token 模式下归一化 Amount（存等价美元/CNY 数量，避免 RechargeWaffo 双重放大）
 	amount := req.Amount
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
-		amount = int64(float64(req.Amount) / common.QuotaPerUnit)
-		if amount < 1 {
-			amount = 1
-		}
+		amount = max(int64(float64(req.Amount)/common.QuotaPerUnit), 1)
 	}
 
 	// 创建本地订单
@@ -342,9 +334,6 @@ type webhookSubscriptionInfo struct {
 
 // WaffoWebhook 处理 Waffo 回调通知（支付/退款/订阅）
 func WaffoWebhook(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	if !isWaffoWebhookEnabled() {
 		logger.LogWarn(c.Request.Context(), fmt.Sprintf("Waffo webhook 被拒绝 reason=webhook_disabled path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
 		c.AbortWithStatus(http.StatusForbidden)

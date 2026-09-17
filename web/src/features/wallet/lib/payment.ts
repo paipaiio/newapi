@@ -120,27 +120,6 @@ export async function dispatchSelectedPayment(
 }
 
 /**
- * Check if payment method is Alipay
- */
-export function isAlipayPayment(paymentType: string): boolean {
-  return paymentType === PAYMENT_TYPES.ALIPAY
-}
-
-/**
- * Check if payment method is WeChat Pay
- */
-export function isWechatPayPayment(paymentType: string): boolean {
-  return paymentType === PAYMENT_TYPES.WECHATPAY
-}
-
-/**
- * Check if payment method is QR code based (Alipay or WeChat Pay)
- */
-export function isQRCodePayment(paymentType: string): boolean {
-  return isAlipayPayment(paymentType) || isWechatPayPayment(paymentType)
-}
-
-/**
  * Get default payment type from topup info
  */
 export function getDefaultPaymentType(topupInfo: TopupInfo | null): string {

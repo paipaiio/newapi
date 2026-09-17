@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 
@@ -27,7 +26,7 @@ type SystemInstanceInfo struct {
 	Role          SystemInstanceRoleInfo    `json:"role"`
 	Runtime       SystemInstanceRuntimeInfo `json:"runtime"`
 	Host          SystemInstanceHostInfo    `json:"host"`
-	Resources     SystemInstanceResources   `json:"resources,omitempty"`
+	Resources     SystemInstanceResources   `json:"resources"`
 	Extra         map[string]any            `json:"extra,omitempty"`
 }
 
@@ -64,9 +63,6 @@ type SystemInstanceStorageMetrics struct {
 }
 
 func StartSystemInstanceReporter() {
-	if constant.IsComplianceSite() {
-		return
-	}
 	systemInstanceReporterOnce.Do(func() {
 		gopool.Go(func() {
 			reportSystemInstanceWithLog()

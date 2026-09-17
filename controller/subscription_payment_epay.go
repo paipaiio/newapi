@@ -22,9 +22,6 @@ type SubscriptionEpayPayRequest struct {
 }
 
 func SubscriptionRequestEpay(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	if !requirePaymentCompliance(c) {
 		return
 	}
@@ -119,9 +116,6 @@ func SubscriptionRequestEpay(c *gin.Context) {
 }
 
 func SubscriptionEpayNotify(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	var params map[string]string
 
 	if c.Request.Method == "POST" {
@@ -177,9 +171,6 @@ func SubscriptionEpayNotify(c *gin.Context) {
 // SubscriptionEpayReturn handles browser return after payment.
 // It verifies the payload and completes the order, then redirects to console.
 func SubscriptionEpayReturn(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	var params map[string]string
 
 	if c.Request.Method == "POST" {

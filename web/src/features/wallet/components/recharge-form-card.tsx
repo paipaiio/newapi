@@ -81,8 +81,6 @@ interface RechargeFormCardProps {
   waffoMinTopup?: number
   onWaffoMethodSelect?: (method: WaffoPayMethod, index: number) => void
   enableWaffoPancakeTopup?: boolean
-  /** Unit price multiplier: display-currency amount × this = actual USD charged */
-  waffoPancakeUnitPrice?: number
 }
 
 export function RechargeFormCard({
@@ -113,7 +111,6 @@ export function RechargeFormCard({
   waffoMinTopup,
   onWaffoMethodSelect,
   enableWaffoPancakeTopup,
-  waffoPancakeUnitPrice,
 }: RechargeFormCardProps) {
   const { t } = useTranslation()
   const [localAmount, setLocalAmount] = useState(topupAmount.toString())
@@ -314,32 +311,6 @@ export function RechargeFormCard({
                     )}
                   </div>
                 </div>
-                {enableWaffoPancakeTopup &&
-                  waffoPancakeUnitPrice &&
-                  waffoPancakeUnitPrice > 0 &&
-                  topupAmount > 0 &&
-                  (() => {
-                    // Apply the same discount logic as the backend resolveTopupDiscount:
-                    // take the better (lower) of the tier discount and user-specific discount.
-                    const tierDiscount = topupInfo?.discount?.[topupAmount] || 1
-                    const userDiscount = topupInfo?.user_topup_discount || 1
-                    const effectiveDiscount = Math.min(
-                      tierDiscount,
-                      userDiscount
-                    )
-                    const actualCny = topupAmount * effectiveDiscount
-                    const usdAmount = (
-                      actualCny * waffoPancakeUnitPrice
-                    ).toFixed(2)
-                    return (
-                      <p className='text-muted-foreground text-xs'>
-                        {t('Waffo Pancake payment hint', {
-                          cny: actualCny,
-                          usd: usdAmount,
-                        })}
-                      </p>
-                    )
-                  })()}
               </div>
 
               <div className='space-y-2.5 sm:space-y-3'>

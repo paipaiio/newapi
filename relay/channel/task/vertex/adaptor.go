@@ -243,8 +243,9 @@ func buildFetchOperationURL(baseURL, upstreamName string) (string, error) {
 }
 
 // FetchTask fetch task status
-func (a *TaskAdaptor) FetchTask(baseUrl, key string, body map[string]any, proxy string) (*http.Response, error) {
-	taskID, ok := body["task_id"].(string)
+func (a *TaskAdaptor) FetchTask(baseUrl, key string, task *model.Task, proxy string) (*http.Response, error) {
+	taskID := task.TaskID
+	ok := taskID != ""
 	if !ok {
 		return nil, fmt.Errorf("invalid task_id")
 	}
@@ -284,7 +285,7 @@ func (a *TaskAdaptor) FetchTask(baseUrl, key string, body map[string]any, proxy 
 	return client.Do(req)
 }
 
-func (a *TaskAdaptor) ParseTaskResult(respBody []byte) (*relaycommon.TaskInfo, error) {
+func (a *TaskAdaptor) ParseTaskResult(_ *model.Task, _ *http.Response, respBody []byte) (*relaycommon.TaskInfo, error) {
 	var op operationResponse
 	if err := common.Unmarshal(respBody, &op); err != nil {
 		return nil, fmt.Errorf("unmarshal operation response failed: %w", err)
@@ -414,4 +415,12 @@ func extractProjectFromOperationName(name string) string {
 		return m[1]
 	}
 	return ""
+}
+
+func (a *TaskAdaptor) ParseResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (*channel.TaskSubmitResponse, *taskdto.TaskError) {
+	taskID, taskData, taskErr := a.DoResponse(c, resp, info)
+	if taskErr != nil {
+		return nil, taskErr
+	}
+	return &channel.TaskSubmitResponse{UpstreamTaskID: taskID, TaskData: taskData}, nil
 }

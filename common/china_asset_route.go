@@ -121,7 +121,4 @@ func AssetRequestClientIP(r *http.Request, fallback string) string {
 	return strings.TrimSpace(fallback)
 }
 
-// RewriteIndexAssetsForOrigin rewrites baked CDN URLs to same-origin /avHASH/ paths.
-func RewriteIndexAssetsForOrigin(html []byte) []byte {
-	return []byte(strings.ReplaceAll(string(html), assetCDNHost, "/"))
-}
+

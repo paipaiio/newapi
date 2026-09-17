@@ -81,14 +81,16 @@ func (SessionLog) TableName() string {
 }
 
 // EnsureSessionLogFulltextIndex 在 session_logs.content_text 上建立 ngram 全文索引。
-// 幂等:已存在则忽略错误。在主库迁移完成后调用一次(session_logs 建在主库)。
-// FULLTEXT INDEX 是 MySQL/InnoDB 专属语法，SQLite/PostgreSQL 跳过。
+// 幂等:已存在则忽略错误。索引建在 LOG_DB（与 session_logs 同库）。
+// FULLTEXT INDEX 是 MySQL/InnoDB 专属语法，SQLite/PostgreSQL/ClickHouse 跳过。
 func EnsureSessionLogFulltextIndex() {
-	if !common.UsingMainDatabase(common.DatabaseTypeMySQL) {
+	if !common.UsingLogDatabase(common.DatabaseTypeMySQL) {
 		return
 	}
-	DB.Exec(`ALTER TABLE session_logs ADD FULLTEXT INDEX idx_sl_content (content_text) WITH PARSER ngram`)
-	// 忽略 "Duplicate key name" 之类错误。
+	if LOG_DB == nil {
+		return
+	}
+	LOG_DB.Exec(`ALTER TABLE session_logs ADD FULLTEXT INDEX idx_sl_content (content_text) WITH PARSER ngram`)
 }
 
 // ExtractContentText 从请求原文和响应文本中提取可搜索的纯文本。

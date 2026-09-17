@@ -43,6 +43,7 @@ import { Route as AuthenticatedBurnToolIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedChannelCostIndexRouteImport } from './routes/_authenticated/channel-cost/index'
 import { Route as AuthenticatedChannelsIndexRouteImport } from './routes/_authenticated/channels/index'
 import { Route as AuthenticatedChatChatIdRouteImport } from './routes/_authenticated/chat/$chatId'
+import { Route as AuthenticatedContentSafetyIndexRouteImport } from './routes/_authenticated/content-safety/index'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated/dashboard/index'
 import { Route as AuthenticatedDashboardSectionRouteImport } from './routes/_authenticated/dashboard/$section'
 import { Route as AuthenticatedErrorsErrorRouteImport } from './routes/_authenticated/errors/$error'
@@ -262,6 +263,12 @@ const AuthenticatedChatChatIdRoute = AuthenticatedChatChatIdRouteImport.update({
   path: '/chat/$chatId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedContentSafetyIndexRoute =
+  AuthenticatedContentSafetyIndexRouteImport.update({
+    id: '/content-safety/',
+    path: '/content-safety/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedDashboardIndexRoute =
   AuthenticatedDashboardIndexRouteImport.update({
     id: '/dashboard/',
@@ -561,6 +568,7 @@ export interface FileRoutesByFullPath {
   '/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
   '/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/channels/': typeof AuthenticatedChannelsIndexRoute
+  '/content-safety/': typeof AuthenticatedContentSafetyIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
@@ -638,6 +646,7 @@ export interface FileRoutesByTo {
   '/burn-tool': typeof AuthenticatedBurnToolIndexRoute
   '/channel-cost': typeof AuthenticatedChannelCostIndexRoute
   '/channels': typeof AuthenticatedChannelsIndexRoute
+  '/content-safety': typeof AuthenticatedContentSafetyIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
   '/first-token-test': typeof AuthenticatedFirstTokenTestIndexRoute
   '/group-exclusive': typeof AuthenticatedGroupExclusiveIndexRoute
@@ -719,6 +728,7 @@ export interface FileRoutesById {
   '/_authenticated/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
   '/_authenticated/channel-cost/': typeof AuthenticatedChannelCostIndexRoute
   '/_authenticated/channels/': typeof AuthenticatedChannelsIndexRoute
+  '/_authenticated/content-safety/': typeof AuthenticatedContentSafetyIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
   '/_authenticated/first-token-test/': typeof AuthenticatedFirstTokenTestIndexRoute
   '/_authenticated/group-exclusive/': typeof AuthenticatedGroupExclusiveIndexRoute
@@ -799,6 +809,7 @@ export interface FileRouteTypes {
     | '/burn-tool/'
     | '/channel-cost/'
     | '/channels/'
+    | '/content-safety/'
     | '/dashboard/'
     | '/first-token-test/'
     | '/group-exclusive/'
@@ -876,6 +887,7 @@ export interface FileRouteTypes {
     | '/burn-tool'
     | '/channel-cost'
     | '/channels'
+    | '/content-safety'
     | '/dashboard'
     | '/first-token-test'
     | '/group-exclusive'
@@ -956,6 +968,7 @@ export interface FileRouteTypes {
     | '/_authenticated/burn-tool/'
     | '/_authenticated/channel-cost/'
     | '/_authenticated/channels/'
+    | '/_authenticated/content-safety/'
     | '/_authenticated/dashboard/'
     | '/_authenticated/first-token-test/'
     | '/_authenticated/group-exclusive/'
@@ -1258,6 +1271,13 @@ declare module '@tanstack/react-router' {
       path: '/chat/$chatId'
       fullPath: '/chat/$chatId'
       preLoaderRoute: typeof AuthenticatedChatChatIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/content-safety/': {
+      id: '/_authenticated/content-safety/'
+      path: '/content-safety'
+      fullPath: '/content-safety/'
+      preLoaderRoute: typeof AuthenticatedContentSafetyIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard/': {
@@ -1667,6 +1687,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBurnToolIndexRoute: typeof AuthenticatedBurnToolIndexRoute
   AuthenticatedChannelCostIndexRoute: typeof AuthenticatedChannelCostIndexRoute
   AuthenticatedChannelsIndexRoute: typeof AuthenticatedChannelsIndexRoute
+  AuthenticatedContentSafetyIndexRoute: typeof AuthenticatedContentSafetyIndexRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
   AuthenticatedFirstTokenTestIndexRoute: typeof AuthenticatedFirstTokenTestIndexRoute
   AuthenticatedGroupExclusiveIndexRoute: typeof AuthenticatedGroupExclusiveIndexRoute
@@ -1707,6 +1728,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBurnToolIndexRoute: AuthenticatedBurnToolIndexRoute,
   AuthenticatedChannelCostIndexRoute: AuthenticatedChannelCostIndexRoute,
   AuthenticatedChannelsIndexRoute: AuthenticatedChannelsIndexRoute,
+  AuthenticatedContentSafetyIndexRoute: AuthenticatedContentSafetyIndexRoute,
   AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   AuthenticatedFirstTokenTestIndexRoute: AuthenticatedFirstTokenTestIndexRoute,
   AuthenticatedGroupExclusiveIndexRoute: AuthenticatedGroupExclusiveIndexRoute,

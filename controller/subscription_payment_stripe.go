@@ -21,9 +21,6 @@ type SubscriptionStripePayRequest struct {
 }
 
 func SubscriptionRequestStripePay(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	if !requirePaymentCompliance(c) {
 		return
 	}

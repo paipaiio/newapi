@@ -216,15 +216,9 @@ func (a *TaskAdaptor) DoResponse(c *gin.Context, resp *http.Response, info *rela
 }
 
 // FetchTask fetch task status
-func (a *TaskAdaptor) FetchTask(baseUrl, key string, body map[string]any, proxy string) (*http.Response, error) {
-	taskID, ok := body["task_id"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid task_id")
-	}
-	action, ok := body["action"].(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid action")
-	}
+func (a *TaskAdaptor) FetchTask(baseUrl, key string, task *model.Task, proxy string) (*http.Response, error) {
+	taskID := task.TaskID
+	action := task.Action
 	path := lo.Ternary(action == constant.TaskActionGenerate, "/v1/videos/image2video", "/v1/videos/text2video")
 	url := fmt.Sprintf("%s%s/%s", baseUrl, path, taskID)
 	if isNewAPIRelay(key) {
@@ -335,7 +329,7 @@ func (a *TaskAdaptor) createJWTTokenWithKey(apiKey string) (string, error) {
 	return token.SignedString([]byte(secretKey))
 }
 
-func (a *TaskAdaptor) ParseTaskResult(respBody []byte) (*relaycommon.TaskInfo, error) {
+func (a *TaskAdaptor) ParseTaskResult(_ *model.Task, _ *http.Response, respBody []byte) (*relaycommon.TaskInfo, error) {
 	taskInfo := &relaycommon.TaskInfo{}
 	resPayload := responsePayload{}
 	err := common.Unmarshal(respBody, &resPayload)
@@ -415,4 +409,14 @@ func (a *TaskAdaptor) ConvertToOpenAIVideo(originTask *model.Task) ([]byte, erro
 		}
 	}
 	return common.Marshal(openAIVideo)
+}
+
+// ParseResponse implements channel.TaskAdaptor by delegating to the legacy
+// DoResponse method, which writes the HTTP response directly to c.
+func (a *TaskAdaptor) ParseResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (*channel.TaskSubmitResponse, *taskdto.TaskError) {
+	taskID, taskData, taskErr := a.DoResponse(c, resp, info)
+	if taskErr != nil {
+		return nil, taskErr
+	}
+	return &channel.TaskSubmitResponse{UpstreamTaskID: taskID, TaskData: taskData}, nil
 }

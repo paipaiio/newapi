@@ -16,6 +16,19 @@
    - 用于标识是否将思考内容`reasoning_content`转换为`<think>`标签拼接到内容中返回
    - 类型为布尔值，设置为 true 时启用思考内容转换
 
+4. normalize_system_messages
+    - 将非首位的 `system` 消息按原始顺序合并，并移动到 `messages` 首位
+    - 用于兼容要求 system 必须位于开头的上游模型（例如 vLLM + Qwen）
+    - 类型为布尔值，设置为 true 时启用；默认关闭，仅对开启该选项的渠道生效
+    - 只改 `role == "system"` 的顺序；`user` / `assistant` / `tool` / `function` 相对顺序不变
+    - 全部为字符串时用 `\n\n` 拼接；存在 content parts 数组时按 OpenAI 消息内容结构合并
+
+5. normalize_system_messages_models
+    - 可选的模型白名单，类型为字符串数组
+    - 为空或不设置时，该渠道下所有模型都会规范化
+    - 非空时仅当请求的原始模型名或映射后的上游模型名命中列表时才生效
+    - 示例：`["qwen3.8-27b-uncensored"]`
+
 --------------------------------------------------------------
 
 ## JSON 格式示例
@@ -26,6 +39,8 @@
 {
     "force_format": true,
     "thinking_to_content": true,
+    "normalize_system_messages": true,
+    "normalize_system_messages_models": ["qwen3.8-27b-uncensored"],
     "proxy": "socks5://proxy.example:1080"
 }
 ```

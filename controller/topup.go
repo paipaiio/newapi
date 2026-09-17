@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -23,41 +22,8 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// checkUserTopupAllowed 检查当前登录用户是否被允许充值
-func checkUserTopupAllowed(c *gin.Context) bool {
-	id := c.GetInt("id")
-	user, err := model.GetUserById(id, false)
-	if err != nil || user == nil {
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "用户不存在"})
-		return false
-	}
-	if !user.AllowTopup {
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "管理员已关闭您的充值权限"})
-		return false
-	}
-	return true
-}
-
 func GetTopUpInfo(c *gin.Context) {
-	complianceSite := constant.IsComplianceSite()
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
-
-	// 检查用户充值权限
-	id := c.GetInt("id")
-	allowTopup := true
-	userTopupDiscount := 1.0
-	var abusePendingBonus int
-	var abuseTopupAccumulated float64
-	if user, err := model.GetUserById(id, false); err == nil && user != nil {
-		allowTopup = user.AllowTopup
-		if user.TopupDiscount > 0 && user.TopupDiscount <= 1 {
-			userTopupDiscount = user.TopupDiscount
-		}
-		if user.AbusePendingBonus > 0 {
-			abusePendingBonus = user.AbusePendingBonus
-			abuseTopupAccumulated = model.GetUserSuccessTopupMoney(id)
-		}
-	}
 
 	// 获取支付方式
 	payMethods := operation_setting.PayMethods
@@ -130,79 +96,30 @@ func GetTopUpInfo(c *gin.Context) {
 		}
 	}
 
-	// 如果启用了支付宝，添加到支付方法列表
-	enableAlipay := isAlipayTopUpEnabled()
-	if enableAlipay {
-		payMethods = append(payMethods, map[string]string{
-			"name":       "支付宝",
-			"type":       "alipay",
-			"color":      "rgba(var(--semi-blue-5), 1)",
-			"min_topup":  fmt.Sprintf("%.2f", setting.AlipayMinTopUp),
-			"unit_price": fmt.Sprintf("%.4f", setting.AlipayUnitPrice),
-		})
-	}
-
-	// 如果启用了微信支付，添加到支付方法列表
-	enableWechatPay := isWechatPayTopUpEnabled()
-	if enableWechatPay {
-		payMethods = append(payMethods, map[string]string{
-			"name":       "微信支付",
-			"type":       "wechatpay",
-			"color":      "rgba(var(--semi-green-5), 1)",
-			"min_topup":  fmt.Sprintf("%.2f", setting.WechatPayMinTopUp),
-			"unit_price": fmt.Sprintf("%.4f", setting.WechatPayUnitPrice),
-		})
-	}
-
 	data := gin.H{
-		"allow_topup":                      allowTopup && !complianceSite,
-		"user_topup_discount":              userTopupDiscount,
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
 		"enable_waffo_topup":               enableWaffo,
 		"enable_waffo_pancake_topup":       enableWaffoPancake,
-		"enable_alipay_topup":              enableAlipay,
-		"enable_wechatpay_topup":           enableWechatPay,
-		"enable_redemption":                true,
+		"enable_redemption":                complianceConfirmed,
 		"payment_compliance_confirmed":     complianceConfirmed,
 		"payment_compliance_terms_version": operation_setting.CurrentComplianceTermsVersion,
-		"waffo_pay_methods": func() interface{} {
+		"waffo_pay_methods": func() any {
 			if enableWaffo {
 				return setting.GetWaffoPayMethods()
 			}
 			return nil
 		}(),
-		"creem_products":           setting.CreemProducts,
-		"pay_methods":              payMethods,
-		"min_topup":                operation_setting.MinTopUp,
-		"stripe_min_topup":         setting.StripeMinTopUp,
-		"waffo_min_topup":          setting.WaffoMinTopUp,
-		"waffo_pancake_min_topup":  setting.WaffoPancakeMinTopUp,
-		"waffo_pancake_unit_price": setting.WaffoPancakeUnitPrice,
-		"alipay_min_topup":         setting.AlipayMinTopUp,
-		"alipay_unit_price":        setting.AlipayUnitPrice,
-		"wechatpay_min_topup":      setting.WechatPayMinTopUp,
-		"wechatpay_unit_price":     setting.WechatPayUnitPrice,
-		"amount_options":           operation_setting.GetPaymentSetting().AmountOptions,
-		"discount":                 operation_setting.GetPaymentSetting().AmountDiscount,
-		"topup_link":               common.TopUpLink,
-		"abuse_pending_bonus":      abusePendingBonus,
-		"abuse_topup_required":     operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold,
-		"abuse_topup_accumulated":  abuseTopupAccumulated,
-	}
-	if complianceSite {
-		data["enable_online_topup"] = false
-		data["enable_stripe_topup"] = false
-		data["enable_creem_topup"] = false
-		data["enable_waffo_topup"] = false
-		data["enable_waffo_pancake_topup"] = false
-		data["enable_alipay_topup"] = false
-		data["enable_wechatpay_topup"] = false
-		data["waffo_pay_methods"] = nil
-		data["creem_products"] = ""
-		data["pay_methods"] = []map[string]string{}
-		data["topup_link"] = ""
+		"creem_products":          setting.CreemProducts,
+		"pay_methods":             payMethods,
+		"min_topup":               operation_setting.MinTopUp,
+		"stripe_min_topup":        setting.StripeMinTopUp,
+		"waffo_min_topup":         setting.WaffoMinTopUp,
+		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
+		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
+		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
+		"topup_link":              common.TopUpLink,
 	}
 	common.ApiSuccess(c, data)
 }
@@ -230,7 +147,7 @@ func GetEpayClient() *epay.Client {
 	return withUrl
 }
 
-func getPayMoney(userId int, amount int64, group string) float64 {
+func getPayMoney(amount int64, group string) float64 {
 	dAmount := decimal.NewFromInt(amount)
 	// 充值金额以“展示类型”为准：
 	// - USD/CNY: 前端传 amount 为金额单位；TOKENS: 前端传 tokens，需要换成 USD 金额
@@ -246,8 +163,13 @@ func getPayMoney(userId int, amount int64, group string) float64 {
 
 	dTopupGroupRatio := decimal.NewFromFloat(topupGroupRatio)
 	dPrice := decimal.NewFromFloat(operation_setting.Price)
-	// 全局档位折扣与用户专属折扣取更优(更低)价
-	discount := resolveTopupDiscount(userId, int(amount))
+	// apply optional preset discount by the original request amount (if configured), default 1.0
+	discount := 1.0
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(amount)]; ok {
+		if ds > 0 {
+			discount = ds
+		}
+	}
 	dDiscount := decimal.NewFromFloat(discount)
 
 	payMoney := dAmount.Mul(dPrice).Mul(dTopupGroupRatio).Mul(dDiscount)
@@ -255,31 +177,16 @@ func getPayMoney(userId int, amount int64, group string) float64 {
 	return payMoney.InexactFloat64()
 }
 
-// resolveTopupDiscount 返回该用户在该档位金额下的最终充值折扣率(0-1,越小越便宜,1=不打折)。
-// 全局档位折扣(payment_setting.AmountDiscount)与用户专属折扣(User.TopupDiscount)取更优(更低)价。
-func resolveTopupDiscount(userId int, amount int) float64 {
-	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[amount]; ok {
-		if ds > 0 {
-			discount = ds
-		}
-	}
-	if userId > 0 {
-		if u, err := model.GetUserById(userId, false); err == nil && u != nil {
-			if u.TopupDiscount > 0 && u.TopupDiscount < discount {
-				discount = u.TopupDiscount
-			}
-		}
-	}
-	return discount
-}
-
 func getMinTopup() int64 {
 	minTopup := operation_setting.MinTopUp
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
 		dMinTopup := decimal.NewFromInt(int64(minTopup))
 		dQuotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-		minTopup = common.QuotaFromDecimal(dMinTopup.Mul(dQuotaPerUnit))
+		quota, err := common.WalletQuotaFromDecimalStrict(dMinTopup.Mul(dQuotaPerUnit))
+		if err != nil {
+			return common.MaxWalletQuota
+		}
+		minTopup = quota
 	}
 	return int64(minTopup)
 }
@@ -292,7 +199,7 @@ func getTopUpQuota(amount int64) (int, error) {
 	} else {
 		quota = quota.Mul(decimal.NewFromFloat(common.QuotaPerUnit))
 	}
-	return common.QuotaFromDecimalStrict(quota)
+	return common.WalletQuotaFromDecimalStrict(quota)
 }
 
 func getMaxTopUpAmount() int64 {
@@ -300,7 +207,7 @@ func getMaxTopUpAmount() int64 {
 		return 0
 	}
 	quotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-	maxStoredAmount := decimal.NewFromInt(common.MaxQuota - 1).
+	maxStoredAmount := decimal.NewFromInt(common.MaxWalletQuota).
 		Div(quotaPerUnit).
 		Floor()
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
@@ -314,7 +221,7 @@ func getMaxTopUpAmount() int64 {
 }
 
 func validateCreditedQuota(quota decimal.Decimal) (int, error) {
-	value, err := common.QuotaFromDecimalStrict(quota)
+	value, err := common.WalletQuotaFromDecimalStrict(quota)
 	if err != nil {
 		return 0, errors.New("充值额度超出系统可表示范围")
 	}
@@ -361,12 +268,6 @@ func rejectInvalidTopUpQuota(c *gin.Context, userId int, amount int64) bool {
 }
 
 func RequestEpay(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
-	if !checkUserTopupAllowed(c) {
-		return
-	}
 	var req EpayRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
@@ -387,7 +288,7 @@ func RequestEpay(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "获取用户分组失败"})
 		return
 	}
-	payMoney := getPayMoney(id, req.Amount, group)
+	payMoney := getPayMoney(req.Amount, group)
 	if payMoney < 0.01 {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return
@@ -491,9 +392,6 @@ func UnlockOrder(tradeNo string) {
 }
 
 func EpayNotify(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	if !isEpayWebhookEnabled() {
 		logger.LogWarn(c.Request.Context(), fmt.Sprintf("易支付 webhook 被拒绝 reason=webhook_disabled path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
 		_, _ = c.Writer.Write([]byte("fail"))
@@ -586,9 +484,6 @@ func EpayNotify(c *gin.Context) {
 }
 
 func RequestAmount(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	var req AmountRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
@@ -609,7 +504,7 @@ func RequestAmount(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "获取用户分组失败"})
 		return
 	}
-	payMoney := getPayMoney(id, req.Amount, group)
+	payMoney := getPayMoney(req.Amount, group)
 	if payMoney <= 0.01 {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return

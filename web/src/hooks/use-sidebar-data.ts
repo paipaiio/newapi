@@ -219,6 +219,11 @@ export function useSidebarData(): SidebarData {
             icon: FileClock,
           },
           {
+            title: t('Content Safety Review'),
+            url: '/content-safety',
+            icon: ShieldAlert,
+          },
+          {
             title: t('Request Stats'),
             url: '/request-stats',
             icon: Activity,

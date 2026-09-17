@@ -307,6 +307,7 @@ export type BillingSettings = {
   'payment_setting.compliance_confirmed_at': number
   'payment_setting.compliance_confirmed_by': number
   'payment_setting.compliance_confirmed_ip': string
+  StripeEnabled: boolean
   StripeApiSecret: string
   StripeWebhookSecret: string
   StripePriceId: string
@@ -417,9 +418,24 @@ export type SecuritySettings = {
   'fetch_setting.ip_filter_mode': boolean
   'fetch_setting.domain_list': string[]
   'fetch_setting.ip_list': string[]
-  'fetch_setting.allowed_ports': number[]
+  'fetch_setting.allowed_ports': string[]
   'fetch_setting.apply_ip_filter_for_domain': boolean
   'token_setting.max_user_tokens': number
+  'content_safety.enabled': boolean
+  'content_safety.standard_mode': string
+  'content_safety.uncensored_mode': string
+  'content_safety.uncensored_models': string
+  'content_safety.uncensored_groups': string
+  'content_safety.jailbreak_scan_enabled': boolean
+  'content_safety.redline_words': string
+  'content_safety.guard_enabled': boolean
+  'content_safety.guard_base_url': string
+  'content_safety.guard_api_key': string
+  'content_safety.guard_model': string
+  'content_safety.guard_timeout_ms': number
+  'content_safety.guard_fail_open': boolean
+  'content_safety.scan_output': boolean
+  'content_safety.auto_disable_user': boolean
 }
 
 export type UpstreamChannel = {

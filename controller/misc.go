@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -14,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/oauth"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/console_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -41,43 +41,13 @@ func TestStatus(c *gin.Context) {
 	return
 }
 
-func compliancePublicStatus(data gin.H) {
-	data["site_mode"] = constant.SiteModeCompliance
-	data["payments_enabled"] = false
-	data["footer_html"] = ""
-	data["wechat_qrcode"] = ""
-	data["wechat_login"] = false
-	data["telegram_oauth"] = false
-	data["telegram_bot_name"] = ""
-	data["chats"] = []any{}
-	data["docs_link"] = ""
-	data["stripe_unit_price"] = 0
-	data["api_info_enabled"] = false
-	data["announcements_enabled"] = false
-	data["faq_enabled"] = false
-	data["HeaderNavModules"] = "{}"
-	// personal.topup 控制的是钱包页(/wallet)入口，不是"能不能付款"。合规站保留它，
-	// 用户才能查自己的余额与账单；充值/订阅等支付 UI 由前端按 site_mode 单独隐藏，
-	// 后端另有 payments_enabled=false 与各 topup 接口的拦截兜底。
-	data["SidebarModulesAdmin"] = `{"chat":{"enabled":true,"playground":true,"studio":true,"chat":true},"console":{"enabled":true,"detail":true,"token":true,"log":true,"midjourney":true,"task":true},"personal":{"enabled":true,"topup":true,"personal":true},"admin":{"enabled":false,"channel":false,"models":false,"redemption":false,"user":false,"setting":false,"subscription":false,"firstTokenTest":false,"monitor":false,"burnTool":false}}`
-	if constant.SitePublicURL != "" {
-		data["server_address"] = constant.SitePublicURL
-	} else {
-		data["server_address"] = ""
-	}
-	delete(data, "api_info")
-	delete(data, "announcements")
-	delete(data, "faq")
-	delete(data, "custom_oauth_providers")
-}
-
 func GetStatus(c *gin.Context) {
 
 	cs := console_setting.GetConsoleSetting()
+	passkeySetting := system_setting.PasskeySettingsSnapshot()
 	common.OptionMapRWMutex.RLock()
 	defer common.OptionMapRWMutex.RUnlock()
 
-	passkeySetting := system_setting.GetPasskeySettings()
 	legalSetting := system_setting.GetLegalSettings()
 
 	data := gin.H{
@@ -92,6 +62,7 @@ func GetStatus(c *gin.Context) {
 		"linuxdo_client_id":           common.LinuxDOClientId,
 		"linuxdo_minimum_trust_level": common.LinuxDOMinimumTrustLevel,
 		"telegram_oauth":              common.TelegramOAuthEnabled,
+		"telegram_oauth_configured":   oauth.TelegramConfigurationError() == nil,
 		"telegram_bot_name":           common.TelegramBotName,
 		"theme":                       "default",
 		"system_name":                 common.SystemName,
@@ -102,14 +73,8 @@ func GetStatus(c *gin.Context) {
 		"server_address":              system_setting.ServerAddress,
 		"turnstile_check":             common.TurnstileCheckEnabled,
 		"turnstile_site_key":          common.TurnstileSiteKey,
-		"geetest_check":               common.GeeTestCaptchaId != "",
-		"cap_check":                   middleware.IsCapConfigured(),
 		"docs_link":                   operation_setting.GetGeneralSetting().DocsLink,
 		"quota_per_unit":              common.QuotaPerUnit,
-		// 公开首页返利 pill 数据：注册赠额 / 邀请人赠额 / 被邀请人赠额（为 0 时前端隐藏对应 pill）
-		"quota_for_new_user": common.QuotaForNewUser,
-		"quota_for_inviter":  common.QuotaForInviter,
-		"quota_for_invitee":  common.QuotaForInvitee,
 		// 兼容旧前端：保留 display_in_currency，同时提供新的 quota_display_type
 		"display_in_currency":           operation_setting.IsCurrencyDisplay(),
 		"quota_display_type":            operation_setting.GetQuotaDisplayType(),
@@ -129,6 +94,8 @@ func GetStatus(c *gin.Context) {
 		"password_login_enabled":        common.PasswordLoginEnabled,
 		"password_register_enabled":     common.PasswordRegisterEnabled,
 		"default_use_auto_group":        setting.DefaultUseAutoGroup,
+
+		"password_login_encryption_enabled": common.PasswordLoginEncryptionEnabled,
 
 		"usd_exchange_rate": operation_setting.USDExchangeRate,
 		"price":             operation_setting.Price,
@@ -150,8 +117,8 @@ func GetStatus(c *gin.Context) {
 		"oidc_display_name":           system_setting.GetOIDCSettings().GetEffectiveDisplayName(),
 		"passkey_login":               passkeySetting.Enabled,
 		"passkey_display_name":        passkeySetting.RPDisplayName,
-		"passkey_rp_id":               passkeySetting.RPID,
-		"passkey_origins":             passkeySetting.Origins,
+		"passkey_rp_id":               passkeySetting.EffectiveRPID(),
+		"passkey_rp_ids":              passkeySetting.RelyingPartyIDs(),
 		"passkey_allow_insecure":      passkeySetting.AllowInsecureOrigin,
 		"passkey_user_verification":   passkeySetting.UserVerification,
 		"passkey_attachment":          passkeySetting.AttachmentPreference,
@@ -200,10 +167,6 @@ func GetStatus(c *gin.Context) {
 		data["custom_oauth_providers"] = providersInfo
 	}
 
-	if constant.IsComplianceSite() {
-		compliancePublicStatus(data)
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -213,59 +176,25 @@ func GetStatus(c *gin.Context) {
 }
 
 func GetNotice(c *gin.Context) {
-	if constant.IsComplianceSite() {
-		common.ApiSuccess(c, "")
-		return
-	}
 	common.OptionMapRWMutex.RLock()
-	defer common.OptionMapRWMutex.RUnlock()
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    common.OptionMap["Notice"],
-	})
-	return
+	notice := common.OptionMap["Notice"]
+	common.OptionMapRWMutex.RUnlock()
+	serveRevalidatedJSON(c, notice)
 }
 
 func GetAbout(c *gin.Context) {
-	if constant.IsComplianceSite() {
-		common.ApiSuccess(c, "")
-		return
-	}
 	common.OptionMapRWMutex.RLock()
-	defer common.OptionMapRWMutex.RUnlock()
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    common.OptionMap["About"],
-	})
-	return
+	about := common.OptionMap["About"]
+	common.OptionMapRWMutex.RUnlock()
+	serveRevalidatedJSON(c, about)
 }
 
 func GetUserAgreement(c *gin.Context) {
-	if constant.IsComplianceSite() {
-		common.ApiSuccess(c, "")
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    system_setting.GetLegalSettings().UserAgreement,
-	})
-	return
+	serveRevalidatedJSON(c, system_setting.GetLegalSettings().UserAgreement)
 }
 
 func GetPrivacyPolicy(c *gin.Context) {
-	if constant.IsComplianceSite() {
-		common.ApiSuccess(c, "")
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    system_setting.GetLegalSettings().PrivacyPolicy,
-	})
-	return
+	serveRevalidatedJSON(c, system_setting.GetLegalSettings().PrivacyPolicy)
 }
 
 func GetMidjourney(c *gin.Context) {
@@ -280,65 +209,17 @@ func GetMidjourney(c *gin.Context) {
 }
 
 func GetHomePageContent(c *gin.Context) {
-	if constant.IsComplianceSite() {
-		common.ApiSuccess(c, "")
-		return
-	}
 	common.OptionMapRWMutex.RLock()
-	defer common.OptionMapRWMutex.RUnlock()
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "",
-		"data":    common.OptionMap["HomePageContent"],
-	})
-	return
+	homePageContent := common.OptionMap["HomePageContent"]
+	common.OptionMapRWMutex.RUnlock()
+	serveRevalidatedJSON(c, homePageContent)
 }
 
 func SendEmailVerification(c *gin.Context) {
-	email := model.NormalizeEmail(c.Query("email"))
-	if err := common.Validate.Var(email, "required,email"); err != nil {
-		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+	email, err := service.ValidateAccountEmail(c.Query("email"))
+	if err != nil {
+		writeSecurityOperationError(c, err)
 		return
-	}
-	// 邮箱统一小写化:域名部分大小写不敏感(RFC),各主流邮箱 local part 也不敏感。
-	// 统一后域名白名单/别名/唯一性/验证码 key 全部一致,避免 Gmail.com 绕过。
-	email = strings.ToLower(email)
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "无效的邮箱地址",
-		})
-		return
-	}
-	localPart := parts[0]
-	domainPart := parts[1]
-	if common.EmailDomainRestrictionEnabled {
-		allowed := false
-		// email 已小写化;白名单条目也归一化小写,兼容管理员配置了大小写混合的域名。
-		for _, domain := range common.EmailDomainWhitelist {
-			if domainPart == strings.ToLower(domain) {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "管理员已启用邮箱域名白名单，您的邮箱地址因包含特殊符号或不在白名单中而被拒绝。",
-			})
-			return
-		}
-	}
-	if common.EmailAliasRestrictionEnabled {
-		containsSpecialSymbols := strings.Contains(localPart, "+") || strings.Contains(localPart, ".")
-		if containsSpecialSymbols {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "管理员已启用邮箱地址别名限制，您的邮箱地址由于包含特殊符号而被拒绝。",
-			})
-			return
-		}
 	}
 
 	if model.IsEmailAlreadyTaken(email) {
@@ -348,21 +229,10 @@ func SendEmailVerification(c *gin.Context) {
 	code := common.GenerateVerificationCode(6)
 	common.RegisterVerificationCodeWithKey(email, code, common.EmailVerificationPurpose)
 	subject := fmt.Sprintf("%s邮箱验证邮件", common.SystemName)
-	body := fmt.Sprintf(`<tr><td style="padding:40px 40px 8px;">
-<h1 style="margin:0 0 12px;color:#0f1419;font-size:22px;font-weight:700;">邮箱验证</h1>
-<p style="margin:0 0 28px;color:#475467;font-size:15px;line-height:1.6;">您好，您正在进行 %s 邮箱验证。请在验证页面输入以下验证码以完成操作：</p>
-</td></tr>
-<tr><td style="padding:0 40px;">
-<table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background:#f5f8ff;border:1px solid #d6e1ff;border-radius:12px;">
-<tr><td align="center" style="padding:24px;">
-<div style="color:#0f1419;font-size:38px;font-weight:800;letter-spacing:10px;font-family:'SFMono-Regular',Consolas,Menlo,monospace;">%s</div>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:24px 40px 40px;">
-<p style="margin:0;color:#667085;font-size:13px;line-height:1.6;">验证码 <strong style="color:#155EEF;">%d 分钟</strong>内有效。如果这不是您本人的操作，请忽略此邮件。</p>
-</td></tr>`, common.SystemName, code, common.VerificationValidMinutes)
-	content := common.WrapEmailContent(body)
-	err := common.SendEmail(subject, email, content)
+	content := fmt.Sprintf("<p>您好，你正在进行%s邮箱验证。</p>"+
+		"<p>您的验证码为: <strong>%s</strong></p>"+
+		"<p>验证码 %d 分钟内有效，如果不是本人操作，请忽略。</p>", common.SystemName, code, common.VerificationValidMinutes)
+	err = common.SendEmail(subject, email, content)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -385,23 +255,10 @@ func SendPasswordResetEmail(c *gin.Context) {
 		common.RegisterVerificationCodeWithKey(email, code, common.PasswordResetPurpose)
 		link := fmt.Sprintf("%s/user/reset?email=%s&token=%s", system_setting.ServerAddress, email, code)
 		subject := fmt.Sprintf("%s密码重置", common.SystemName)
-		body := fmt.Sprintf(`<tr><td style="padding:40px 40px 8px;">
-<h1 style="margin:0 0 12px;color:#0f1419;font-size:22px;font-weight:700;">密码重置</h1>
-<p style="margin:0 0 28px;color:#475467;font-size:15px;line-height:1.6;">您好，您正在进行 %s 密码重置。点击下方按钮即可重置您的密码：</p>
-</td></tr>
-<tr><td align="center" style="padding:0 40px 8px;">
-<table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:10px;background:#155EEF;">
-<a href="%s" style="display:inline-block;padding:14px 40px;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;border-radius:10px;">重置密码</a>
-</td></tr></table>
-</td></tr>
-<tr><td style="padding:24px 40px 8px;">
-<p style="margin:0 0 8px;color:#667085;font-size:13px;line-height:1.6;">如果按钮无法点击，请将以下链接复制到浏览器打开：</p>
-<p style="margin:0;word-break:break-all;"><a href="%s" style="color:#155EEF;font-size:13px;text-decoration:none;">%s</a></p>
-</td></tr>
-<tr><td style="padding:24px 40px 40px;">
-<p style="margin:0;color:#667085;font-size:13px;line-height:1.6;">重置链接 <strong style="color:#155EEF;">%d 分钟</strong>内有效。如果这不是您本人的操作，请忽略此邮件，您的密码不会被更改。</p>
-</td></tr>`, common.SystemName, link, link, link, common.VerificationValidMinutes)
-		content := common.WrapEmailContent(body)
+		content := fmt.Sprintf("<p>您好，你正在进行%s密码重置。</p>"+
+			"<p>点击 <a href='%s'>此处</a> 进行密码重置。</p>"+
+			"<p>如果链接无法点击，请尝试点击下面的链接或将其复制到浏览器中打开：<br> %s </p>"+
+			"<p>重置链接 %d 分钟内有效，如果不是本人操作，请忽略。</p>", common.SystemName, link, link, common.VerificationValidMinutes)
 		err := common.SendEmail(subject, email, content)
 		if err != nil {
 			logger.LogError(c.Request.Context(), fmt.Sprintf("failed to send password reset email to %s: %s", email, err.Error()))

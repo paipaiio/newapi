@@ -39,9 +39,6 @@ import type {
   WaffoPaymentResponse,
   WaffoPancakePaymentRequest,
   WaffoPancakePaymentResponse,
-  AlipayPaymentResponse,
-  WechatPayPaymentResponse,
-  QRCodeOrderStatusResponse,
 } from './types'
 
 // ============================================================================
@@ -81,7 +78,6 @@ export async function calculateAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/amount', request, {
     skipBusinessError: true,
-    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
@@ -94,7 +90,6 @@ export async function calculateStripeAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/stripe/amount', request, {
     skipBusinessError: true,
-    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
@@ -107,7 +102,6 @@ export async function calculateWaffoAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/waffo/amount', request, {
     skipBusinessError: true,
-    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
@@ -171,7 +165,6 @@ export async function calculateWaffoPancakeAmount(
 ): Promise<AmountResponse> {
   const res = await api.post('/api/user/waffo-pancake/amount', request, {
     skipBusinessError: true,
-    skipErrorHandler: true,
   } as Record<string, unknown>)
   return res.data
 }
@@ -251,49 +244,5 @@ export async function completeOrder(
   request: CompleteOrderRequest
 ): Promise<ApiResponse> {
   const res = await api.post('/api/user/topup/complete', request)
-  return res.data
-}
-
-/**
- * Request Alipay QR code payment
- */
-export async function requestAlipayPayment(request: {
-  amount: number
-}): Promise<AlipayPaymentResponse> {
-  const res = await api.post('/api/user/alipay/pay', request, {
-    skipBusinessError: true,
-  } as Record<string, unknown>)
-  return res.data
-}
-
-/**
- * Request WeChat Pay QR code payment
- */
-export async function requestWechatPayPayment(request: {
-  amount: number
-}): Promise<WechatPayPaymentResponse> {
-  const res = await api.post('/api/user/wechatpay/pay', request, {
-    skipBusinessError: true,
-  } as Record<string, unknown>)
-  return res.data
-}
-
-/**
- * Query Alipay order status
- */
-export async function queryAlipayOrder(
-  tradeNo: string
-): Promise<QRCodeOrderStatusResponse> {
-  const res = await api.get(`/api/user/alipay/query?trade_no=${tradeNo}`)
-  return res.data
-}
-
-/**
- * Query WeChat Pay order status
- */
-export async function queryWechatPayOrder(
-  tradeNo: string
-): Promise<QRCodeOrderStatusResponse> {
-  const res = await api.get(`/api/user/wechatpay/query?trade_no=${tradeNo}`)
   return res.data
 }

@@ -22,6 +22,7 @@ import { SSRFSection } from '../request-limits/ssrf-section'
 import { TokenLimitSection } from '../request-limits/token-limit-section'
 import type { SecuritySettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { ContentSafetySection } from './content-safety-section'
 
 const SECURITY_SECTIONS = [
   {
@@ -37,6 +38,43 @@ const SECURITY_SECTIONS = [
           ModelRequestRateLimitDurationMinutes:
             settings.ModelRequestRateLimitDurationMinutes,
           ModelRequestRateLimitGroup: settings.ModelRequestRateLimitGroup,
+        }}
+      />
+    ),
+  },
+  {
+    id: 'content-safety',
+    titleKey: 'Content Safety',
+    build: (settings: SecuritySettings) => (
+      <ContentSafetySection
+        defaultValues={{
+          'content_safety.enabled': settings['content_safety.enabled'] ?? false,
+          'content_safety.standard_mode':
+            settings['content_safety.standard_mode'],
+          'content_safety.uncensored_mode':
+            settings['content_safety.uncensored_mode'],
+          'content_safety.uncensored_models':
+            settings['content_safety.uncensored_models'],
+          'content_safety.uncensored_groups':
+            settings['content_safety.uncensored_groups'],
+          'content_safety.jailbreak_scan_enabled':
+            settings['content_safety.jailbreak_scan_enabled'],
+          'content_safety.redline_words':
+            settings['content_safety.redline_words'],
+          'content_safety.guard_enabled':
+            settings['content_safety.guard_enabled'],
+          'content_safety.guard_base_url':
+            settings['content_safety.guard_base_url'],
+          'content_safety.guard_api_key':
+            settings['content_safety.guard_api_key'],
+          'content_safety.guard_model': settings['content_safety.guard_model'],
+          'content_safety.guard_timeout_ms':
+            settings['content_safety.guard_timeout_ms'],
+          'content_safety.guard_fail_open':
+            settings['content_safety.guard_fail_open'],
+          'content_safety.scan_output': settings['content_safety.scan_output'],
+          'content_safety.auto_disable_user':
+            settings['content_safety.auto_disable_user'],
         }}
       />
     ),

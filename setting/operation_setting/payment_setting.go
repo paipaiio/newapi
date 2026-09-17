@@ -1,9 +1,6 @@
 package operation_setting
 
-import (
-	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/setting/config"
-)
+import "github.com/QuantumNous/new-api/setting/config"
 
 type PaymentSetting struct {
 	AmountOptions  []int           `json:"amount_options"`
@@ -34,9 +31,6 @@ func GetPaymentSetting() *PaymentSetting {
 }
 
 func IsPaymentComplianceConfirmed() bool {
-	if constant.IsComplianceSite() {
-		return false
-	}
 	return paymentSetting.ComplianceConfirmed &&
 		paymentSetting.ComplianceTermsVersion == CurrentComplianceTermsVersion
 }

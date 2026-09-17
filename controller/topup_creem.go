@@ -151,12 +151,6 @@ func (*CreemAdaptor) RequestPay(c *gin.Context, req *CreemPayRequest) {
 }
 
 func RequestCreemPay(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
-	if !checkUserTopupAllowed(c) {
-		return
-	}
 	var req CreemPayRequest
 
 	// 读取body内容用于打印，同时保留原始数据供后续使用
@@ -242,9 +236,6 @@ type CreemWebhookEvent struct {
 }
 
 func CreemWebhook(c *gin.Context) {
-	if rejectThirdPartyPaymentForSite(c) {
-		return
-	}
 	if !isCreemWebhookEnabled() {
 		logger.LogWarn(c.Request.Context(), fmt.Sprintf("Creem webhook 被拒绝 reason=webhook_disabled path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
 		c.AbortWithStatus(http.StatusForbidden)

@@ -30,10 +30,7 @@ export const Route = createFileRoute('/_authenticated/wallet/')({
   validateSearch: walletSearchSchema,
 })
 
-// 合规站保留本页：余额与账单是用户查询自己资产的入口，不属于支付功能。
-// 页面内部按 site_mode 隐藏充值/订阅等支付 UI（见 features/wallet）。
 function RouteComponent() {
   const { show_history } = Route.useSearch()
-
   return <Wallet initialShowHistory={show_history} />
 }

@@ -111,11 +111,7 @@ func sendEmailNotify(userEmail string, data dto.Notify) error {
 	for _, value := range data.Values {
 		content = strings.Replace(content, dto.ContentValueParam, fmt.Sprintf("%v", value), 1)
 	}
-	body := fmt.Sprintf(`<tr><td style="padding:40px 40px;">
-<h1 style="margin:0 0 12px;color:#0f1419;font-size:22px;font-weight:700;">%s</h1>
-<div style="color:#475467;font-size:15px;line-height:1.6;">%s</div>
-</td></tr>`, data.Title, content)
-	return common.SendEmail(data.Title, userEmail, common.WrapEmailContent(body))
+	return common.SendEmail(data.Title, userEmail, content)
 }
 
 func sendBarkNotify(barkURL string, data dto.Notify) error {

@@ -595,4 +595,11 @@ export const STATIC_I18N_KEYS = [
   'This user account is disabled.',
   'Telegram binding failed. Please try again.',
   'Verification scope is missing',
+  'Support session is invalid. Please start a new conversation.',
+  'The support request is invalid.',
+  'Support is rate-limited. Please wait and try again.',
+  'Customer support is temporarily unavailable.',
+  'You do not have access to this support conversation.',
+  'Customer support is not configured.',
+  'Support conversation not found.',
 ] as const

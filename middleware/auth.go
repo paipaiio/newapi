@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
-	// "github.com/QuantumNous/new-api/service" // removed: relay no longer restricts by user-selectable groups
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
@@ -21,31 +22,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
-
-// resolveTokenKey 解析请求里的 key 字符串，返回用于查库的 key 和分段 parts。
-//
-// 历史逻辑：去掉 "sk-" 前缀后，按 "-" 切，只取第一段（parts[0]）。
-// 这里 "-" 是「key-渠道id」语法的保留分隔符（管理员指定渠道用）。
-// 但这导致 key 本身含 "-" 的（如从 Anthropic 风格 sk-ant-xxx 导入的 ant-xxx）
-// 被错误截断成 "ant"，永远匹配不上。
-//
-// 新逻辑：去 "sk-" 后，若整串含 "-"，先用整串探一次库——
-//   - 整串就是某个真实 token 的 key  → 用整串，parts 仅含整串（不触发渠道覆盖）；
-//   - 整串查不到（说明是 key-渠道id 这种语法，或纯属无效）→ 回退按 "-" 切。
-//
-// 不含 "-" 的 key 行为完全不变（零额外查询）。
-func resolveTokenKey(rawKey string) (key string, parts []string) {
-	rawKey = strings.TrimPrefix(rawKey, "sk-")
-	if !strings.Contains(rawKey, "-") {
-		return rawKey, []string{rawKey}
-	}
-	// 含 "-"：先整串探库（命中走缓存，开销极小）
-	if _, err := model.GetTokenByKey(rawKey, false); err == nil {
-		return rawKey, []string{rawKey}
-	}
-	parts = strings.Split(rawKey, "-")
-	return parts[0], parts
-}
 
 const authIdentityContextKey = "auth_identity"
 
@@ -69,6 +45,9 @@ func validUserInfo(username string, role int) bool {
 }
 
 func authHelper(c *gin.Context, minRole int) {
+	if _, started := c.Get(accessTokenAuditContextKey); !started {
+		defer finishAccessTokenAudit(c)
+	}
 	user, identity, useAccessToken, err := authenticateDashboardRequest(c)
 	if err != nil {
 		writeDashboardAuthError(c, err)
@@ -103,6 +82,9 @@ func authHelper(c *gin.Context, minRole int) {
 
 func TryUserAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
+		if _, started := c.Get(accessTokenAuditContextKey); !started {
+			defer finishAccessTokenAudit(c)
+		}
 		user, identity, credentialKind, err := classifyDashboardCredential(c)
 		if err != nil {
 			writeDashboardAuthError(c, err)
@@ -121,33 +103,14 @@ func UserAuth() func(c *gin.Context) {
 	}
 }
 
-func complianceAdminUnavailable(c *gin.Context) bool {
-	if !constant.IsComplianceSite() {
-		return false
-	}
-	logger.LogWarn(c.Request.Context(), fmt.Sprintf("compliance site rejected privileged route method=%s path=%s", c.Request.Method, c.Request.URL.Path))
-	c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-		"success": false,
-		"code":    "NOT_FOUND",
-		"message": "Not found",
-	})
-	return true
-}
-
 func AdminAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if complianceAdminUnavailable(c) {
-			return
-		}
 		authHelper(c, common.RoleAdminUser)
 	}
 }
 
 func RootAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		if complianceAdminUnavailable(c) {
-			return
-		}
 		authHelper(c, common.RoleRootUser)
 	}
 }
@@ -215,6 +178,7 @@ func classifyDashboardCredential(c *gin.Context) (*model.UserBase, service.AuthI
 	if patUser == nil || patUser.Id <= 0 {
 		return nil, service.AuthIdentity{}, dashboardCredentialUnmatched, nil
 	}
+	beginAccessTokenAudit(c, patUser, raw)
 	user, err := model.GetUserCache(patUser.Id)
 	if err != nil {
 		return nil, service.AuthIdentity{}, dashboardCredentialPAT, err
@@ -335,7 +299,9 @@ func TokenAuthReadOnly() func(c *gin.Context) {
 		if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
 			key = strings.TrimSpace(key[7:])
 		}
-		key, _ = resolveTokenKey(key)
+		key = strings.TrimPrefix(key, "sk-")
+		parts := strings.Split(key, "-")
+		key = parts[0]
 
 		token, err := model.GetTokenByKey(key, false)
 		if err != nil {
@@ -395,20 +361,7 @@ func TokenAuthReadOnly() func(c *gin.Context) {
 func TokenAuth() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		// 先检测是否为ws
-		if c.Request.Header.Get("Sec-WebSocket-Protocol") != "" {
-			// Sec-WebSocket-Protocol: realtime, openai-insecure-api-key.sk-xxx, openai-beta.realtime-v1
-			// read sk from Sec-WebSocket-Protocol
-			key := c.Request.Header.Get("Sec-WebSocket-Protocol")
-			parts := strings.Split(key, ",")
-			for _, part := range parts {
-				part = strings.TrimSpace(part)
-				if strings.HasPrefix(part, "openai-insecure-api-key") {
-					key = strings.TrimPrefix(part, "openai-insecure-api-key.")
-					break
-				}
-			}
-			c.Request.Header.Set("Authorization", "Bearer "+key)
-		}
+		applyWebSocketSubprotocolAuthorization(c.Request.Header)
 		// 检查path包含/v1/messages 或 /v1/models
 		if strings.Contains(c.Request.URL.Path, "/v1/messages") || strings.Contains(c.Request.URL.Path, "/v1/models") {
 			anthropicKey := c.Request.Header.Get("x-api-key")
@@ -441,9 +394,13 @@ func TokenAuth() func(c *gin.Context) {
 			if strings.HasPrefix(key, "Bearer ") || strings.HasPrefix(key, "bearer ") {
 				key = strings.TrimSpace(key[7:])
 			}
-			key, parts = resolveTokenKey(key)
+			key = strings.TrimPrefix(key, "sk-")
+			parts = strings.Split(key, "-")
+			key = parts[0]
 		} else {
-			key, parts = resolveTokenKey(key)
+			key = strings.TrimPrefix(key, "sk-")
+			parts = strings.Split(key, "-")
+			key = parts[0]
 		}
 		token, err := model.ValidateUserToken(key)
 		if token != nil {
@@ -497,43 +454,20 @@ func TokenAuth() func(c *gin.Context) {
 
 		userGroup := userCache.Group
 		tokenGroup := token.Group
-		// 管理员不受「用户可选分组/独享授权」限制，可使用任何已定义的分组
-		// （仍校验分组是否存在于 GroupRatio，防止指向已弃用分组）。
-		isAdmin := userCache.Role >= common.RoleAdminUser
 		if tokenGroup != "" {
-			// token 可绑定多个分组(逗号分隔,顺序即优先级)。逐个校验权限与有效性。
-			tokenGroups := token.GetGroups()
-			for _, g := range tokenGroups {
-				if !isAdmin {
-					// relay 校验只管「独享分组授权」——用户必须被显式授权才能使用独享分组。
-					// 「用户可选分组」（UserUsableGroups）是 UI 层限制（控制用户在创建 token
-					// 时能选哪些分组），不限制 relay 使用。管理员直接给 token 分配的分组应
-					// 始终可用，不受可选分组列表为空的影响。
-					if model.IsExclusiveGroup(g) && !model.IsUserAllowedExclusive(userCache.Id, g) {
-						abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", g))
-						return
-					}
-				}
-				// check group in common.GroupRatio
-				if !ratio_setting.ContainsGroupRatio(g) {
-					if g != "auto" {
-						abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("分组 %s 已被弃用", g))
-						return
-					}
-				}
-			}
-			// 多分组时,UsingGroup 先占位为列表第一个;真正命中的分组由 channel_select
-			// 在渠道选择阶段改写为命中分组(计费跟随命中分组)。单分组时即该分组。
-			if len(tokenGroups) > 0 {
-				userGroup = tokenGroups[0]
-			}
-		} else {
-			// token 未指定分组时直接使用用户自身分组。
-			// 若该分组为独享分组且用户未被授权（如被移出名单），拒绝访问。
-			if !isAdmin && model.IsExclusiveGroup(userGroup) && !model.IsUserAllowedExclusive(userCache.Id, userGroup) {
-				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", userGroup))
+			// check common.UserUsableGroups[userGroup]
+			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
+				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
 				return
 			}
+			// check group in common.GroupRatio
+			if !ratio_setting.ContainsGroupRatio(tokenGroup) {
+				if tokenGroup != "auto" {
+					abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("分组 %s 已被弃用", tokenGroup))
+					return
+				}
+			}
+			userGroup = tokenGroup
 		}
 		common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
 
@@ -545,6 +479,30 @@ func TokenAuth() func(c *gin.Context) {
 	}
 }
 
+func applyWebSocketSubprotocolAuthorization(header http.Header) bool {
+	key, ok := apiKeyFromWebSocketSubprotocol(strings.Join(header.Values("Sec-WebSocket-Protocol"), ","))
+	if !ok {
+		return false
+	}
+	header.Set("Authorization", "Bearer "+key)
+	return true
+}
+
+func apiKeyFromWebSocketSubprotocol(protocols string) (string, bool) {
+	if protocols == "" {
+		return "", false
+	}
+	const insecureAPIKeyPrefix = "openai-insecure-api-key."
+	for part := range strings.SplitSeq(protocols, ",") {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, insecureAPIKeyPrefix) {
+			key := strings.TrimPrefix(part, insecureAPIKeyPrefix)
+			return key, key != ""
+		}
+	}
+	return "", false
+}
+
 func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) error {
 	if token == nil {
 		return fmt.Errorf("token is nil")
@@ -553,8 +511,6 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	c.Set("token_id", token.Id)
 	c.Set("token_key", token.Key)
 	c.Set("token_name", token.Name)
-	c.Set("token_rpm", token.Rpm)
-	c.Set("token_tpm", token.Tpm)
 	c.Set("token_unlimited_quota", token.UnlimitedQuota)
 	if !token.UnlimitedQuota {
 		c.Set("token_quota", token.RemainQuota)
@@ -579,7 +535,17 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	}
 	if len(parts) > 1 {
 		if model.IsAdmin(token.UserId) {
-			c.Set("specific_channel_id", parts[1])
+			id, err := strconv.Atoi(parts[1])
+			if err != nil {
+				abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorInvalidChannelId))
+				return fmt.Errorf("invalid specific channel id")
+			}
+			service.GetChannelConstraints(c).AddPin(dto.ChannelPin{
+				ChannelId: id,
+				Source:    dto.PinSourceToken,
+				Rank:      dto.PinRankToken,
+				RetryMode: dto.PinRetrySingleAttempt,
+			})
 		} else {
 			c.Header("specific_channel_version", "701e3ae1dc3f7975556d354e0675168d004891c8")
 			abortWithOpenAiMessage(c, http.StatusForbidden, "普通用户不支持指定渠道")

@@ -12,7 +12,7 @@ import (
 
 var StartTime = time.Now().Unix() // unit: second
 var Version = "v0.0.0"            // this hard coding will be replaced automatically when building, no need to manually change
-var SystemName = "TUFTech"
+var SystemName = "New API"
 var Footer = ""
 var Logo = ""
 var TopUpLink = ""
@@ -60,6 +60,7 @@ var ItemsPerPage = 10
 var MaxRecentItems = 1000
 
 var PasswordLoginEnabled = true
+var PasswordLoginEncryptionEnabled = false
 var PasswordRegisterEnabled = true
 var EmailVerificationEnabled = false
 var GitHubOAuthEnabled = false
@@ -118,15 +119,16 @@ var WeChatAccountQRCodeImageURL = ""
 var TurnstileSiteKey = ""
 var TurnstileSecretKey = ""
 
+// Cap self-hosted proof-of-work captcha (fork extension)
+var CapEnabled = false
+var CapServerURL = ""
+var CapSiteKey = ""
+var CapSecretKey = ""
+var CapPublicEndpoint = "" // public-facing URL for the Cap proof-of-work widget (fork extension)
+
+// GeeTest behaviour-verification captcha (fork extension)
 var GeeTestCaptchaId = ""
 var GeeTestCaptchaKey = ""
-
-// Cap 自托管验证码（proof-of-work，开源）。全部 DB options 热加载可配，无硬编码。
-var CapEnabled = false     // 总开关：启用后全站用 Cap（地域无关），false 则回退 geetest/turnstile 地域分流
-var CapServerURL = ""      // 后端内部访问地址（siteverify），如 http://cap:3000
-var CapPublicEndpoint = "" // 浏览器经 new-api 反代访问的地址（widget challenge/redeem），如 https://api.tuftech.org/api/cap
-var CapSiteKey = ""        // Cap dashboard 生成的 site key（公开）
-var CapSecretKey = ""      // Cap dashboard 生成的 secret key（仅后端 siteverify 用，勿泄露）
 
 var TelegramBotToken = ""
 var TelegramBotName = ""
@@ -172,6 +174,16 @@ var BatchUpdateInterval int
 var RelayTimeout int // unit is second
 
 var RelayIdleConnTimeout int // unit is second
+
+// RelayResponseHeaderTimeout limits how long the relay transport waits for the
+// upstream response headers after the request has been fully written.
+// 0 disables it (previous behaviour: wait forever).
+//
+// Note this is NOT the same as RelayTimeout (http.Client.Timeout), which covers
+// the whole response read and therefore breaks legitimate long streaming calls.
+// ResponseHeaderTimeout only bounds the wait for the response headers; once the
+// headers arrive, streaming is unaffected.
+var RelayResponseHeaderTimeout int // unit is second
 var RelayMaxIdleConns int
 var RelayMaxIdleConnsPerHost int
 

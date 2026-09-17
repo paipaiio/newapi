@@ -39,9 +39,25 @@ const defaultSecuritySettings: SecuritySettings = {
   'fetch_setting.ip_filter_mode': false,
   'fetch_setting.domain_list': [],
   'fetch_setting.ip_list': [],
-  'fetch_setting.allowed_ports': [],
-  'fetch_setting.apply_ip_filter_for_domain': false,
+  'fetch_setting.allowed_ports': ['80', '443', '8080', '8443'],
+  'fetch_setting.apply_ip_filter_for_domain': true,
   'token_setting.max_user_tokens': 1000,
+  'content_safety.enabled': false,
+  'content_safety.standard_mode': 'async',
+  'content_safety.uncensored_mode': 'async',
+  'content_safety.uncensored_models':
+    '*uncensored*\n*abliterated*\n*unfiltered*\n*nsfw*',
+  'content_safety.uncensored_groups': '',
+  'content_safety.jailbreak_scan_enabled': true,
+  'content_safety.redline_words': '',
+  'content_safety.guard_enabled': false,
+  'content_safety.guard_base_url': '',
+  'content_safety.guard_api_key': '',
+  'content_safety.guard_model': 'qwen3guard',
+  'content_safety.guard_timeout_ms': 800,
+  'content_safety.guard_fail_open': true,
+  'content_safety.scan_output': true,
+  'content_safety.auto_disable_user': false,
 }
 
 export function SecuritySettings() {

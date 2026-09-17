@@ -1,49 +1,128 @@
 package common
 
 import (
+	"container/list"
 	"sync"
 	"time"
 )
 
-type InMemoryRateLimiter struct {
-	store              map[string]*[]int64
-	mutex              sync.Mutex
-	expirationDuration time.Duration
-	tpmStore           map[string]*tpmEntry
+// rateLimitRequest stores one accepted request in a key's sliding window.
+type rateLimitRequest struct {
+	next      *rateLimitRequest
+	timestamp int64
 }
 
-type tpmEntry struct {
-	tokens   int
-	expireAt int64
+// rateLimitQueue keeps accepted requests ordered from oldest to newest.
+type rateLimitQueue struct {
+	head   *rateLimitRequest
+	tail   *rateLimitRequest
+	length int
 }
 
-func (l *InMemoryRateLimiter) Init(expirationDuration time.Duration) {
-	if l.store == nil {
-		l.mutex.Lock()
-		if l.store == nil {
-			l.store = make(map[string]*[]int64)
-			l.expirationDuration = expirationDuration
-			if expirationDuration > 0 {
-				go l.clearExpiredItems()
-			}
-		}
-		l.mutex.Unlock()
+// append adds an accepted request without preallocating for the configured limit.
+func (q *rateLimitQueue) append(timestamp int64) {
+	request := &rateLimitRequest{timestamp: timestamp}
+	if q.tail == nil {
+		q.head = request
+		q.tail = request
+	} else {
+		q.tail.next = request
+		q.tail = request
+	}
+	q.length++
+}
+
+// removeExpired releases every expired request at the front of the queue.
+func (q *rateLimitQueue) removeExpired(now int64, duration int64) {
+	if q.head == nil || now-q.head.timestamp < duration {
+		return
+	}
+
+	// Requests are time ordered, so an expired tail means the whole queue expired.
+	if now-q.tail.timestamp >= duration {
+		q.clear()
+		return
+	}
+
+	for now-q.head.timestamp >= duration {
+		expired := q.head
+		q.head = expired.next
+		expired.next = nil
+		q.length--
 	}
 }
 
-func (l *InMemoryRateLimiter) clearExpiredItems() {
+// clear releases the whole request chain when its key expires.
+func (q *rateLimitQueue) clear() {
+	q.head = nil
+	q.tail = nil
+	q.length = 0
+}
+
+// rateLimitEntry is both a rate-limit bucket and a node in the key-level LRU.
+type rateLimitEntry struct {
+	lastActive time.Time
+	element    *list.Element
+	requests   rateLimitQueue
+	key        string
+}
+
+// InMemoryRateLimiter implements a sliding-window limiter with idle-key eviction.
+type InMemoryRateLimiter struct {
+	store              map[string]*rateLimitEntry
+	lru                *list.List
+	mutex              sync.Mutex
+	expirationDuration time.Duration
+}
+
+// Init initializes the limiter once. Repeated calls leave the first configuration unchanged.
+func (l *InMemoryRateLimiter) Init(expirationDuration time.Duration) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	if l.store != nil {
+		return
+	}
+
+	l.store = make(map[string]*rateLimitEntry)
+	l.lru = list.New()
+	l.expirationDuration = expirationDuration
+	if expirationDuration > 0 {
+		go l.clearExpiredItems(time.NewTicker(expirationDuration).C)
+	}
+}
+
+// clearExpiredItems periodically removes expired entries from the LRU tail.
+func (l *InMemoryRateLimiter) clearExpiredItems(ticks <-chan time.Time) {
+	for now := range ticks {
+		l.deleteExpiredEntries(now)
+	}
+}
+
+// deleteExpiredEntries walks only the oldest LRU entries and stops at the first active key.
+func (l *InMemoryRateLimiter) deleteExpiredEntries(now time.Time) {
+	if l.expirationDuration <= 0 {
+		return
+	}
+
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	for {
-		time.Sleep(l.expirationDuration)
-		l.mutex.Lock()
-		now := time.Now().Unix()
-		for key := range l.store {
-			queue := l.store[key]
-			size := len(*queue)
-			if size == 0 || now-(*queue)[size-1] > int64(l.expirationDuration.Seconds()) {
-				delete(l.store, key)
-			}
+		oldest := l.lru.Back()
+		if oldest == nil {
+			return
 		}
-		l.mutex.Unlock()
+
+		entry := oldest.Value.(*rateLimitEntry)
+		if now.Sub(entry.lastActive) < l.expirationDuration {
+			return
+		}
+
+		delete(l.store, entry.key)
+		l.lru.Remove(oldest)
+		entry.element = nil
+		entry.requests.clear()
 	}
 }
 
@@ -51,56 +130,63 @@ func (l *InMemoryRateLimiter) clearExpiredItems() {
 func (l *InMemoryRateLimiter) Request(key string, maxRequestNum int, duration int64) bool {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	// [old <-- new]
-	queue, ok := l.store[key]
-	now := time.Now().Unix()
-	if ok {
-		if len(*queue) < maxRequestNum {
-			*queue = append(*queue, now)
-			return true
-		} else {
-			if now-(*queue)[0] >= duration {
-				*queue = (*queue)[1:]
-				*queue = append(*queue, now)
-				return true
-			} else {
-				return false
-			}
+
+	now := time.Now()
+	entry, ok := l.store[key]
+	if !ok {
+		entry = &rateLimitEntry{
+			key:        key,
+			lastActive: now,
 		}
+		entry.element = l.lru.PushFront(entry)
+		l.store[key] = entry
 	} else {
-		s := make([]int64, 0, maxRequestNum)
-		l.store[key] = &s
-		*(l.store[key]) = append(*(l.store[key]), now)
+		entry.requests.removeExpired(now.Unix(), duration)
+		entry.lastActive = now
+		l.lru.MoveToFront(entry.element)
 	}
-	return true
+
+	allowed := entry.requests.length < maxRequestNum
+	if allowed {
+		entry.requests.append(now.Unix())
+	}
+
+	return allowed
 }
 
-// AddTokens 累加 TPM token 计数（固定窗口，duration 秒）。
+// AddTokens accumulates tokens for TPM tracking (fork extension for multi_rate_limit.go)
 func (l *InMemoryRateLimiter) AddTokens(key string, tokens int, duration int64) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	if l.tpmStore == nil {
-		l.tpmStore = make(map[string]*tpmEntry)
+
+	now := time.Now()
+	entry, ok := l.store[key]
+	if !ok {
+		entry = &rateLimitEntry{
+			key:        key,
+			lastActive: now,
+		}
+		entry.element = l.lru.PushFront(entry)
+		l.store[key] = entry
+	} else {
+		entry.requests.removeExpired(now.Unix(), duration)
+		entry.lastActive = now
+		l.lru.MoveToFront(entry.element)
 	}
-	now := time.Now().Unix()
-	e, ok := l.tpmStore[key]
-	if !ok || now >= e.expireAt {
-		l.tpmStore[key] = &tpmEntry{tokens: tokens, expireAt: now + duration}
-		return
+
+	for i := 0; i < tokens; i++ {
+		entry.requests.append(now.Unix())
 	}
-	e.tokens += tokens
 }
 
-// GetTokens 返回当前窗口已累计的 token 数（窗口过期则为 0）。
+// GetTokens returns the current token count in the sliding window (fork extension for multi_rate_limit.go)
 func (l *InMemoryRateLimiter) GetTokens(key string) int {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
-	if l.tpmStore == nil {
+
+	entry, ok := l.store[key]
+	if !ok {
 		return 0
 	}
-	e, ok := l.tpmStore[key]
-	if !ok || time.Now().Unix() >= e.expireAt {
-		return 0
-	}
-	return e.tokens
+	return entry.requests.length
 }

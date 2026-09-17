@@ -87,7 +87,9 @@ export function WorkerSettingsSection({
       updates.push({ key: 'WorkerUrl', value: sanitizedUrl })
     }
 
-    if (sanitizedKey !== initialKey || sanitizedUrl === '') {
+    // WorkerValidKey is write-only (GetOptions omits it). An empty field
+    // means "keep the existing secret", never overwrite with blank.
+    if (sanitizedKey !== '' && sanitizedKey !== initialKey) {
       updates.push({ key: 'WorkerValidKey', value: sanitizedKey })
     }
 
