@@ -125,6 +125,8 @@ func InitOptionMap() {
 	common.OptionMap["WaffoPancakeMinTopUp"] = strconv.Itoa(setting.WaffoPancakeMinTopUp)
 	common.OptionMap["WaffoPancakeStoreID"] = setting.WaffoPancakeStoreID
 	common.OptionMap["WaffoPancakeProductID"] = setting.WaffoPancakeProductID
+	common.OptionMap["WaffoPancakeIncludePaymentMethods"] = setting.WaffoPancakeIncludePaymentMethods
+	common.OptionMap["WaffoPancakeExcludePaymentMethods"] = setting.WaffoPancakeExcludePaymentMethods
 	common.OptionMap["TopupGroupRatio"] = common.TopupGroupRatio2JSONString()
 	common.OptionMap["Chats"] = setting.Chats2JsonString()
 	common.OptionMap["AutoGroups"] = setting.AutoGroups2JsonString()
@@ -543,6 +545,10 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.WaffoPancakeUnitPrice, _ = strconv.ParseFloat(value, 64)
 	case "WaffoPancakeMinTopUp":
 		setting.WaffoPancakeMinTopUp, _ = strconv.Atoi(value)
+	case "WaffoPancakeIncludePaymentMethods":
+		setting.WaffoPancakeIncludePaymentMethods = value
+	case "WaffoPancakeExcludePaymentMethods":
+		setting.WaffoPancakeExcludePaymentMethods = value
 	case "TopupGroupRatio":
 		err = common.UpdateTopupGroupRatioByJSONString(value)
 	case "GitHubClientId":

@@ -66,7 +66,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.6.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.104.0
-	github.com/waffo-com/waffo-pancake-sdk-go v0.3.1
+	github.com/waffo-com/waffo-pancake-sdk-go v0.12.0
 	gorm.io/driver/clickhouse v0.6.0
 )
 

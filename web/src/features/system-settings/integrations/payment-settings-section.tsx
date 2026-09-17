@@ -177,6 +177,24 @@ const paymentSchema = z.object({
   WaffoPancakeMerchantID: z.string(),
   WaffoPancakePrivateKey: z.string(),
   WaffoPancakeReturnURL: z.string(),
+  WaffoPancakeIncludePaymentMethods: z.string().superRefine((value, ctx) => {
+    const error = getJsonError(value, (parsed) => Array.isArray(parsed))
+    if (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: error,
+      })
+    }
+  }),
+  WaffoPancakeExcludePaymentMethods: z.string().superRefine((value, ctx) => {
+    const error = getJsonError(value, (parsed) => Array.isArray(parsed))
+    if (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: error,
+      })
+    }
+  }),
 })
 
 type PaymentFormValues = z.infer<typeof paymentSchema>
@@ -458,6 +476,10 @@ export function PaymentSettingsSection({
       WaffoPancakeReturnURL: removeTrailingSlash(
         values.WaffoPancakeReturnURL.trim()
       ),
+      WaffoPancakeIncludePaymentMethods:
+        values.WaffoPancakeIncludePaymentMethods.trim(),
+      WaffoPancakeExcludePaymentMethods:
+        values.WaffoPancakeExcludePaymentMethods.trim(),
     }
 
     const initial = {
@@ -505,6 +527,10 @@ export function PaymentSettingsSection({
       WaffoPancakeReturnURL: removeTrailingSlash(
         initialRef.current.WaffoPancakeReturnURL.trim()
       ),
+      WaffoPancakeIncludePaymentMethods:
+        initialRef.current.WaffoPancakeIncludePaymentMethods.trim(),
+      WaffoPancakeExcludePaymentMethods:
+        initialRef.current.WaffoPancakeExcludePaymentMethods.trim(),
     }
 
     const updates: Array<{ key: string; value: string | number | boolean }> = []
@@ -702,6 +728,26 @@ export function PaymentSettingsSection({
       updates.push({ key: 'WaffoPayMethods', value: sanitized.WaffoPayMethods })
     }
 
+    if (
+      normalizeJsonForComparison(sanitized.WaffoPancakeIncludePaymentMethods) !==
+      normalizeJsonForComparison(initial.WaffoPancakeIncludePaymentMethods)
+    ) {
+      updates.push({
+        key: 'WaffoPancakeIncludePaymentMethods',
+        value: sanitized.WaffoPancakeIncludePaymentMethods,
+      })
+    }
+
+    if (
+      normalizeJsonForComparison(sanitized.WaffoPancakeExcludePaymentMethods) !==
+      normalizeJsonForComparison(initial.WaffoPancakeExcludePaymentMethods)
+    ) {
+      updates.push({
+        key: 'WaffoPancakeExcludePaymentMethods',
+        value: sanitized.WaffoPancakeExcludePaymentMethods,
+      })
+    }
+
     const hasWaffoPancakeChanges =
       sanitized.WaffoPancakeMerchantID !== initial.WaffoPancakeMerchantID ||
       sanitized.WaffoPancakePrivateKey.length > 0 ||
@@ -796,6 +842,10 @@ export function PaymentSettingsSection({
     WaffoPancakeMerchantID: currentFormValues.WaffoPancakeMerchantID,
     WaffoPancakePrivateKey: currentFormValues.WaffoPancakePrivateKey,
     WaffoPancakeReturnURL: currentFormValues.WaffoPancakeReturnURL,
+    WaffoPancakeIncludePaymentMethods:
+      currentFormValues.WaffoPancakeIncludePaymentMethods,
+    WaffoPancakeExcludePaymentMethods:
+      currentFormValues.WaffoPancakeExcludePaymentMethods,
   }
   return (
     <SettingsSection title={t('Payment Gateway')}>

@@ -26,6 +26,7 @@ import { Combobox } from '@/components/ui/combobox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { removeTrailingSlash } from './utils'
@@ -41,6 +42,34 @@ export type WaffoPancakeSettingsValues = {
   WaffoPancakeMerchantID: string
   WaffoPancakePrivateKey: string
   WaffoPancakeReturnURL: string
+  // 收银台支付方式白/黑名单（JSON 字符串数组），互斥，留空 = 不限制。
+  WaffoPancakeIncludePaymentMethods: string
+  WaffoPancakeExcludePaymentMethods: string
+}
+
+// Pancake create-checkout-session 的 includePaymentMethods /
+// excludePaymentMethods 支持的支付方式标识。
+const PANCAKE_PAYMENT_METHODS = [
+  { value: 'card', label: 'Card' },
+  { value: 'applepay', label: 'Apple Pay' },
+  { value: 'googlepay', label: 'Google Pay' },
+  { value: 'wechat', label: 'WeChat Pay' },
+] as const
+
+type PancakePaymentMethod = (typeof PANCAKE_PAYMENT_METHODS)[number]['value']
+
+type PancakeMethodFilterMode = 'none' | 'include' | 'exclude'
+
+function parsePaymentMethodList(value: string): PancakePaymentMethod[] {
+  try {
+    const parsed = JSON.parse(value || '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((method): method is PancakePaymentMethod =>
+      PANCAKE_PAYMENT_METHODS.some((option) => option.value === method)
+    )
+  } catch {
+    return []
+  }
 }
 
 export interface WaffoPancakeBinding {
@@ -341,6 +370,61 @@ export function WaffoPancakeSettingsSection({
 
   const verifying = phase === 'verifying'
 
+  // 收银台支付方式白/黑名单。两者互斥：白名单非空时生效，否则看黑名单；
+  // 都为空 = 不限制，把所有支付方式交给 Pancake 决定。
+  const includeMethods = parsePaymentMethodList(
+    values.WaffoPancakeIncludePaymentMethods
+  )
+  const excludeMethods = parsePaymentMethodList(
+    values.WaffoPancakeExcludePaymentMethods
+  )
+  const methodFilterMode: PancakeMethodFilterMode =
+    includeMethods.length > 0
+      ? 'include'
+      : excludeMethods.length > 0
+        ? 'exclude'
+        : 'none'
+  const activeMethodList =
+    methodFilterMode === 'include'
+      ? includeMethods
+      : methodFilterMode === 'exclude'
+        ? excludeMethods
+        : []
+
+  const setMethodFilterMode = (mode: PancakeMethodFilterMode) => {
+    // 切换模式时迁移已选中的支付方式，避免操作员重新点一遍。
+    const carried =
+      mode === 'include'
+        ? excludeMethods
+        : mode === 'exclude'
+          ? includeMethods
+          : []
+    onValueChange(
+      'WaffoPancakeIncludePaymentMethods',
+      mode === 'include' ? JSON.stringify(carried) : '[]'
+    )
+    onValueChange(
+      'WaffoPancakeExcludePaymentMethods',
+      mode === 'exclude' ? JSON.stringify(carried) : '[]'
+    )
+  }
+
+  const togglePaymentMethod = (method: PancakePaymentMethod) => {
+    const mode: PancakeMethodFilterMode =
+      methodFilterMode === 'none' ? 'include' : methodFilterMode
+    const current = mode === 'include' ? includeMethods : excludeMethods
+    const next = current.includes(method)
+      ? current.filter((item) => item !== method)
+      : [...current, method]
+    if (mode === 'include') {
+      onValueChange('WaffoPancakeIncludePaymentMethods', JSON.stringify(next))
+      onValueChange('WaffoPancakeExcludePaymentMethods', '[]')
+    } else {
+      onValueChange('WaffoPancakeIncludePaymentMethods', '[]')
+      onValueChange('WaffoPancakeExcludePaymentMethods', JSON.stringify(next))
+    }
+  }
+
   // "Not edited" = MerchantID unchanged AND PrivateKey field blank, in
   // which case the backend falls back to persisted creds. Otherwise we
   // require both fields filled (mixed states would fail signature check).
@@ -445,6 +529,67 @@ export function WaffoPancakeSettingsSection({
           <p className='text-muted-foreground text-xs'>
             {t(
               'The environment (test vs production) is decided by the key you paste here — use the Test key while integrating, then swap to the Production key when going live.'
+            )}
+          </p>
+        </div>
+
+        {/*
+          Checkout payment-method filter — maps to Pancake
+          create-checkout-session includePaymentMethods (whitelist) /
+          excludePaymentMethods (blacklist). The two lists are mutually
+          exclusive; empty means "no restriction".
+        */}
+        <div className='space-y-2 lg:col-span-2'>
+          <div>
+            <Label>{t('Checkout payment methods')}</Label>
+            <p className='text-muted-foreground text-xs'>
+              {t(
+                'Restrict which payment methods the Pancake checkout offers. Whitelist and blacklist are mutually exclusive — leave both empty to let Pancake decide.'
+              )}
+            </p>
+          </div>
+          <ToggleGroup
+            value={[methodFilterMode]}
+            onValueChange={(next) => {
+              if (next.length > 0) {
+                setMethodFilterMode(next[0] as PancakeMethodFilterMode)
+              }
+            }}
+            variant='outline'
+            size='sm'
+            aria-label={t('Checkout payment method filter mode')}
+          >
+            <ToggleGroupItem value='none' className='text-xs'>
+              {t('No restriction')}
+            </ToggleGroupItem>
+            <ToggleGroupItem value='include' className='text-xs'>
+              {t('Whitelist (includePaymentMethods)')}
+            </ToggleGroupItem>
+            <ToggleGroupItem value='exclude' className='text-xs'>
+              {t('Blacklist (excludePaymentMethods)')}
+            </ToggleGroupItem>
+          </ToggleGroup>
+          {methodFilterMode !== 'none' ? (
+            <div className='flex flex-wrap gap-2 pt-1'>
+              {PANCAKE_PAYMENT_METHODS.map((option) => {
+                const selected = activeMethodList.includes(option.value)
+                return (
+                  <Button
+                    key={option.value}
+                    type='button'
+                    size='sm'
+                    variant={selected ? 'default' : 'outline'}
+                    onClick={() => togglePaymentMethod(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                )
+              })}
+            </div>
+          ) : null}
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Note: new-api settles Pancake checkouts in CNY, which currently only supports WeChat Pay — keep only WeChat Pay enabled here unless Pancake adds more CNY methods.'
             )}
           </p>
         </div>

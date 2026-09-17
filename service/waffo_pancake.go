@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -93,6 +94,35 @@ func newWaffoPancakeClientFromCreds(merchantID, privateKey string) (*pancake.Cli
 	})
 }
 
+// waffoPancakeCurrency 固定人民币结算：Pancake 已支持 CNY，钱包页面显示的
+// 人民币金额原样传给收银台，不再做币种转换（CNY 目前仅支持 wechat 支付方式）。
+const waffoPancakeCurrency = "CNY"
+
+// parseWaffoPancakePaymentMethods 把持久化的 JSON 数组（如 ["wechat"]）解析成
+// SDK 的支付方式列表；非法元素直接丢弃，解析失败返回 nil（= 不限制）。
+func parseWaffoPancakePaymentMethods(jsonList string) []pancake.PaymentMethod {
+	jsonList = strings.TrimSpace(jsonList)
+	if jsonList == "" || jsonList == "[]" || jsonList == "null" {
+		return nil
+	}
+	var raw []string
+	if err := json.Unmarshal([]byte(jsonList), &raw); err != nil {
+		return nil
+	}
+	methods := make([]pancake.PaymentMethod, 0, len(raw))
+	for _, m := range raw {
+		m = strings.TrimSpace(m)
+		if m == "" {
+			continue
+		}
+		methods = append(methods, pancake.PaymentMethod(m))
+	}
+	if len(methods) == 0 {
+		return nil
+	}
+	return methods
+}
+
 // CreateWaffoPancakeCheckoutSession creates an Authenticated-mode checkout
 // session: the order is bound to BuyerIdentity (stable per user) so it stays
 // attributable even if the buyer edits the email on Waffo's checkout form.
@@ -114,15 +144,21 @@ func CreateWaffoPancakeCheckoutSession(ctx context.Context, params *WaffoPancake
 	sdkParams := pancake.AuthenticatedCheckoutParams{
 		CreateCheckoutSessionParams: pancake.CreateCheckoutSessionParams{
 			ProductID:               params.ProductID,
-			Currency:                "USD",
+			Currency:                waffoPancakeCurrency,
 			BuyerEmail:              optionalString(params.BuyerEmail),
 			ExpiresInSeconds:        params.ExpiresInSeconds,
 			OrderMerchantExternalID: optionalString(params.OrderMerchantExternalID),
 		},
 		BuyerIdentity: params.BuyerIdentity,
 	}
+	// 白名单优先：两者互斥（SDK 会拒绝同时携带），配置都填时只用白名单。
+	if include := parseWaffoPancakePaymentMethods(setting.WaffoPancakeIncludePaymentMethods); len(include) > 0 {
+		sdkParams.IncludePaymentMethods = include
+	} else if exclude := parseWaffoPancakePaymentMethods(setting.WaffoPancakeExcludePaymentMethods); len(exclude) > 0 {
+		sdkParams.ExcludePaymentMethods = exclude
+	}
 	if params.PriceSnapshot != nil {
-		sdkParams.PriceSnapshot = &pancake.PriceInfo{
+		sdkParams.PriceSnapshot = &pancake.PriceSnapshot{
 			Amount:      params.PriceSnapshot.Amount,
 			TaxCategory: pancake.TaxCategory(params.PriceSnapshot.TaxCategory),
 		}

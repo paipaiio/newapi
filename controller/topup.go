@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,74 +26,39 @@ import (
 func GetTopUpInfo(c *gin.Context) {
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
 
-	// 获取支付方式
-	payMethods := operation_setting.PayMethods
-	if !complianceConfirmed {
-		payMethods = []map[string]string{}
-	}
-
-	// 如果启用了 Stripe 支付，添加到支付方法列表
-	if isStripeTopUpEnabled() {
-		// 检查是否已经包含 Stripe
-		hasStripe := false
-		for _, method := range payMethods {
-			if method["type"] == "stripe" {
-				hasStripe = true
-				break
+	// 获取支付方式：只展示操作员在「付款方式」列表里配置的条目，再按条目的
+	// 支付处理标识（type）过滤掉后端未启用的处理器——凭证存在≠要展示。
+	payMethods := make([]map[string]string, 0, len(operation_setting.PayMethods))
+	if complianceConfirmed {
+		stripeOn := isStripeTopUpEnabled()
+		waffoOn := isWaffoTopUpEnabled()
+		pancakeOn := isWaffoPancakeTopUpEnabled()
+		creemOn := isCreemTopUpEnabled()
+		epayOn := isEpayTopUpEnabled()
+		for _, method := range operation_setting.PayMethods {
+			t := strings.TrimSpace(method["type"])
+			keep := false
+			switch t {
+			case "stripe":
+				keep = stripeOn
+			case model.PaymentMethodWaffo:
+				keep = waffoOn
+			case model.PaymentMethodWaffoPancake:
+				keep = pancakeOn
+			case "creem":
+				keep = creemOn
+			default:
+				// 其余标识视为 Epay 处理器 id（alipay/wxpay/custom* 等）
+				keep = epayOn
 			}
-		}
-
-		if !hasStripe {
-			stripeMethod := map[string]string{
-				"name":      "Stripe",
-				"type":      "stripe",
-				"color":     "#635BFF",
-				"min_topup": strconv.Itoa(setting.StripeMinTopUp),
+			if !keep {
+				continue
 			}
-			payMethods = append(payMethods, stripeMethod)
-		}
-	}
-
-	// Waffo Pancake is displayed above the standard Waffo gateway.
-	enableWaffoPancake := isWaffoPancakeTopUpEnabled()
-	if enableWaffoPancake {
-		hasWaffoPancake := false
-		for _, method := range payMethods {
-			if method["type"] == model.PaymentMethodWaffoPancake {
-				hasWaffoPancake = true
-				break
+			cp := make(map[string]string, len(method))
+			for k, v := range method {
+				cp[k] = v
 			}
-		}
-
-		if !hasWaffoPancake {
-			payMethods = append(payMethods, map[string]string{
-				"name":      "Waffo Pancake",
-				"type":      model.PaymentMethodWaffoPancake,
-				"color":     "#F97316",
-				"min_topup": strconv.Itoa(setting.WaffoPancakeMinTopUp),
-			})
-		}
-	}
-
-	// 如果启用了 Waffo 支付，添加到支付方法列表
-	enableWaffo := isWaffoTopUpEnabled()
-	if enableWaffo {
-		hasWaffo := false
-		for _, method := range payMethods {
-			if method["type"] == model.PaymentMethodWaffo {
-				hasWaffo = true
-				break
-			}
-		}
-
-		if !hasWaffo {
-			waffoMethod := map[string]string{
-				"name":      "Waffo (Global Payment)",
-				"type":      model.PaymentMethodWaffo,
-				"color":     "#3B82F6",
-				"min_topup": strconv.Itoa(setting.WaffoMinTopUp),
-			}
-			payMethods = append(payMethods, waffoMethod)
+			payMethods = append(payMethods, cp)
 		}
 	}
 
@@ -100,13 +66,13 @@ func GetTopUpInfo(c *gin.Context) {
 		"enable_online_topup":              isEpayTopUpEnabled(),
 		"enable_stripe_topup":              isStripeTopUpEnabled(),
 		"enable_creem_topup":               isCreemTopUpEnabled(),
-		"enable_waffo_topup":               enableWaffo,
-		"enable_waffo_pancake_topup":       enableWaffoPancake,
+		"enable_waffo_topup":               isWaffoTopUpEnabled(),
+		"enable_waffo_pancake_topup":       isWaffoPancakeTopUpEnabled(),
 		"enable_redemption":                complianceConfirmed,
 		"payment_compliance_confirmed":     complianceConfirmed,
 		"payment_compliance_terms_version": operation_setting.CurrentComplianceTermsVersion,
 		"waffo_pay_methods": func() any {
-			if enableWaffo {
+			if isWaffoTopUpEnabled() {
 				return setting.GetWaffoPayMethods()
 			}
 			return nil

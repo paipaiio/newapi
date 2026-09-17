@@ -372,6 +372,9 @@ export type BillingSettings = {
   // section (saved via /api/option/waffo-pancake/save).
   WaffoPancakeStoreID: string
   WaffoPancakeProductID: string
+  // 收银台支付方式白/黑名单（JSON 数组字符串），保存进 OptionMap。
+  WaffoPancakeIncludePaymentMethods: string
+  WaffoPancakeExcludePaymentMethods: string
   'checkin_setting.enabled': boolean
   'checkin_setting.min_quota': number
   'checkin_setting.max_quota': number
