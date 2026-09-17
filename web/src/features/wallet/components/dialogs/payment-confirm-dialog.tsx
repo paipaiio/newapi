@@ -65,6 +65,10 @@ export function PaymentConfirmDialog({
   const hasDiscount = discountRate > 0 && discountRate < 1 && paymentAmount > 0
   const originalAmount = hasDiscount ? paymentAmount / discountRate : 0
   const discountAmount = hasDiscount ? originalAmount - paymentAmount : 0
+  // Waffo Pancake 以 USD 收款，您支付展示美元金额；其他网关保持本地货币口径。
+  const isPancake = paymentMethod?.type === 'waffo_pancake'
+  const formatPayAmount = (value: number) =>
+    isPancake ? `$${formatCurrency(value)}` : formatCurrency(value)
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -101,11 +105,11 @@ export function PaymentConfirmDialog({
             ) : (
               <div className='flex items-baseline gap-2'>
                 <span className='text-2xl font-semibold'>
-                  {formatCurrency(paymentAmount)}
+                  {formatPayAmount(paymentAmount)}
                 </span>
                 {hasDiscount && (
                   <span className='text-muted-foreground text-sm line-through'>
-                    {formatCurrency(originalAmount)}
+                    {formatPayAmount(originalAmount)}
                   </span>
                 )}
               </div>
@@ -117,7 +121,7 @@ export function PaymentConfirmDialog({
               <div className='flex items-center justify-between text-sm'>
                 <span className='text-muted-foreground'>{t('You save')}</span>
                 <span className='font-semibold text-green-600'>
-                  {formatCurrency(discountAmount)}
+                  {formatPayAmount(discountAmount)}
                 </span>
               </div>
             </div>

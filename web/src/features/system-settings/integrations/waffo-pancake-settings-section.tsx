@@ -50,12 +50,12 @@ export type WaffoPancakeSettingsValues = {
 }
 
 // Pancake create-checkout-session 的 includePaymentMethods /
-// excludePaymentMethods 支持的支付方式标识。
+// excludePaymentMethods 支持的支付方式标识。微信支付（wechat）已在创建
+// 收银台时被代码固定排除，这里不再提供勾选。
 const PANCAKE_PAYMENT_METHODS = [
   { value: 'card', label: 'Card' },
   { value: 'applepay', label: 'Apple Pay' },
   { value: 'googlepay', label: 'Google Pay' },
-  { value: 'wechat', label: 'WeChat Pay' },
 ] as const
 
 type PancakePaymentMethod = (typeof PANCAKE_PAYMENT_METHODS)[number]['value']
@@ -613,7 +613,7 @@ export function WaffoPancakeSettingsSection({
           ) : null}
           <p className='text-muted-foreground text-xs'>
             {t(
-              'USD checkout supports all four methods above (card, Apple Pay, Google Pay, WeChat Pay). Waffo settles payouts to mainland-China merchants in CNY at the exchange rate on the day you withdraw.'
+              'USD checkout supports card, Apple Pay and Google Pay. WeChat Pay is always excluded at checkout creation. Waffo settles payouts to mainland-China merchants in CNY at the exchange rate on the day you withdraw.'
             )}
           </p>
         </div>

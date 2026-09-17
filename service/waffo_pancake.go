@@ -154,10 +154,33 @@ func CreateWaffoPancakeCheckoutSession(ctx context.Context, params *WaffoPancake
 		BuyerIdentity: params.BuyerIdentity,
 	}
 	// 白名单优先：两者互斥（SDK 会拒绝同时携带），配置都填时只用白名单。
+	// 业务要求固定排除微信支付（wechat）：USD 收银台面向卡/Apple Pay/Google Pay，
+	// 白名单里即使勾了 wechat 也要剔除。
 	if include := parseWaffoPancakePaymentMethods(setting.WaffoPancakeIncludePaymentMethods); len(include) > 0 {
-		sdkParams.IncludePaymentMethods = include
-	} else if exclude := parseWaffoPancakePaymentMethods(setting.WaffoPancakeExcludePaymentMethods); len(exclude) > 0 {
-		sdkParams.ExcludePaymentMethods = exclude
+		filtered := include[:0]
+		for _, m := range include {
+			if m != pancake.PaymentMethodWeChat {
+				filtered = append(filtered, m)
+			}
+		}
+		if len(filtered) > 0 {
+			sdkParams.IncludePaymentMethods = filtered
+		}
+	} else {
+		exclude := parseWaffoPancakePaymentMethods(setting.WaffoPancakeExcludePaymentMethods)
+		hasWechat := false
+		for _, m := range exclude {
+			if m == pancake.PaymentMethodWeChat {
+				hasWechat = true
+				break
+			}
+		}
+		if !hasWechat {
+			exclude = append(exclude, pancake.PaymentMethodWeChat)
+		}
+		if len(exclude) > 0 {
+			sdkParams.ExcludePaymentMethods = exclude
+		}
 	}
 	if params.PriceSnapshot != nil {
 		sdkParams.PriceSnapshot = &pancake.PriceSnapshot{

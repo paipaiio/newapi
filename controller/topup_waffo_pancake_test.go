@@ -89,29 +89,42 @@ func TestGetWaffoPancakePayMoney(t *testing.T) {
 			expected:         9.6,
 		},
 		{
-			// USD 展示：topup_amount 本身就是美元口径，不收汇率影响。
-			name:             "usd display ignores pancake rate",
+			// USD 展示：$ 仅是符号，显示数字即人民币面额，按收款汇率换成美元。
+			// 10 ÷ 14 × 1.2 × 0.8 ≈ 0.6857
+			name:             "usd display converts face cny to usd via pancake rate",
 			amount:           10,
 			group:            "vip",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeUSD,
 			pancakeRate:      14.0,
-			expected:         9.6,
+			expected:         0.685714,
 		},
 		{
+			// USD 展示 + 收款汇率与系统汇率一致（7）：20 ÷ 7 ≈ 2.857
+			name:             "usd display with matching rate",
+			amount:           20,
+			group:            "default",
+			quotaDisplayType: operation_setting.QuotaDisplayTypeUSD,
+			pancakeRate:      7.0,
+			expected:         2.857143,
+		},
+		{
+			// TOKENS 展示：额度先按 QuotaPerUnit 折成显示单位（3），再按
+			// 收款汇率换算。3 ÷ 14 × 1.2 × 0.5 ≈ 0.1286
 			name:             "tokens display converts quota to display units before pricing",
 			amount:           int64(common.QuotaPerUnit * 3),
 			group:            "vip",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeTokens,
 			pancakeRate:      14.0,
-			expected:         1.8,
+			expected:         0.128571,
 		},
 		{
-			name:             "non-positive discount falls back to no discount",
+			// 收款汇率 0 = 跟随系统汇率（7）：20 ÷ 7 ≈ 2.857
+			name:             "zero pancake rate falls back to system rate",
 			amount:           20,
 			group:            "default",
 			quotaDisplayType: operation_setting.QuotaDisplayTypeUSD,
 			pancakeRate:      0,
-			expected:         20,
+			expected:         2.857143,
 		},
 	}
 
