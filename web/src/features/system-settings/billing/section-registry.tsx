@@ -183,6 +183,7 @@ const BILLING_SECTIONS = [
             settings.WaffoPancakeIncludePaymentMethods ?? '',
           WaffoPancakeExcludePaymentMethods:
             settings.WaffoPancakeExcludePaymentMethods ?? '',
+          WaffoPancakeExchangeRate: settings.WaffoPancakeExchangeRate ?? 0,
         }}
         waffoPancakeProvisionedStoreID={settings.WaffoPancakeStoreID ?? ''}
         waffoPancakeProvisionedProductID={settings.WaffoPancakeProductID ?? ''}

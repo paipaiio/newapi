@@ -69,11 +69,24 @@ func getWaffoPancakePayMoney(amount int64, group string) float64 {
 		discount = ds
 	}
 
-	// Pancake 以 USD 收款：钱包页面以人民币展示（topup_amount × 汇率），
-	// 这里按 1:1 数值直传（topup_amount 本身就是美元口径），即买家支付与
-	// 展示金额等值的美元，换汇在 new-api 侧完成；提现时 Waffo 再按提交时
-	// 汇率把 USD 余额结算成 CNY 打款。
-	payMoney := dAmount.
+	// Pancake 以 USD 收款。钱包页面以人民币展示（CNY 展示类型时
+	// topup_amount × USDExchangeRate），这里把展示金额按 WaffoPancakeExchangeRate
+	// 换算回 USD：charge = topup_amount × 系统汇率 ÷ 收款汇率。收款汇率为 0 时
+	// 跟随系统汇率（即数值与展示等值）。USD/TOKENS 展示类型下 topup_amount
+	// 本身就是美元口径，直接按 1:1 收款。分组倍率与满额折扣照常乘。
+	payMoney := dAmount
+	if operation_setting.IsCNYDisplay() {
+		rate := setting.WaffoPancakeExchangeRate
+		if rate <= 0 {
+			rate = operation_setting.USDExchangeRate
+		}
+		if rate > 0 {
+			payMoney = payMoney.
+				Mul(decimal.NewFromFloat(operation_setting.USDExchangeRate)).
+				Div(decimal.NewFromFloat(rate))
+		}
+	}
+	payMoney = payMoney.
 		Mul(decimal.NewFromFloat(topupGroupRatio)).
 		Mul(decimal.NewFromFloat(discount))
 

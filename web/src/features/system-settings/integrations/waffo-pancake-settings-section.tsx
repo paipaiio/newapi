@@ -45,6 +45,8 @@ export type WaffoPancakeSettingsValues = {
   // 收银台支付方式白/黑名单（JSON 字符串数组），互斥，留空 = 不限制。
   WaffoPancakeIncludePaymentMethods: string
   WaffoPancakeExcludePaymentMethods: string
+  // 收款汇率（1 USD = X CNY），0 = 跟随系统 USDExchangeRate。
+  WaffoPancakeExchangeRate: number
 }
 
 // Pancake create-checkout-session 的 includePaymentMethods /
@@ -533,6 +535,28 @@ export function WaffoPancakeSettingsSection({
           </p>
         </div>
 
+        <div className='grid gap-1.5'>
+          <Label>{t('Collection exchange rate (1 USD = X CNY)')}</Label>
+          <Input
+            type='number'
+            step='0.01'
+            min={0}
+            placeholder='0'
+            value={Number.isFinite(values.WaffoPancakeExchangeRate) ? values.WaffoPancakeExchangeRate : 0}
+            onChange={(event) =>
+              onValueChange(
+                'WaffoPancakeExchangeRate',
+                Number.parseFloat(event.target.value) || 0
+              )
+            }
+          />
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Only Waffo Pancake charges buyers in USD: the CNY amount shown on the wallet page is converted to USD at this rate. 0 = follow the system USDExchangeRate. Other gateways (e.g. Epay) still charge CNY at their own price settings.'
+            )}
+          </p>
+        </div>
+
         {/*
           Checkout payment-method filter — maps to Pancake
           create-checkout-session includePaymentMethods (whitelist) /
@@ -589,7 +613,7 @@ export function WaffoPancakeSettingsSection({
           ) : null}
           <p className='text-muted-foreground text-xs'>
             {t(
-              'Checkouts are charged in USD: the CNY amount shown on the wallet page is converted to the equivalent USD before the buyer pays. USD supports all four methods above (card, Apple Pay, Google Pay, WeChat Pay). Waffo settles payouts to mainland-China merchants in CNY at the exchange rate on the day you withdraw.'
+              'USD checkout supports all four methods above (card, Apple Pay, Google Pay, WeChat Pay). Waffo settles payouts to mainland-China merchants in CNY at the exchange rate on the day you withdraw.'
             )}
           </p>
         </div>

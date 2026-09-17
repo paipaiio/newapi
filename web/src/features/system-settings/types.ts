@@ -375,6 +375,8 @@ export type BillingSettings = {
   // 收银台支付方式白/黑名单（JSON 数组字符串），保存进 OptionMap。
   WaffoPancakeIncludePaymentMethods: string
   WaffoPancakeExcludePaymentMethods: string
+  // Pancake 收款汇率（1 USD = X CNY），0 = 跟随系统 USDExchangeRate。
+  WaffoPancakeExchangeRate: number
   'checkin_setting.enabled': boolean
   'checkin_setting.min_quota': number
   'checkin_setting.max_quota': number

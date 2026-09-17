@@ -122,6 +122,7 @@ func InitOptionMap() {
 	common.OptionMap["WaffoPancakePrivateKey"] = setting.WaffoPancakePrivateKey
 	common.OptionMap["WaffoPancakeReturnURL"] = setting.WaffoPancakeReturnURL
 	common.OptionMap["WaffoPancakeMinTopUp"] = strconv.Itoa(setting.WaffoPancakeMinTopUp)
+	common.OptionMap["WaffoPancakeExchangeRate"] = strconv.FormatFloat(setting.WaffoPancakeExchangeRate, 'f', -1, 64)
 	common.OptionMap["WaffoPancakeStoreID"] = setting.WaffoPancakeStoreID
 	common.OptionMap["WaffoPancakeProductID"] = setting.WaffoPancakeProductID
 	common.OptionMap["WaffoPancakeIncludePaymentMethods"] = setting.WaffoPancakeIncludePaymentMethods
@@ -542,6 +543,8 @@ func updateOptionMap(key string, value string) (err error) {
 		setting.WaffoPancakeProductID = value
 	case "WaffoPancakeMinTopUp":
 		setting.WaffoPancakeMinTopUp, _ = strconv.Atoi(value)
+	case "WaffoPancakeExchangeRate":
+		setting.WaffoPancakeExchangeRate, _ = strconv.ParseFloat(value, 64)
 	case "WaffoPancakeIncludePaymentMethods":
 		setting.WaffoPancakeIncludePaymentMethods = value
 	case "WaffoPancakeExcludePaymentMethods":
