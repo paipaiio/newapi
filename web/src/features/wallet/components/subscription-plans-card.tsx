@@ -58,7 +58,6 @@ import type {
 } from '@/features/subscriptions/types'
 import { formatQuota } from '@/lib/format'
 import { handleServerError } from '@/lib/handle-server-error'
-import { requireServerSuccess } from '@/lib/server-error-message'
 import { cn } from '@/lib/utils'
 
 import type { PaymentMethod, TopupInfo } from '../types'
@@ -128,7 +127,7 @@ export function SubscriptionPlansCard({
 
   const fetchPlans = useCallback(async () => {
     try {
-      const res = requireServerSuccess(await getPublicPlans())
+      const res = await getPublicPlans()
       if (res.success) {
         setPlans(res.data || [])
       }
@@ -140,7 +139,7 @@ export function SubscriptionPlansCard({
 
   const fetchSelfSubscription = useCallback(async () => {
     try {
-      const res = requireServerSuccess(await getSelfSubscriptionFull())
+      const res = await getSelfSubscriptionFull()
       if (res.success && res.data) {
         setBillingPreference(
           res.data.billing_preference || 'subscription_first'

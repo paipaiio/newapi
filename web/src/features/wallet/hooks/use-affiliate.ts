@@ -23,7 +23,6 @@ import { toast } from 'sonner'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getSelf } from '@/lib/api'
 import { handleServerError } from '@/lib/handle-server-error'
-import { requireServerSuccess } from '@/lib/server-error-message'
 
 import { getAffiliateCode, transferAffiliateQuota } from '../api'
 import { generateAffiliateLink } from '../lib'
@@ -43,7 +42,7 @@ export function useAffiliate() {
   const fetchAffiliateCode = useCallback(async () => {
     try {
       setLoading(true)
-      const response = requireServerSuccess(await getAffiliateCode())
+      const response = await getAffiliateCode()
 
       if (response.success && response.data) {
         setAffiliateCode(response.data)
