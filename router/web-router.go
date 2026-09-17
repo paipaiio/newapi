@@ -19,7 +19,7 @@ type WebAssets struct {
 	IndexPage []byte
 }
 
-func SetWebRouter(router *gin.Engine, assets WebAssets) {
+func SetWebRouter(router *gin.Engine, assets WebAssets, pluginDispatcher gin.HandlerFunc) {
 	frontendFS := common.EmbedFolder(assets.BuildFS, "web/dist")
 
 	router.Use(gzip.Gzip(gzip.DefaultCompression))
@@ -42,24 +42,28 @@ func SetWebRouter(router *gin.Engine, assets WebAssets) {
 		c.Next()
 	})
 	router.Use(static.Serve("/", frontendFS))
-	router.NoRoute(func(c *gin.Context) {
-		c.Set(middleware.RouteTagKey, "web")
-		// 用带斜杠的前缀精确匹配后端路径，避免误伤前端路由（如 /api-sale 撞 /api）。
-		uri := c.Request.RequestURI
-		if strings.HasPrefix(uri, "/v1/") || uri == "/v1" ||
-			strings.HasPrefix(uri, "/api/") || uri == "/api" ||
-			strings.HasPrefix(uri, "/assets/") {
-			controller.RelayNotFound(c)
-			return
-		}
-		// 静态资源不存在必须返回 404，绝不能回退到 index.html：
-		// 否则 CDN 会把 HTML 当 JS 缓存 30 天（历史事故根因）。
-		if strings.HasPrefix(c.Request.URL.Path, "/static/") {
-			c.Header("Cache-Control", "no-store")
-			c.Status(http.StatusNotFound)
-			return
-		}
-		c.Header("Cache-Control", "no-cache")
-		c.Data(http.StatusOK, "text/html; charset=utf-8", assets.IndexPage)
-	})
+	router.NoRoute(
+		pluginDispatcher,
+		middleware.RouteTag("web"),
+		middleware.AccessTokenAudit(),
+		func(c *gin.Context) {
+			// 用带斜杠的前缀精确匹配后端路径，避免误伤前端路由（如 /api-sale 撞 /api）。
+			uri := c.Request.RequestURI
+			if strings.HasPrefix(uri, "/v1/") || uri == "/v1" ||
+				strings.HasPrefix(uri, "/api/") || uri == "/api" ||
+				strings.HasPrefix(uri, "/assets/") {
+				controller.RelayNotFound(c)
+				return
+			}
+			// 静态资源不存在必须返回 404，绝不能回退到 index.html：
+			// 否则 CDN 会把 HTML 当 JS 缓存 30 天（历史事故根因）。
+			if strings.HasPrefix(c.Request.URL.Path, "/static/") {
+				c.Header("Cache-Control", "no-store")
+				c.Status(http.StatusNotFound)
+				return
+			}
+			c.Header("Cache-Control", "no-cache")
+			c.Data(http.StatusOK, "text/html; charset=utf-8", assets.IndexPage)
+		},
+	)
 }

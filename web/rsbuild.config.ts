@@ -26,7 +26,7 @@ export default defineConfig(({ envMode }) => {
       ? undefined
       : assetPrefixEnv || (isProd ? 'https://static.paipaiio.com/' : undefined)
   const devProxy = Object.fromEntries(
-    (['/api', '/mj', '/pg'] as const).map((key) => [
+    (['/api', '/v1', '/mj', '/pg'] as const).map((key) => [
       key,
       { target: serverUrl, changeOrigin: true },
     ])

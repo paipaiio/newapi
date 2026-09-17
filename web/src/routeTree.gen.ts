@@ -60,15 +60,18 @@ import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
 import { Route as AuthenticatedRequestStatsIndexRouteImport } from './routes/_authenticated/request-stats/index'
+import { Route as AuthenticatedSecurityIndexRouteImport } from './routes/_authenticated/security/index'
 import { Route as AuthenticatedServiceManagementIndexRouteImport } from './routes/_authenticated/service-management/index'
 import { Route as AuthenticatedSessionRecordsIndexRouteImport } from './routes/_authenticated/session-records/index'
 import { Route as AuthenticatedStatusIndexRouteImport } from './routes/_authenticated/status/index'
 import { Route as AuthenticatedSubscriptionsIndexRouteImport } from './routes/_authenticated/subscriptions/index'
 import { Route as AuthenticatedSystemInfoIndexRouteImport } from './routes/_authenticated/system-info/index'
 import { Route as AuthenticatedSystemSettingsIndexRouteImport } from './routes/_authenticated/system-settings/index'
+import { Route as AuthenticatedTaskPluginsIndexRouteImport } from './routes/_authenticated/task-plugins/index'
 import { Route as AuthenticatedTokenLookupIndexRouteImport } from './routes/_authenticated/token-lookup/index'
 import { Route as AuthenticatedUsageLogsIndexRouteImport } from './routes/_authenticated/usage-logs/index'
 import { Route as AuthenticatedUsageLogsSectionRouteImport } from './routes/_authenticated/usage-logs/$section'
+import { Route as AuthenticatedUsageLogsAuditRouteImport } from './routes/_authenticated/usage-logs/audit'
 import { Route as AuthenticatedUsersIndexRouteImport } from './routes/_authenticated/users/index'
 import { Route as AuthenticatedWalletIndexRouteImport } from './routes/_authenticated/wallet/index'
 import { Route as PricingModelIdIndexRouteImport } from './routes/pricing/$modelId/index'
@@ -362,6 +365,12 @@ const AuthenticatedRequestStatsIndexRoute =
     path: '/request-stats/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSecurityIndexRoute =
+  AuthenticatedSecurityIndexRouteImport.update({
+    id: '/security/',
+    path: '/security/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedServiceManagementIndexRoute =
   AuthenticatedServiceManagementIndexRouteImport.update({
     id: '/service-management/',
@@ -398,6 +407,12 @@ const AuthenticatedSystemSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSystemSettingsRouteRoute,
   } as any)
+const AuthenticatedTaskPluginsIndexRoute =
+  AuthenticatedTaskPluginsIndexRouteImport.update({
+    id: '/task-plugins/',
+    path: '/task-plugins/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTokenLookupIndexRoute =
   AuthenticatedTokenLookupIndexRouteImport.update({
     id: '/token-lookup/',
@@ -414,6 +429,12 @@ const AuthenticatedUsageLogsSectionRoute =
   AuthenticatedUsageLogsSectionRouteImport.update({
     id: '/usage-logs/$section',
     path: '/usage-logs/$section',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedUsageLogsAuditRoute =
+  AuthenticatedUsageLogsAuditRouteImport.update({
+    id: '/usage-logs/audit',
+    path: '/usage-logs/audit',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedUsersIndexRoute = AuthenticatedUsersIndexRouteImport.update({
@@ -549,6 +570,7 @@ export interface FileRoutesByFullPath {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/alert-settings/': typeof AuthenticatedAlertSettingsIndexRoute
   '/api-sale/': typeof AuthenticatedApiSaleIndexRoute
   '/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
@@ -568,12 +590,14 @@ export interface FileRoutesByFullPath {
   '/profile/': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/request-stats/': typeof AuthenticatedRequestStatsIndexRoute
+  '/security/': typeof AuthenticatedSecurityIndexRoute
   '/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
   '/status/': typeof AuthenticatedStatusIndexRoute
   '/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
+  '/task-plugins/': typeof AuthenticatedTaskPluginsIndexRoute
   '/token-lookup/': typeof AuthenticatedTokenLookupIndexRoute
   '/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/users/': typeof AuthenticatedUsersIndexRoute
@@ -625,6 +649,7 @@ export interface FileRoutesByTo {
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/alert-settings': typeof AuthenticatedAlertSettingsIndexRoute
   '/api-sale': typeof AuthenticatedApiSaleIndexRoute
   '/burn-tool': typeof AuthenticatedBurnToolIndexRoute
@@ -644,12 +669,14 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
   '/request-stats': typeof AuthenticatedRequestStatsIndexRoute
+  '/security': typeof AuthenticatedSecurityIndexRoute
   '/service-management': typeof AuthenticatedServiceManagementIndexRoute
   '/session-records': typeof AuthenticatedSessionRecordsIndexRoute
   '/status': typeof AuthenticatedStatusIndexRoute
   '/subscriptions': typeof AuthenticatedSubscriptionsIndexRoute
   '/system-info': typeof AuthenticatedSystemInfoIndexRoute
   '/system-settings': typeof AuthenticatedSystemSettingsIndexRoute
+  '/task-plugins': typeof AuthenticatedTaskPluginsIndexRoute
   '/token-lookup': typeof AuthenticatedTokenLookupIndexRoute
   '/usage-logs': typeof AuthenticatedUsageLogsIndexRoute
   '/users': typeof AuthenticatedUsersIndexRoute
@@ -705,6 +732,7 @@ export interface FileRoutesById {
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
+  '/_authenticated/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
   '/_authenticated/alert-settings/': typeof AuthenticatedAlertSettingsIndexRoute
   '/_authenticated/api-sale/': typeof AuthenticatedApiSaleIndexRoute
   '/_authenticated/burn-tool/': typeof AuthenticatedBurnToolIndexRoute
@@ -724,12 +752,14 @@ export interface FileRoutesById {
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
   '/_authenticated/request-stats/': typeof AuthenticatedRequestStatsIndexRoute
+  '/_authenticated/security/': typeof AuthenticatedSecurityIndexRoute
   '/_authenticated/service-management/': typeof AuthenticatedServiceManagementIndexRoute
   '/_authenticated/session-records/': typeof AuthenticatedSessionRecordsIndexRoute
   '/_authenticated/status/': typeof AuthenticatedStatusIndexRoute
   '/_authenticated/subscriptions/': typeof AuthenticatedSubscriptionsIndexRoute
   '/_authenticated/system-info/': typeof AuthenticatedSystemInfoIndexRoute
   '/_authenticated/system-settings/': typeof AuthenticatedSystemSettingsIndexRoute
+  '/_authenticated/task-plugins/': typeof AuthenticatedTaskPluginsIndexRoute
   '/_authenticated/token-lookup/': typeof AuthenticatedTokenLookupIndexRoute
   '/_authenticated/usage-logs/': typeof AuthenticatedUsageLogsIndexRoute
   '/_authenticated/users/': typeof AuthenticatedUsersIndexRoute
@@ -784,6 +814,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/usage-logs/audit'
     | '/alert-settings/'
     | '/api-sale/'
     | '/burn-tool/'
@@ -803,12 +834,14 @@ export interface FileRouteTypes {
     | '/profile/'
     | '/redemption-codes/'
     | '/request-stats/'
+    | '/security/'
     | '/service-management/'
     | '/session-records/'
     | '/status/'
     | '/subscriptions/'
     | '/system-info/'
     | '/system-settings/'
+    | '/task-plugins/'
     | '/token-lookup/'
     | '/usage-logs/'
     | '/users/'
@@ -860,6 +893,7 @@ export interface FileRouteTypes {
     | '/errors/$error'
     | '/models/$section'
     | '/usage-logs/$section'
+    | '/usage-logs/audit'
     | '/alert-settings'
     | '/api-sale'
     | '/burn-tool'
@@ -879,12 +913,14 @@ export interface FileRouteTypes {
     | '/profile'
     | '/redemption-codes'
     | '/request-stats'
+    | '/security'
     | '/service-management'
     | '/session-records'
     | '/status'
     | '/subscriptions'
     | '/system-info'
     | '/system-settings'
+    | '/task-plugins'
     | '/token-lookup'
     | '/usage-logs'
     | '/users'
@@ -939,6 +975,7 @@ export interface FileRouteTypes {
     | '/_authenticated/errors/$error'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
+    | '/_authenticated/usage-logs/audit'
     | '/_authenticated/alert-settings/'
     | '/_authenticated/api-sale/'
     | '/_authenticated/burn-tool/'
@@ -958,12 +995,14 @@ export interface FileRouteTypes {
     | '/_authenticated/profile/'
     | '/_authenticated/redemption-codes/'
     | '/_authenticated/request-stats/'
+    | '/_authenticated/security/'
     | '/_authenticated/service-management/'
     | '/_authenticated/session-records/'
     | '/_authenticated/status/'
     | '/_authenticated/subscriptions/'
     | '/_authenticated/system-info/'
     | '/_authenticated/system-settings/'
+    | '/_authenticated/task-plugins/'
     | '/_authenticated/token-lookup/'
     | '/_authenticated/usage-logs/'
     | '/_authenticated/users/'
@@ -1366,6 +1405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRequestStatsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/security/': {
+      id: '/_authenticated/security/'
+      path: '/security'
+      fullPath: '/security/'
+      preLoaderRoute: typeof AuthenticatedSecurityIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/service-management/': {
       id: '/_authenticated/service-management/'
       path: '/service-management'
@@ -1408,6 +1454,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSystemSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSystemSettingsRouteRoute
     }
+    '/_authenticated/task-plugins/': {
+      id: '/_authenticated/task-plugins/'
+      path: '/task-plugins'
+      fullPath: '/task-plugins/'
+      preLoaderRoute: typeof AuthenticatedTaskPluginsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/token-lookup/': {
       id: '/_authenticated/token-lookup/'
       path: '/token-lookup'
@@ -1427,6 +1480,13 @@ declare module '@tanstack/react-router' {
       path: '/usage-logs/$section'
       fullPath: '/usage-logs/$section'
       preLoaderRoute: typeof AuthenticatedUsageLogsSectionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/usage-logs/audit': {
+      id: '/_authenticated/usage-logs/audit'
+      path: '/usage-logs/audit'
+      fullPath: '/usage-logs/audit'
+      preLoaderRoute: typeof AuthenticatedUsageLogsAuditRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/users/': {
@@ -1642,6 +1702,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
+  AuthenticatedUsageLogsAuditRoute: typeof AuthenticatedUsageLogsAuditRoute
   AuthenticatedAlertSettingsIndexRoute: typeof AuthenticatedAlertSettingsIndexRoute
   AuthenticatedApiSaleIndexRoute: typeof AuthenticatedApiSaleIndexRoute
   AuthenticatedBurnToolIndexRoute: typeof AuthenticatedBurnToolIndexRoute
@@ -1661,11 +1722,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
   AuthenticatedRequestStatsIndexRoute: typeof AuthenticatedRequestStatsIndexRoute
+  AuthenticatedSecurityIndexRoute: typeof AuthenticatedSecurityIndexRoute
   AuthenticatedServiceManagementIndexRoute: typeof AuthenticatedServiceManagementIndexRoute
   AuthenticatedSessionRecordsIndexRoute: typeof AuthenticatedSessionRecordsIndexRoute
   AuthenticatedStatusIndexRoute: typeof AuthenticatedStatusIndexRoute
   AuthenticatedSubscriptionsIndexRoute: typeof AuthenticatedSubscriptionsIndexRoute
   AuthenticatedSystemInfoIndexRoute: typeof AuthenticatedSystemInfoIndexRoute
+  AuthenticatedTaskPluginsIndexRoute: typeof AuthenticatedTaskPluginsIndexRoute
   AuthenticatedTokenLookupIndexRoute: typeof AuthenticatedTokenLookupIndexRoute
   AuthenticatedUsageLogsIndexRoute: typeof AuthenticatedUsageLogsIndexRoute
   AuthenticatedUsersIndexRoute: typeof AuthenticatedUsersIndexRoute
@@ -1681,6 +1744,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
+  AuthenticatedUsageLogsAuditRoute: AuthenticatedUsageLogsAuditRoute,
   AuthenticatedAlertSettingsIndexRoute: AuthenticatedAlertSettingsIndexRoute,
   AuthenticatedApiSaleIndexRoute: AuthenticatedApiSaleIndexRoute,
   AuthenticatedBurnToolIndexRoute: AuthenticatedBurnToolIndexRoute,
@@ -1702,12 +1766,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRedemptionCodesIndexRoute:
     AuthenticatedRedemptionCodesIndexRoute,
   AuthenticatedRequestStatsIndexRoute: AuthenticatedRequestStatsIndexRoute,
+  AuthenticatedSecurityIndexRoute: AuthenticatedSecurityIndexRoute,
   AuthenticatedServiceManagementIndexRoute:
     AuthenticatedServiceManagementIndexRoute,
   AuthenticatedSessionRecordsIndexRoute: AuthenticatedSessionRecordsIndexRoute,
   AuthenticatedStatusIndexRoute: AuthenticatedStatusIndexRoute,
   AuthenticatedSubscriptionsIndexRoute: AuthenticatedSubscriptionsIndexRoute,
   AuthenticatedSystemInfoIndexRoute: AuthenticatedSystemInfoIndexRoute,
+  AuthenticatedTaskPluginsIndexRoute: AuthenticatedTaskPluginsIndexRoute,
   AuthenticatedTokenLookupIndexRoute: AuthenticatedTokenLookupIndexRoute,
   AuthenticatedUsageLogsIndexRoute: AuthenticatedUsageLogsIndexRoute,
   AuthenticatedUsersIndexRoute: AuthenticatedUsersIndexRoute,

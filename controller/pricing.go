@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"maps"
+
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -38,9 +40,7 @@ func GetPricing(c *gin.Context) {
 	userId, exists := c.Get("id")
 	usableGroup := map[string]string{}
 	groupRatio := map[string]float64{}
-	for s, f := range ratio_setting.GetGroupRatioCopy() {
-		groupRatio[s] = f
-	}
+	maps.Copy(groupRatio, ratio_setting.GetGroupRatioCopy())
 	var group string
 	resolvedUserId := 0
 	// ⚠️ 本路由默认走 TryUserAuth（只 set id 不 set role），c.GetInt("role") 恒为 0，
