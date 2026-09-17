@@ -15,9 +15,9 @@ func isStripeTopUpEnabled() bool {
 	if !isPaymentComplianceConfirmed() {
 		return false
 	}
-	// 充值改用 price_data 现场定价（按实收金额），不再依赖预建的 StripePriceId。
 	return strings.TrimSpace(setting.StripeApiSecret) != "" &&
-		strings.TrimSpace(setting.StripeWebhookSecret) != ""
+		strings.TrimSpace(setting.StripeWebhookSecret) != "" &&
+		strings.TrimSpace(setting.StripePriceId) != ""
 }
 
 func isStripeWebhookConfigured() bool {
@@ -107,25 +107,4 @@ func isEpayWebhookConfigured() bool {
 
 func isEpayWebhookEnabled() bool {
 	return isEpayTopUpEnabled()
-}
-
-func isAlipayTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
-	return setting.AlipayEnabled &&
-		strings.TrimSpace(setting.AlipayAppId) != "" &&
-		strings.TrimSpace(setting.AlipayPrivateKey) != "" &&
-		strings.TrimSpace(setting.AlipayPublicKey) != ""
-}
-
-func isWechatPayTopUpEnabled() bool {
-	if !isPaymentComplianceConfirmed() {
-		return false
-	}
-	return setting.WechatPayEnabled &&
-		strings.TrimSpace(setting.WechatPayMchId) != "" &&
-		strings.TrimSpace(setting.WechatPayApiV3Key) != "" &&
-		strings.TrimSpace(setting.WechatPaySerialNo) != "" &&
-		strings.TrimSpace(setting.WechatPayPrivateKey) != ""
 }

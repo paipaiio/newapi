@@ -30,7 +30,6 @@ import { BillingHistoryDialog } from './components/dialogs/billing-history-dialo
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
 import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialog'
 import { TransferDialog } from './components/dialogs/transfer-dialog'
-import { QRCodePaymentDialog } from './components/qrcode-payment-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
@@ -44,12 +43,10 @@ import {
   useWaffoPayment,
   useWaffoPancakePayment,
 } from './hooks'
-import { useQRCodePayment } from './hooks/use-qrcode-payment'
 import {
   getDefaultPaymentType,
   getMinTopupAmount,
   dispatchSelectedPayment,
-  isQRCodePayment,
 } from './lib'
 import type {
   UserWalletData,
@@ -129,12 +126,6 @@ export function Wallet(props: WalletProps) {
     }
   }, [])
 
-  const {
-    state: qrCodeState,
-    startQRCodePayment,
-    closeDialog: closeQRCodeDialog,
-  } = useQRCodePayment(fetchUser)
-
   useEffect(() => {
     fetchUser()
   }, [fetchUser])
@@ -189,11 +180,6 @@ export function Wallet(props: WalletProps) {
       // Validate minimum topup
       const minTopup = getMinTopupAmount(topupInfo)
       if (topupAmount < minTopup) {
-        return
-      }
-
-      if (isQRCodePayment(method.type)) {
-        await startQRCodePayment(Math.floor(topupAmount), method.type)
         return
       }
 
@@ -432,7 +418,6 @@ export function Wallet(props: WalletProps) {
         processing={creemProcessing}
       />
 
-      <QRCodePaymentDialog state={qrCodeState} onClose={closeQRCodeDialog} />
     </>
   )
 }

@@ -39,9 +39,6 @@ import type {
   WaffoPaymentResponse,
   WaffoPancakePaymentRequest,
   WaffoPancakePaymentResponse,
-  AlipayPaymentResponse,
-  WechatPayPaymentResponse,
-  QRCodeOrderStatusResponse,
 } from './types'
 
 // ============================================================================
@@ -250,46 +247,3 @@ export async function completeOrder(
   return res.data
 }
 
-/**
- * Request Alipay QR code payment
- */
-export async function requestAlipayPayment(request: {
-  amount: number
-}): Promise<AlipayPaymentResponse> {
-  const res = await api.post('/api/user/alipay/pay', request, {
-    skipBusinessError: true,
-  } as Record<string, unknown>)
-  return res.data
-}
-
-/**
- * Request WeChat Pay QR code payment
- */
-export async function requestWechatPayPayment(request: {
-  amount: number
-}): Promise<WechatPayPaymentResponse> {
-  const res = await api.post('/api/user/wechatpay/pay', request, {
-    skipBusinessError: true,
-  } as Record<string, unknown>)
-  return res.data
-}
-
-/**
- * Query Alipay order status
- */
-export async function queryAlipayOrder(
-  tradeNo: string
-): Promise<QRCodeOrderStatusResponse> {
-  const res = await api.get(`/api/user/alipay/query?trade_no=${tradeNo}`)
-  return res.data
-}
-
-/**
- * Query WeChat Pay order status
- */
-export async function queryWechatPayOrder(
-  tradeNo: string
-): Promise<QRCodeOrderStatusResponse> {
-  const res = await api.get(`/api/user/wechatpay/query?trade_no=${tradeNo}`)
-  return res.data
-}
