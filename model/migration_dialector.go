@@ -21,6 +21,16 @@ func (d mysqlMigrationDialector) Migrator(db *gorm.DB) gorm.Migrator {
 
 type mysqlSchemaMigrator struct{ mysql.Migrator }
 
+func (m mysqlSchemaMigrator) DropConstraint(value any, name string) error {
+	err := m.Migrator.DropConstraint(value, name)
+	if err != nil && strings.Contains(err.Error(), "Error 1091") {
+		// Error 1091: Can't DROP constraint; check that it exists
+		// Ignore this error - the constraint doesn't exist, which is fine
+		return nil
+	}
+	return err
+}
+
 func (m mysqlSchemaMigrator) MigrateColumn(value any, field *schema.Field, column gorm.ColumnType) error {
 	if !field.HasDefaultValue || !strings.EqualFold(column.DatabaseTypeName(), "decimal") {
 		return m.Migrator.MigrateColumn(value, field, column)
