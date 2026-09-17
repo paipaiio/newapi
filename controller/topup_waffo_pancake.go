@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,10 +17,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/shopspring/decimal"
 	"github.com/thanhpk/randstr"
+	pancake "github.com/waffo-com/waffo-pancake-sdk-go"
 )
 
 type WaffoPancakePayRequest struct {
 	Amount int64 `json:"amount"`
+}
+
+// waffoPancakeUserSafeError 提取 SDK 返回的 Waffo 服务端错误消息（如
+// “product not found”）用于展示给操作者定位问题；非 SDK 错误（网络、配置）
+// 不外泄内部细节，返回笼统文案。pancake.Error.Error() 只含 Waffo API 的
+// message 字段，不含密钥等敏感信息。
+func waffoPancakeUserSafeError(err error) string {
+	var perr *pancake.Error
+	if errors.As(err, &perr) && perr.Error() != "" {
+		return perr.Error()
+	}
+	return "支付网关无响应，请稍后重试或联系管理员"
 }
 
 func RequestWaffoPancakeAmount(c *gin.Context) {
@@ -426,7 +440,8 @@ func RequestWaffoPancakePay(c *gin.Context) {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Waffo Pancake 创建结账会话失败 user_id=%d trade_no=%s error=%q", id, tradeNo, err.Error()))
 		topUp.Status = common.TopUpStatusFailed
 		_ = topUp.Update()
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "拉起支付失败"})
+		// 把 Waffo 返回的真实错误透传给前端 toast，否则线上只能看到笼统的“拉起支付失败”，无法定位。
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": fmt.Sprintf("拉起支付失败：%s", waffoPancakeUserSafeError(err))})
 		return
 	}
 	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Waffo Pancake 充值订单创建成功 user_id=%d trade_no=%s session_id=%s amount=%d money=%.2f", id, tradeNo, session.SessionID, req.Amount, payMoney))
