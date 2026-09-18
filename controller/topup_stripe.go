@@ -61,7 +61,7 @@ func (*StripeAdaptor) RequestAmount(c *gin.Context, req *StripePayRequest) {
 	if rejectInvalidCreditedQuota(c, id, getStripeCreditedQuota(req.Amount, group)) {
 		return
 	}
-	payMoney := getStripePayMoney(float64(req.Amount), group)
+	payMoney := getStripePayMoney(id, float64(req.Amount), group)
 	if payMoney <= 0.01 {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "充值金额过低"})
 		return
@@ -421,7 +421,7 @@ func getStripeCreditedQuota(amount int64, group string) decimal.Decimal {
 		Mul(decimal.NewFromFloat(common.QuotaPerUnit))
 }
 
-func getStripePayMoney(amount float64, group string) float64 {
+func getStripePayMoney(userId int, amount float64, group string) float64 {
 	originalAmount := amount
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
 		amount = amount / common.QuotaPerUnit
@@ -431,13 +431,8 @@ func getStripePayMoney(amount float64, group string) float64 {
 	if topupGroupRatio == 0 {
 		topupGroupRatio = 1
 	}
-	// apply optional preset discount by the original request amount (if configured), default 1.0
-	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(originalAmount)]; ok {
-		if ds > 0 {
-			discount = ds
-		}
-	}
+	// 全局档位折扣与用户专属折扣取更优(更低)价
+	discount := resolveTopupDiscount(userId, int(originalAmount))
 	payMoney := amount * setting.StripeUnitPrice * topupGroupRatio * discount
 	return payMoney
 }

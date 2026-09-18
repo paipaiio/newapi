@@ -228,10 +228,16 @@ export function RechargeFormCard({
                   </Label>
                   <div className='grid grid-cols-2 gap-1.5 sm:gap-3 md:grid-cols-4'>
                     {presetAmounts.map((preset) => {
-                      const discount =
+                      // 与后端 resolveTopupDiscount 同口径：全局档位折扣与
+                      // 用户专属折扣取更优（更低）价。
+                      const tierDiscount =
                         preset.discount ||
                         topupInfo?.discount?.[preset.value] ||
                         1.0
+                      const discount = Math.min(
+                        tierDiscount,
+                        topupInfo?.user_topup_discount || 1.0
+                      )
                       const {
                         displayValue,
                         actualPrice,

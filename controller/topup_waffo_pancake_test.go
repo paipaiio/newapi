@@ -28,6 +28,35 @@ func TestFormatWaffoPancakeAmount_UsesDisplayPriceString(t *testing.T) {
 	}
 }
 
+func TestResolveTopupDiscount(t *testing.T) {
+	originalDiscounts := make(map[int]float64, len(operation_setting.GetPaymentSetting().AmountDiscount))
+	maps.Copy(originalDiscounts, operation_setting.GetPaymentSetting().AmountDiscount)
+	t.Cleanup(func() {
+		operation_setting.GetPaymentSetting().AmountDiscount = originalDiscounts
+	})
+
+	operation_setting.GetPaymentSetting().AmountDiscount = map[int]float64{
+		100: 0.9,
+		200: 0, // 非正值 = 无效配置，视为不打折
+	}
+
+	testCases := []struct {
+		name     string
+		userId   int // 0 = 跳过用户查询（测试环境无 DB）
+		amount   int
+		expected float64
+	}{
+		{name: "no tier config returns full price", userId: 0, amount: 50, expected: 1.0},
+		{name: "tier discount applies", userId: 0, amount: 100, expected: 0.9},
+		{name: "non-positive tier discount ignored", userId: 0, amount: 200, expected: 1.0},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.InDelta(t, tc.expected, resolveTopupDiscount(tc.userId, tc.amount), 0.000001)
+		})
+	}
+}
+
 func TestGetWaffoPancakePayMoney(t *testing.T) {
 	originalQuotaDisplayType := operation_setting.GetGeneralSetting().QuotaDisplayType
 	originalExchangeRate := operation_setting.USDExchangeRate
@@ -132,7 +161,7 @@ func TestGetWaffoPancakePayMoney(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			operation_setting.GetGeneralSetting().QuotaDisplayType = tc.quotaDisplayType
 			setting.WaffoPancakeExchangeRate = tc.pancakeRate
-			actual := getWaffoPancakePayMoney(tc.amount, tc.group)
+			actual := getWaffoPancakePayMoney(0, tc.amount, tc.group)
 			require.InDelta(t, tc.expected, actual, 0.000001)
 		})
 	}

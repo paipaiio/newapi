@@ -270,9 +270,15 @@ export function Wallet(props: WalletProps) {
     }
   }
 
-  // Get discount rate for current topup amount
+  // Get discount rate for current topup amount: tier discount combined with
+  // the user's exclusive discount, taking the lower (better) rate — mirrors
+  // the backend resolveTopupDiscount.
   const getDiscountRate = useCallback(() => {
-    return topupInfo?.discount?.[topupAmount] || DEFAULT_DISCOUNT_RATE
+    const tierDiscount =
+      topupInfo?.discount?.[topupAmount] || DEFAULT_DISCOUNT_RATE
+    const userDiscount =
+      topupInfo?.user_topup_discount || DEFAULT_DISCOUNT_RATE
+    return Math.min(tierDiscount, userDiscount)
   }, [topupInfo, topupAmount])
 
   const handleSubscriptionAvailabilityChange = useCallback(
@@ -298,6 +304,20 @@ export function Wallet(props: WalletProps) {
               }
             >
               <div id='wallet-add-funds' className='scroll-mt-4'>
+                {typeof topupInfo?.user_topup_discount === 'number' &&
+                  topupInfo.user_topup_discount > 0 &&
+                  topupInfo.user_topup_discount < 1 && (
+                    <div className='mb-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300'>
+                      {t(
+                        'You have an exclusive recharge discount: {{pct}}% off',
+                        {
+                          pct: Math.round(
+                            (1 - topupInfo.user_topup_discount) * 100
+                          ),
+                        }
+                      )}
+                    </div>
+                  )}
                 <RechargeFormCard
                   topupInfo={topupInfo}
                   presetAmounts={presetAmounts}
