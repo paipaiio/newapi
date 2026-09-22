@@ -374,6 +374,7 @@ export function Wallet(props: WalletProps) {
               complianceConfirmed={
                 topupInfo?.payment_compliance_confirmed !== false
               }
+              disableTransfer={isComplianceSite}
               loading={affiliateLoading}
             />
           </div>

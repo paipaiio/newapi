@@ -460,6 +460,10 @@ type TransferAffQuotaRequest struct {
 }
 
 func TransferAffQuota(c *gin.Context) {
+	// 合规站钱包只读:推荐奖励不可转入余额。
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !requirePaymentCompliance(c) {
 		return
 	}
@@ -1391,6 +1395,10 @@ func getTopUpLock(userID int) *topUpTryLock {
 }
 
 func TopUp(c *gin.Context) {
+	// 合规站禁止任何形式的余额增加，兑换码也不例外。
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	if !operation_setting.IsPaymentComplianceConfirmed() {
 		common.ApiErrorI18n(c, i18n.MsgPaymentComplianceRequired)
 		return

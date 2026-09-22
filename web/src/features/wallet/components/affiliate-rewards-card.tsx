@@ -35,12 +35,15 @@ interface AffiliateRewardsCardProps {
   onTransfer: () => void
   complianceConfirmed?: boolean
   loading?: boolean
+  /** 合规站:钱包只读,不允许任何形式的余额增加 */
+  disableTransfer?: boolean
 }
 
 export function AffiliateRewardsCard({
   user,
   affiliateLink,
   onTransfer,
+  disableTransfer,
   complianceConfirmed = true,
   loading,
 }: AffiliateRewardsCardProps) {
@@ -115,7 +118,7 @@ export function AffiliateRewardsCard({
           {hasRewards && (
             <Button
               onClick={onTransfer}
-              disabled={!complianceConfirmed}
+              disabled={!complianceConfirmed || disableTransfer}
               className='h-9 shrink-0 px-3'
               size='sm'
             >

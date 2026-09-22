@@ -111,6 +111,7 @@ func GetTopUpInfo(c *gin.Context) {
 		data["creem_products"] = ""
 		data["pay_methods"] = []map[string]string{}
 		data["topup_link"] = ""
+		data["enable_redemption"] = false
 	}
 	common.ApiSuccess(c, data)
 }
