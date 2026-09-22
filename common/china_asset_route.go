@@ -55,18 +55,9 @@ func loadIngressIPs() {
 
 // ForceOriginAssetRoute reports whether this process should never emit
 // Bitiful CDN URLs in index.html. ASSET_ROUTE=origin always wins;
-// ASSET_ROUTE=cdn restores geo routing even on a compliance node.
-// Unset ASSET_ROUTE plus SITE_MODE=compliance defaults to origin:
-// api.openai.fans is overseas-only and must not send browsers to CDN.
+// ASSET_ROUTE=cdn restores geo routing.
 func ForceOriginAssetRoute() bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv("ASSET_ROUTE"))) {
-	case "origin":
-		return true
-	case "cdn":
-		return false
-	default:
-		return strings.EqualFold(strings.TrimSpace(os.Getenv("SITE_MODE")), "compliance")
-	}
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("ASSET_ROUTE")), "origin")
 }
 
 // IsChinaAssetClient reports whether this request should keep CDN asset URLs.

@@ -27,15 +27,6 @@ func TestIsChinaAssetClientUsesCountryHeader(t *testing.T) {
 	assert.True(t, IsChinaAssetClient(req, "8.8.8.8"))
 }
 
-func TestComplianceSiteAlwaysUsesOriginAssets(t *testing.T) {
-	t.Setenv("SITE_MODE", "compliance")
-	t.Setenv("ASSET_ROUTE", "")
-	req := &http.Request{Header: http.Header{"Cf-Ipcountry": []string{"CN"}}}
-	assert.True(t, ForceOriginAssetRoute())
-	assert.False(t, IsChinaAssetClient(req, "114.114.114.114"))
-	assert.False(t, IsChinaAssetClient(req, "179.253.232.226"))
-}
-
 func TestAssetRouteOriginOverridesChina(t *testing.T) {
 	t.Setenv("SITE_MODE", "")
 	t.Setenv("ASSET_ROUTE", "origin")
@@ -43,15 +34,6 @@ func TestAssetRouteOriginOverridesChina(t *testing.T) {
 	assert.True(t, ForceOriginAssetRoute())
 	assert.False(t, IsChinaAssetClient(req, "1.0.1.1"))
 }
-
-func TestAssetRouteCDNRestoresGeoOnCompliance(t *testing.T) {
-	t.Setenv("SITE_MODE", "compliance")
-	t.Setenv("ASSET_ROUTE", "cdn")
-	req := &http.Request{Header: http.Header{"Cf-Ipcountry": []string{"CN"}}}
-	assert.False(t, ForceOriginAssetRoute())
-	assert.True(t, IsChinaAssetClient(req, "8.8.8.8"))
-}
-
 func TestAssetRequestClientIPPrefersRealIP(t *testing.T) {
 	req := &http.Request{Header: http.Header{
 		"X-Real-Ip":         []string{"116.232.117.22"},

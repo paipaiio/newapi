@@ -292,22 +292,11 @@ export function useSidebarConfig(navGroups: NavGroup[]): NavGroup[] {
 
   const adminConfig = useMemo(
     () => {
-      const config = parseSidebarConfig(
+      return parseSidebarConfig(
         status?.SidebarModulesAdmin as string | null | undefined
       )
-      // 合规站只下线管理后台。钱包入口（personal.topup 控制 /wallet）保留：
-      // 用户需要能查询自己的余额与账单，支付 UI 在钱包页内部单独隐藏。
-      // 推荐计划在钱包页隐藏；「其他服务」侧栏入口也一并拿掉。
-      if (status?.site_mode === 'compliance') {
-        config.admin = { ...config.admin, enabled: false }
-        config.personal = {
-          ...config.personal,
-          otherServices: false,
-        }
-      }
-      return config
     },
-    [status?.SidebarModulesAdmin, status?.site_mode]
+    [status?.SidebarModulesAdmin]
   )
 
   const userConfig = useMemo(() => {
@@ -348,14 +337,6 @@ export function useIsSidebarModuleVisible(url: string): boolean {
   const adminConfig = parseSidebarConfig(
     status?.SidebarModulesAdmin as string | null | undefined
   )
-  // 同 useSidebarConfig：合规站保留钱包入口，仅下线管理后台和其他服务。
-  if (status?.site_mode === 'compliance') {
-    adminConfig.admin = { ...adminConfig.admin, enabled: false }
-    adminConfig.personal = {
-      ...adminConfig.personal,
-      otherServices: false,
-    }
-  }
   const userConfig =
     auth?.user?.permissions?.sidebar_settings === false
       ? null
