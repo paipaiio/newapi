@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
@@ -97,6 +98,19 @@ func GetTopUpInfo(c *gin.Context) {
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
 		"topup_link":              common.TopUpLink,
+	}
+	if constant.IsComplianceSite() {
+		// 合规站:充值入口整体下线(卡密兑换保留)。
+		data["allow_topup"] = false
+		data["enable_online_topup"] = false
+		data["enable_stripe_topup"] = false
+		data["enable_creem_topup"] = false
+		data["enable_waffo_topup"] = false
+		data["enable_waffo_pancake_topup"] = false
+		data["waffo_pay_methods"] = nil
+		data["creem_products"] = ""
+		data["pay_methods"] = []map[string]string{}
+		data["topup_link"] = ""
 	}
 	common.ApiSuccess(c, data)
 }
@@ -259,6 +273,9 @@ func rejectInvalidTopUpQuota(c *gin.Context, userId int, amount int64) bool {
 }
 
 func RequestEpay(c *gin.Context) {
+	if rejectThirdPartyPaymentForSite(c) {
+		return
+	}
 	var req EpayRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {

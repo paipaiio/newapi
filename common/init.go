@@ -32,6 +32,10 @@ func printHelp() {
 func InitEnv() {
 	flag.Parse()
 
+	if err := constant.InitSiteMode(); err != nil {
+		log.Fatal(err)
+	}
+
 	envVersion := os.Getenv("VERSION")
 	if envVersion != "" {
 		Version = envVersion

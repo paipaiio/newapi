@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
@@ -17,6 +18,21 @@ import (
 
 type PaymentComplianceRequest struct {
 	Confirmed bool `json:"confirmed"`
+}
+
+// rejectThirdPartyPaymentForSite blocks every payment entry point on a
+// compliance site (SITE_MODE=compliance): recharge and subscription payments
+// must not be reachable at all, even by direct API calls.
+func rejectThirdPartyPaymentForSite(c *gin.Context) bool {
+	if !constant.IsComplianceSite() {
+		return false
+	}
+	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+		"success": false,
+		"code":    "PAYMENT_DISABLED_FOR_SITE",
+		"message": "Third-party payment is not available on this site.",
+	})
+	return true
 }
 
 func requirePaymentCompliance(c *gin.Context) bool {

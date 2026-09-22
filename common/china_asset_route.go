@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/QuantumNous/new-api/constant"
 )
 
 const (
@@ -55,9 +57,18 @@ func loadIngressIPs() {
 
 // ForceOriginAssetRoute reports whether this process should never emit
 // Bitiful CDN URLs in index.html. ASSET_ROUTE=origin always wins;
-// ASSET_ROUTE=cdn restores geo routing.
+// ASSET_ROUTE=cdn restores geo routing even on a compliance node.
+// Unset ASSET_ROUTE plus SITE_MODE=compliance defaults to origin:
+// api.openai.fans is overseas-only and must not send browsers to CDN.
 func ForceOriginAssetRoute() bool {
-	return strings.EqualFold(strings.TrimSpace(os.Getenv("ASSET_ROUTE")), "origin")
+	switch strings.ToLower(strings.TrimSpace(os.Getenv("ASSET_ROUTE"))) {
+	case "origin":
+		return true
+	case "cdn":
+		return false
+	default:
+		return constant.IsComplianceSite()
+	}
 }
 
 // IsChinaAssetClient reports whether this request should keep CDN asset URLs.
@@ -111,5 +122,3 @@ func AssetRequestClientIP(r *http.Request, fallback string) string {
 	}
 	return strings.TrimSpace(fallback)
 }
-
-

@@ -42,6 +42,37 @@ func TestStatus(c *gin.Context) {
 	return
 }
 
+// compliancePublicStatus scrubs deployment-specific details from /api/status
+// on a compliance site: payment surfaces, contact channels, community links
+// and module configuration are replaced with inert values.
+func compliancePublicStatus(data gin.H) {
+	data["site_mode"] = constant.SiteModeCompliance
+	data["payments_enabled"] = false
+	data["footer_html"] = ""
+	data["wechat_qrcode"] = ""
+	data["wechat_login"] = false
+	data["telegram_oauth"] = false
+	data["telegram_oauth_configured"] = false
+	data["telegram_bot_name"] = ""
+	data["chats"] = []any{}
+	data["docs_link"] = ""
+	data["stripe_unit_price"] = 0
+	data["price"] = 0
+	data["api_info_enabled"] = false
+	data["announcements_enabled"] = false
+	data["faq_enabled"] = false
+	data["api_info"] = nil
+	data["announcements"] = nil
+	data["faq"] = nil
+	data["HeaderNavModules"] = "{}"
+	data["SidebarModulesAdmin"] = `{"chat":{"enabled":true,"playground":true,"chat":true},"console":{"enabled":true,"detail":true,"token":true,"log":true,"midjourney":true,"task":true},"personal":{"enabled":true,"topup":false,"personal":true},"admin":{"enabled":false,"channel":false,"models":false,"redemption":false,"user":false,"setting":false,"subscription":false,"firstTokenTest":false,"monitor":false,"burnTool":false}}`
+	if constant.SitePublicURL != "" {
+		data["server_address"] = constant.SitePublicURL
+	} else {
+		data["server_address"] = ""
+	}
+}
+
 func GetStatus(c *gin.Context) {
 
 	cs := console_setting.GetConsoleSetting()
@@ -172,6 +203,10 @@ func GetStatus(c *gin.Context) {
 			})
 		}
 		data["custom_oauth_providers"] = providersInfo
+	}
+
+	if constant.IsComplianceSite() {
+		compliancePublicStatus(data)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

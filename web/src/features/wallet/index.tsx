@@ -129,12 +129,15 @@ export function Wallet(props: WalletProps) {
     fetchUser()
   }, [fetchUser])
 
+  const isComplianceSite = status?.site_mode === 'compliance'
+
   useEffect(() => {
-    if (props.initialShowHistory) {
+    // 合规站不提供账单历史入口，忽略 ?show_history=true。
+    if (props.initialShowHistory && !isComplianceSite) {
       setBillingDialogOpen(true)
       window.history.replaceState({}, '', window.location.pathname)
     }
-  }, [props.initialShowHistory])
+  }, [props.initialShowHistory, isComplianceSite])
 
   // Initialize topup amount when topup info is loaded
   const topupAmountInitializedRef = useRef(false)
@@ -303,6 +306,8 @@ export function Wallet(props: WalletProps) {
                   : 'grid gap-4'
               }
             >
+              {/* 合规站隐藏全部支付入口（充值 + 订阅套餐），仅保留余额展示 */}
+              {!isComplianceSite && (
               <div id='wallet-add-funds' className='scroll-mt-4'>
                 {typeof topupInfo?.user_topup_discount === 'number' &&
                   topupInfo.user_topup_discount > 0 &&
@@ -350,13 +355,16 @@ export function Wallet(props: WalletProps) {
                   }
                 />
               </div>
+              )}
 
+              {!isComplianceSite && (
               <SubscriptionPlansCard
                 topupInfo={topupInfo}
                 onAvailabilityChange={handleSubscriptionAvailabilityChange}
                 userQuota={user?.quota}
                 onPurchaseSuccess={fetchUser}
               />
+              )}
             </div>
 
             <AffiliateRewardsCard
