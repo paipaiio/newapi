@@ -28,9 +28,8 @@ import { Switch } from '@/components/ui/switch'
 import { getSystemOptions } from '@/features/system-settings/api'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
 import { GroupRatioVisualEditor } from '@/features/system-settings/models/group-ratio-visual-editor'
-import { GroupSpecialUsableRulesEditor } from '@/features/system-settings/models/group-special-usable-editor'
+import type { GroupSettingsSection } from '@/features/system-settings/models/group-ratio-visual-editor'
 import { normalizeJsonString } from '@/features/system-settings/models/utils'
-import { safeJsonParse } from '@/features/system-settings/utils/json-parser'
 
 /** API key for the special usable-group rules (differs from the form field name). */
 const SPECIAL_USABLE_API_KEY = 'group_ratio_setting.group_special_usable_group'
@@ -99,6 +98,7 @@ export function GroupOptionsEditor() {
   })
 
   const [values, setValues] = useState<GroupOptionValues | null>(null)
+  const [section, setSection] = useState<GroupSettingsSection>('pricing')
   const savedRef = useRef<GroupOptionValues | null>(null)
 
   // Initialize editing state once options arrive; later refetches must not
@@ -109,29 +109,6 @@ export function GroupOptionsEditor() {
     setValues(extracted)
     savedRef.current = normalizeValues(extracted)
   }, [data, values])
-
-  const groupNames = useMemo(() => {
-    if (!values) return []
-    const ratioMap = safeJsonParse<Record<string, number>>(values.GroupRatio, {
-      fallback: {},
-      silent: true,
-    })
-    const usableMap = safeJsonParse<Record<string, string>>(
-      values.UserUsableGroups,
-      { fallback: {}, silent: true }
-    )
-    const topupMap = safeJsonParse<Record<string, number>>(
-      values.TopupGroupRatio,
-      { fallback: {}, silent: true }
-    )
-    return [
-      ...new Set([
-        ...Object.keys(ratioMap),
-        ...Object.keys(usableMap),
-        ...Object.keys(topupMap),
-      ]),
-    ]
-  }, [values])
 
   const isDirty = useMemo(() => {
     if (!values || !savedRef.current) return false
@@ -204,6 +181,31 @@ export function GroupOptionsEditor() {
       </div>
 
       <GroupRatioVisualEditor
+        section={section}
+        onSectionChange={setSection}
+        defaultUseAutoGroupField={
+          <div className='flex items-center justify-between gap-4 rounded-lg border p-4'>
+            <div className='space-y-1'>
+              <Label htmlFor='default-use-auto-group'>
+                {t('Default to auto groups')}
+              </Label>
+              <p className='text-muted-foreground text-sm'>
+                {t(
+                  'When enabled, newly created tokens start in the first auto group.'
+                )}
+              </p>
+            </div>
+            <Switch
+              id='default-use-auto-group'
+              checked={values.DefaultUseAutoGroup}
+              onCheckedChange={(checked) =>
+                setValues((prev) =>
+                  prev ? { ...prev, DefaultUseAutoGroup: checked } : prev
+                )
+              }
+            />
+          </div>
+        }
         groupRatio={values.GroupRatio}
         topupGroupRatio={values.TopupGroupRatio}
         userUsableGroups={values.UserUsableGroups}
@@ -212,34 +214,6 @@ export function GroupOptionsEditor() {
         groupSpecialUsableGroup={values.GroupSpecialUsableGroup}
         onChange={handleChange}
       />
-
-      <GroupSpecialUsableRulesEditor
-        value={values.GroupSpecialUsableGroup}
-        groupOptions={groupNames}
-        onChange={(value) => handleChange('GroupSpecialUsableGroup', value)}
-      />
-
-      <div className='flex items-center justify-between gap-4 rounded-lg border p-4'>
-        <div className='space-y-1'>
-          <Label htmlFor='default-use-auto-group'>
-            {t('Default to auto groups')}
-          </Label>
-          <p className='text-muted-foreground text-sm'>
-            {t(
-              'When enabled, newly created tokens start in the first auto group.'
-            )}
-          </p>
-        </div>
-        <Switch
-          id='default-use-auto-group'
-          checked={values.DefaultUseAutoGroup}
-          onCheckedChange={(checked) =>
-            setValues((prev) =>
-              prev ? { ...prev, DefaultUseAutoGroup: checked } : prev
-            )
-          }
-        />
-      </div>
     </div>
   )
 }
