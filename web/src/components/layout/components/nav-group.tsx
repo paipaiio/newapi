@@ -141,13 +141,13 @@ export function NavGroup({ id, title, collapsible, items }: NavGroupProps) {
   )
 
   return (
-    <SidebarGroup className='px-2 py-1'>
+    <SidebarGroup className='px-2 pt-2.5 pb-1'>
       {collapsible ? (
         <Collapsible open={effectiveOpen} onOpenChange={handleOpenChange}>
           <CollapsibleTrigger
             className='group/group-trigger w-full'
             render={
-              <SidebarGroupLabel className='text-muted-foreground/70 hover:text-foreground cursor-pointer px-2 text-[11px] font-medium tracking-wider uppercase transition-colors' />
+              <SidebarGroupLabel className='text-muted-foreground/80 hover:text-foreground cursor-pointer px-2 text-sm font-medium transition-colors' />
             }
           >
             <span className='min-w-0 flex-1 truncate text-left'>{title}</span>
@@ -159,7 +159,7 @@ export function NavGroup({ id, title, collapsible, items }: NavGroupProps) {
         </Collapsible>
       ) : (
         <>
-          <SidebarGroupLabel className='text-muted-foreground/70 px-2 text-[11px] font-medium tracking-wider uppercase'>
+          <SidebarGroupLabel className='text-muted-foreground/80 px-2 text-sm font-medium'>
             {title}
           </SidebarGroupLabel>
           {menu}

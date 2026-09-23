@@ -68,7 +68,12 @@ export function AppSidebar() {
               const showSection =
                 props.section && props.section !== navGroups[index - 1]?.section
               return (
-                <div key={props.id || props.title}>
+                <div
+                  key={props.id || props.title}
+                  className={
+                    index > 0 ? 'mt-1 border-t border-sidebar-border/60' : ''
+                  }
+                >
                   {showSection && (
                     <div className='text-foreground/60 px-4 pt-3 pb-0.5 text-xs font-semibold tracking-widest uppercase group-data-[collapsible=icon]:hidden'>
                       {props.section}
