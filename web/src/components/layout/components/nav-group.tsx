@@ -147,7 +147,7 @@ export function NavGroup({ id, title, collapsible, items }: NavGroupProps) {
           <CollapsibleTrigger
             className='group/group-trigger w-full'
             render={
-              <SidebarGroupLabel className='text-muted-foreground/80 hover:text-foreground cursor-pointer px-2 text-sm font-medium transition-colors' />
+              <SidebarGroupLabel className='text-muted-foreground/80 hover:text-foreground cursor-pointer px-2 text-sm font-normal transition-colors' />
             }
           >
             <span className='min-w-0 flex-1 truncate text-left'>{title}</span>
@@ -159,7 +159,7 @@ export function NavGroup({ id, title, collapsible, items }: NavGroupProps) {
         </Collapsible>
       ) : (
         <>
-          <SidebarGroupLabel className='text-muted-foreground/80 px-2 text-sm font-medium'>
+          <SidebarGroupLabel className='text-muted-foreground/80 px-2 text-sm font-normal'>
             {title}
           </SidebarGroupLabel>
           {menu}
