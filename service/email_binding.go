@@ -15,9 +15,11 @@ import (
 )
 
 var (
-	ErrAccountEmailInvalid    = errors.New("Please enter a valid email address")
-	ErrAccountEmailRestricted = errors.New("This email address is not allowed by the administrator's email policy.")
-	ErrEmailBindingDelivery   = errors.New("Verification email could not be sent. Start email verification again.")
+	ErrAccountEmailInvalid       = errors.New("邮箱地址格式不正确，请检查后重试")
+	ErrAccountEmailTooLong       = errors.New("邮箱地址过长，最多支持 50 个字符")
+	ErrAccountEmailDomainBlocked = errors.New("该邮箱域名不在管理员允许的名单内，请更换其他邮箱")
+	ErrAccountEmailAliasBlocked  = errors.New("管理员已启用邮箱别名限制，邮箱用户名不能包含 + 或 . 符号，请更换邮箱")
+	ErrEmailBindingDelivery      = errors.New("验证邮件发送失败，请稍后重试")
 )
 
 type EmailBindingData struct {
@@ -34,8 +36,11 @@ type EmailBindingData struct {
 // cannot bypass the site's existing domain, alias and address-length rules.
 func ValidateAccountEmail(email string) (string, error) {
 	email = model.NormalizeEmail(email)
-	if common.Validate.Var(email, "required,email,max=50") != nil {
+	if common.Validate.Var(email, "required,email") != nil {
 		return "", ErrAccountEmailInvalid
+	}
+	if common.Validate.Var(email, "max=50") != nil {
+		return "", ErrAccountEmailTooLong
 	}
 	parts := strings.Split(email, "@")
 	if len(parts) != 2 {
@@ -44,11 +49,11 @@ func ValidateAccountEmail(email string) (string, error) {
 	if common.EmailDomainRestrictionEnabled {
 		allowed := slices.Contains(common.EmailDomainWhitelist, parts[1])
 		if !allowed {
-			return "", ErrAccountEmailRestricted
+			return "", ErrAccountEmailDomainBlocked
 		}
 	}
 	if common.EmailAliasRestrictionEnabled && strings.ContainsAny(parts[0], "+.") {
-		return "", ErrAccountEmailRestricted
+		return "", ErrAccountEmailAliasBlocked
 	}
 	return email, nil
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -228,46 +227,8 @@ func SendEmailVerification(c *gin.Context) {
 		writeSecurityOperationError(c, err)
 		return
 	}
-	// 邮箱统一小写化:域名部分大小写不敏感(RFC),各主流邮箱 local part 也不敏感。
-	// 统一后域名白名单/别名/唯一性/验证码 key 全部一致,避免 Gmail.com 绕过。
-	email = strings.ToLower(email)
-	parts := strings.Split(email, "@")
-	if len(parts) != 2 {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "无效的邮箱地址",
-		})
-		return
-	}
-	localPart := parts[0]
-	domainPart := parts[1]
-	if common.EmailDomainRestrictionEnabled {
-		allowed := false
-		// email 已小写化;白名单条目也归一化小写,兼容管理员配置了大小写混合的域名。
-		for _, domain := range common.EmailDomainWhitelist {
-			if domainPart == strings.ToLower(domain) {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "管理员已启用邮箱域名白名单，您的邮箱地址因包含特殊符号或不在白名单中而被拒绝。",
-			})
-			return
-		}
-	}
-	if common.EmailAliasRestrictionEnabled {
-		containsSpecialSymbols := strings.Contains(localPart, "+") || strings.Contains(localPart, ".")
-		if containsSpecialSymbols {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "管理员已启用邮箱地址别名限制，您的邮箱地址由于包含特殊符号而被拒绝。",
-			})
-			return
-		}
-	}
+	// ValidateAccountEmail 已完成小写化、格式/长度/域名白名单/别名限制校验,
+	// 此处不再重复检查。
 
 	if model.IsEmailAlreadyTaken(email) {
 		common.ApiErrorI18n(c, i18n.MsgUserEmailAlreadyTaken)
@@ -292,7 +253,9 @@ func SendEmailVerification(c *gin.Context) {
 	content := common.WrapEmailContent(body)
 	err = common.SendEmail(subject, email, content)
 	if err != nil {
-		common.ApiError(c, err)
+		// 详细错误只记服务端日志,不对用户暴露原始 SMTP 报错
+		logger.LogError(c, fmt.Sprintf("发送邮箱验证码失败: %s, email=%s", err.Error(), email))
+		common.ApiErrorMsg(c, "验证码邮件发送失败，请稍后重试")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{

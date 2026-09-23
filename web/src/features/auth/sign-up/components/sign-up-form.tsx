@@ -190,10 +190,12 @@ export function SignUpForm({
   }
 
   async function handleSendVerificationCode() {
-    if (await sendCode(emailValue || '')) {
-      setTurnstileToken('')
-      setTurnstileWidgetKey((current) => current + 1)
-    }
+    // captcha token 是一次性的:服务端校验后即失效,无论本次发送成败都必须
+    // 重置组件,否则失败后旧 token 残留,再次发送会被判 cap 校验失败。
+    const sent = await sendCode(emailValue || '')
+    setTurnstileToken('')
+    setTurnstileWidgetKey((current) => current + 1)
+    return sent
   }
 
   const handleOpenWeChatDialog = () => {

@@ -53,6 +53,7 @@ export function ForgotPasswordForm({
 }: React.HTMLAttributes<HTMLFormElement>) {
   const { t } = useTranslation()
   const [isLoading, setIsLoading] = useState(false)
+  const [turnstileWidgetKey, setTurnstileWidgetKey] = useState(0)
 
   const {
     isTurnstileEnabled,
@@ -75,9 +76,20 @@ export function ForgotPasswordForm({
   async function onSubmit(data: z.infer<typeof forgotPasswordFormSchema>) {
     if (!validateTurnstile()) return
 
+    // captcha token 是一次性的:无论本次请求成败都要重置,否则失败后旧
+    // token 残留,重试时会被判 cap 校验失败,只能刷新页面。
+    const submittedTurnstileToken = turnstileToken
+    if (isTurnstileEnabled) {
+      setTurnstileToken('')
+      setTurnstileWidgetKey((current) => current + 1)
+    }
+
     setIsLoading(true)
     try {
-      const res = await sendPasswordResetEmail(data.email, turnstileToken)
+      const res = await sendPasswordResetEmail(
+        data.email,
+        submittedTurnstileToken
+      )
       if (res?.success) {
         form.reset()
         startCountdown()
@@ -130,7 +142,10 @@ export function ForgotPasswordForm({
 
         {isTurnstileEnabled && (
           <div className='mt-2'>
-            <SmartCaptcha onVerify={setTurnstileToken} />
+            <SmartCaptcha
+              key={turnstileWidgetKey}
+              onVerify={setTurnstileToken}
+            />
           </div>
         )}
       </form>
