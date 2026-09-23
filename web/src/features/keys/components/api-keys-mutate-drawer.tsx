@@ -176,6 +176,7 @@ export function ApiKeysMutateDrawer({
         label: key,
         desc: info.desc || key,
         ratio: info.ratio,
+        paid: info.paid,
       })),
     [groupsData]
   )

@@ -25,7 +25,6 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { getSystemOptions } from '@/features/system-settings/api'
 import { useUpdateOption } from '@/features/system-settings/hooks/use-update-option'
 import { GroupRatioVisualEditor } from '@/features/system-settings/models/group-ratio-visual-editor'
@@ -42,7 +41,6 @@ type GroupOptionValues = {
   GroupGroupRatio: string
   AutoGroups: string
   GroupSpecialUsableGroup: string
-  PaidGroups: string
   DefaultUseAutoGroup: boolean
 }
 
@@ -53,7 +51,6 @@ const JSON_FIELD_KEYS = [
   'GroupGroupRatio',
   'AutoGroups',
   'GroupSpecialUsableGroup',
-  'PaidGroups',
 ] as const
 
 function extractValues(
@@ -68,7 +65,6 @@ function extractValues(
     GroupGroupRatio: get('GroupGroupRatio'),
     AutoGroups: get('AutoGroups'),
     GroupSpecialUsableGroup: get(SPECIAL_USABLE_API_KEY),
-    PaidGroups: get('PaidGroups'),
     DefaultUseAutoGroup: get('DefaultUseAutoGroup') === 'true',
   }
 }
@@ -84,7 +80,6 @@ function normalizeValues(values: GroupOptionValues): GroupOptionValues {
     GroupSpecialUsableGroup: normalizeJsonString(
       values.GroupSpecialUsableGroup
     ),
-    PaidGroups: normalizeJsonString(values.PaidGroups),
   }
 }
 
@@ -219,21 +214,6 @@ export function GroupOptionsEditor() {
         groupSpecialUsableGroup={values.GroupSpecialUsableGroup}
         onChange={handleChange}
       />
-
-      <div className='space-y-1.5 rounded-lg border p-4'>
-        <Label>{t('Paid groups')}</Label>
-        <Textarea
-          rows={3}
-          value={values.PaidGroups}
-          onChange={(e) => handleChange('PaidGroups', e.target.value)}
-          placeholder={'["gpt", "claude"]'}
-        />
-        <p className='text-muted-foreground text-xs'>
-          {t(
-            'JSON array of group names. Users without any successful top-up (free users) cannot use these groups: the groups are hidden from their token group options, and API requests using them are rejected until the user completes any top-up. Leave empty to disable.'
-          )}
-        </p>
-      </div>
     </div>
   )
 }

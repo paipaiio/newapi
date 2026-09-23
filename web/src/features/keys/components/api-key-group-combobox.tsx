@@ -21,6 +21,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Command,
   CommandEmpty,
@@ -48,6 +49,7 @@ export type ApiKeyGroupOption = {
   label: string
   desc?: string
   ratio?: number | string
+  paid?: boolean
 }
 
 type ApiKeyGroupComboboxProps = {
@@ -120,8 +122,13 @@ export function ApiKeyGroupCombobox({
         )}
         <span className='flex min-w-0 flex-1 items-center justify-between gap-2 sm:gap-3'>
           <span className='min-w-0'>
-            <span className='block truncate font-medium'>
-              {selectedOption?.label || placeholder || t('Select a group')}
+            <span className='flex items-center gap-1.5'>
+              <span className='block truncate font-medium'>
+                {selectedOption?.label || placeholder || t('Select a group')}
+              </span>
+              {selectedOption?.paid && (
+                <Badge variant='secondary'>{t('Paid')}</Badge>
+              )}
             </span>
             {selectedOption?.desc && (
               <span className='text-muted-foreground block truncate text-[11px] sm:text-xs'>
@@ -188,8 +195,13 @@ export function ApiKeyGroupCombobox({
                       )}
                     />
                     <span className='min-w-0 flex-1'>
-                      <span className='block truncate font-medium'>
-                        {option.label}
+                      <span className='flex items-center gap-1.5'>
+                        <span className='block truncate font-medium'>
+                          {option.label}
+                        </span>
+                        {option.paid && (
+                          <Badge variant='secondary'>{t('Paid')}</Badge>
+                        )}
                       </span>
                       {option.desc && (
                         <span className='text-muted-foreground block truncate text-xs'>

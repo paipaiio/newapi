@@ -59,12 +59,14 @@ func buildUserGroupsPayload(userId int, userGroup string, role int) map[string]m
 		usableGroups[groupName] = map[string]interface{}{
 			"ratio": service.GetUserGroupRatioByUser(userId, userGroup, groupName),
 			"desc":  desc,
+			"paid":  setting.IsPaidGroup(groupName),
 		}
 	}
 	if _, ok := displayGroups["auto"]; ok {
 		usableGroups["auto"] = map[string]interface{}{
 			"ratio": "自动",
 			"desc":  setting.GetUsableGroupDescription("auto"),
+			"paid":  false,
 		}
 	}
 	return usableGroups

@@ -57,6 +57,7 @@ import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authen
 import { Route as AuthenticatedMonitorIndexRouteImport } from './routes/_authenticated/monitor/index'
 import { Route as AuthenticatedOauthAppsIndexRouteImport } from './routes/_authenticated/oauth-apps/index'
 import { Route as AuthenticatedOtherServicesIndexRouteImport } from './routes/_authenticated/other-services/index'
+import { Route as AuthenticatedPaidGroupsIndexRouteImport } from './routes/_authenticated/paid-groups/index'
 import { Route as AuthenticatedPlaygroundIndexRouteImport } from './routes/_authenticated/playground/index'
 import { Route as AuthenticatedProfileIndexRouteImport } from './routes/_authenticated/profile/index'
 import { Route as AuthenticatedRedemptionCodesIndexRouteImport } from './routes/_authenticated/redemption-codes/index'
@@ -351,6 +352,12 @@ const AuthenticatedOtherServicesIndexRoute =
     path: '/other-services/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedPaidGroupsIndexRoute =
+  AuthenticatedPaidGroupsIndexRouteImport.update({
+    id: '/paid-groups/',
+    path: '/paid-groups/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPlaygroundIndexRoute =
   AuthenticatedPlaygroundIndexRouteImport.update({
     id: '/playground/',
@@ -615,6 +622,7 @@ export interface FileRoutesByFullPath {
   '/monitor/': typeof AuthenticatedMonitorIndexRoute
   '/oauth-apps/': typeof AuthenticatedOauthAppsIndexRoute
   '/other-services/': typeof AuthenticatedOtherServicesIndexRoute
+  '/paid-groups/': typeof AuthenticatedPaidGroupsIndexRoute
   '/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/profile/': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -698,6 +706,7 @@ export interface FileRoutesByTo {
   '/monitor': typeof AuthenticatedMonitorIndexRoute
   '/oauth-apps': typeof AuthenticatedOauthAppsIndexRoute
   '/other-services': typeof AuthenticatedOtherServicesIndexRoute
+  '/paid-groups': typeof AuthenticatedPaidGroupsIndexRoute
   '/playground': typeof AuthenticatedPlaygroundIndexRoute
   '/profile': typeof AuthenticatedProfileIndexRoute
   '/redemption-codes': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -785,6 +794,7 @@ export interface FileRoutesById {
   '/_authenticated/monitor/': typeof AuthenticatedMonitorIndexRoute
   '/_authenticated/oauth-apps/': typeof AuthenticatedOauthAppsIndexRoute
   '/_authenticated/other-services/': typeof AuthenticatedOtherServicesIndexRoute
+  '/_authenticated/paid-groups/': typeof AuthenticatedPaidGroupsIndexRoute
   '/_authenticated/playground/': typeof AuthenticatedPlaygroundIndexRoute
   '/_authenticated/profile/': typeof AuthenticatedProfileIndexRoute
   '/_authenticated/redemption-codes/': typeof AuthenticatedRedemptionCodesIndexRoute
@@ -871,6 +881,7 @@ export interface FileRouteTypes {
     | '/monitor/'
     | '/oauth-apps/'
     | '/other-services/'
+    | '/paid-groups/'
     | '/playground/'
     | '/profile/'
     | '/redemption-codes/'
@@ -954,6 +965,7 @@ export interface FileRouteTypes {
     | '/monitor'
     | '/oauth-apps'
     | '/other-services'
+    | '/paid-groups'
     | '/playground'
     | '/profile'
     | '/redemption-codes'
@@ -1040,6 +1052,7 @@ export interface FileRouteTypes {
     | '/_authenticated/monitor/'
     | '/_authenticated/oauth-apps/'
     | '/_authenticated/other-services/'
+    | '/_authenticated/paid-groups/'
     | '/_authenticated/playground/'
     | '/_authenticated/profile/'
     | '/_authenticated/redemption-codes/'
@@ -1436,6 +1449,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOtherServicesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/paid-groups/': {
+      id: '/_authenticated/paid-groups/'
+      path: '/paid-groups'
+      fullPath: '/paid-groups/'
+      preLoaderRoute: typeof AuthenticatedPaidGroupsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/playground/': {
       id: '/_authenticated/playground/'
       path: '/playground'
@@ -1805,6 +1825,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMonitorIndexRoute: typeof AuthenticatedMonitorIndexRoute
   AuthenticatedOauthAppsIndexRoute: typeof AuthenticatedOauthAppsIndexRoute
   AuthenticatedOtherServicesIndexRoute: typeof AuthenticatedOtherServicesIndexRoute
+  AuthenticatedPaidGroupsIndexRoute: typeof AuthenticatedPaidGroupsIndexRoute
   AuthenticatedPlaygroundIndexRoute: typeof AuthenticatedPlaygroundIndexRoute
   AuthenticatedProfileIndexRoute: typeof AuthenticatedProfileIndexRoute
   AuthenticatedRedemptionCodesIndexRoute: typeof AuthenticatedRedemptionCodesIndexRoute
@@ -1850,6 +1871,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMonitorIndexRoute: AuthenticatedMonitorIndexRoute,
   AuthenticatedOauthAppsIndexRoute: AuthenticatedOauthAppsIndexRoute,
   AuthenticatedOtherServicesIndexRoute: AuthenticatedOtherServicesIndexRoute,
+  AuthenticatedPaidGroupsIndexRoute: AuthenticatedPaidGroupsIndexRoute,
   AuthenticatedPlaygroundIndexRoute: AuthenticatedPlaygroundIndexRoute,
   AuthenticatedProfileIndexRoute: AuthenticatedProfileIndexRoute,
   AuthenticatedRedemptionCodesIndexRoute:

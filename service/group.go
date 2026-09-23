@@ -31,13 +31,8 @@ func GetUserUsableGroupsByUser(userId int, userGroup string) map[string]string {
 			delete(groups, name)
 		}
 	}
-	// 移除付费分组：免费用户（无成功充值记录）不可用，UI 层直接隐藏。
-	// 鉴权层另有硬拦截（middleware/auth.go），这里是展示与令牌创建层面的过滤。
-	if userId > 0 && !model.IsUserPaid(userId) {
-		for _, name := range setting.GetPaidGroupsCopy() {
-			delete(groups, name)
-		}
-	}
+	// 注意：付费分组在这里不做隐藏过滤——免费用户同样可见，
+	// 仅由前端标注「付费分组」，鉴权层（middleware/auth.go）负责硬拦截。
 	return groups
 }
 
