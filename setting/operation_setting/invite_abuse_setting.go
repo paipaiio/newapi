@@ -53,6 +53,16 @@ type InviteAbuseSetting struct {
 	// 建议略高于 MaxPerIP,兼顾同一小区/企业多人注册的正常场景。默认 5。
 	MaxPerSubnet int `json:"max_per_subnet"`
 
+	// CheckIPv6Subnet 开启后,IPv6 注册地址按 /64 子网做与 MaxPerSubnet 相同的
+	// 速率检测(IPv4 /24 的 IPv6 版)。IPv6 家用前缀通常按 /64 分配,同 /64 即同一家庭网络。
+	// 默认开启。
+	CheckIPv6Subnet bool `json:"check_ipv6_subnet"`
+
+	// CheckInviteeNetwork 开启后,被邀请人与「同一邀请人的其他被邀请人」同注册 IP
+	// 或同浏览器指纹,判定为疑似滥用。针对刷号者换 IP/指纹/邮箱批量注册小号填同一
+	// 邀请码的场景——小号与邀请人单独比对可能干净,但小号池之间往往共享信号。默认开启。
+	CheckInviteeNetwork bool `json:"check_invitee_network"`
+
 	// MaxInvitesPerInviter 同一邀请人在 WindowHours 内允许的最大邀请注册数(含本次)。
 	// 达到该值即判定为疑似滥用。这是针对「换 IP + 换指纹 但用同一个邀请码短时间连续
 	// 拉新」这类刷返利的核心信号——现有其它检测都只看被邀请人自身的 IP/指纹/邮箱,
@@ -89,6 +99,8 @@ var inviteAbuseSetting = InviteAbuseSetting{
 	BlockedEmailDomains:  []string{},
 	CheckIPSubnet:        true,
 	MaxPerSubnet:         5,
+	CheckIPv6Subnet:      true,
+	CheckInviteeNetwork:  true,
 	MaxInvitesPerInviter: 2,
 	CheckDatacenterIP:    true,
 	DatacenterCIDRList:   []string{},

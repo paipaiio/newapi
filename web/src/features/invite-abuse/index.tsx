@@ -163,6 +163,14 @@ function InviteAbuseContent() {
           checked={cfg.check_fingerprint}
           onChange={(v) => set('check_fingerprint', v)}
         />
+        <ToggleRow
+          title={t('Flag invitee networks')}
+          description={t(
+            'Treat as suspicious when the new account shares an IP or fingerprint with the inviter’s other invitees — catches sockpuppet pools that rotate IP, fingerprint and email but reuse the same invite code.'
+          )}
+          checked={cfg.check_invitee_network}
+          onChange={(v) => set('check_invitee_network', v)}
+        />
 
         <Separator />
 
@@ -219,6 +227,39 @@ function InviteAbuseContent() {
           disabled={!cfg.check_datacenter_ip}
           onChange={(v) => set('use_ip_reputation_api', v)}
         />
+
+        <ToggleRow
+          title={t('Flag subnet registration bursts (IPv4 /24)')}
+          description={t(
+            'Flag when too many registrations share the same IPv4 /24 subnet within the window — catches VPN IP-pool rotation across nearby IPs.'
+          )}
+          checked={cfg.check_ip_subnet}
+          onChange={(v) => set('check_ip_subnet', v)}
+        />
+        <ToggleRow
+          title={t('Flag subnet registration bursts (IPv6 /64)')}
+          description={t(
+            'Same as the IPv4 /24 check but for IPv6 /64 subnets, which is how home IPv6 prefixes are typically allocated.'
+          )}
+          checked={cfg.check_ipv6_subnet}
+          disabled={!cfg.check_ip_subnet}
+          onChange={(v) => set('check_ipv6_subnet', v)}
+        />
+        <div className='space-y-1.5'>
+          <Label>{t('Max registrations per subnet')}</Label>
+          <Input
+            type='number'
+            min={1}
+            disabled={!cfg.check_ip_subnet}
+            value={String(cfg.max_per_subnet)}
+            onChange={(e) => set('max_per_subnet', Number(e.target.value) || 0)}
+          />
+          <p className='text-muted-foreground text-xs'>
+            {t(
+              'Maximum registrations per IPv4 /24 or IPv6 /64 subnet within the window. Set slightly above the per-IP limit to tolerate households or offices.'
+            )}
+          </p>
+        </div>
 
         <div className='space-y-1.5'>
           <Label>{t('Datacenter / VPN CIDR list (Layer 2 — local)')}</Label>

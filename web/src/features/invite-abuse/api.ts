@@ -35,6 +35,13 @@ export interface InviteAbuseSettings {
   use_ip_reputation_api: boolean
   /** Layer 2: newline-separated CIDR list for the textarea (JSON array on the wire). */
   datacenter_cidr_list: string
+  /** IPv4 /24 subnet rate limit (0 = off). */
+  check_ip_subnet: boolean
+  max_per_subnet: number
+  /** IPv6 /64 subnet rate limit, shares max_per_subnet (0 = off). */
+  check_ipv6_subnet: boolean
+  /** Flag invitees sharing IP/fingerprint with the inviter's other invitees. */
+  check_invitee_network: boolean
   /** Topup unlock: CNY amount a flagged user must accumulate to auto-release their withheld bonuses (0 = disabled). */
   topup_unlock_threshold: number
 }
@@ -51,6 +58,10 @@ export const DEFAULT_INVITE_ABUSE_SETTINGS: InviteAbuseSettings = {
   check_datacenter_ip: true,
   use_ip_reputation_api: true,
   datacenter_cidr_list: '',
+  check_ip_subnet: true,
+  max_per_subnet: 5,
+  check_ipv6_subnet: true,
+  check_invitee_network: true,
   topup_unlock_threshold: 50,
 }
 
@@ -112,6 +123,13 @@ export async function getInviteAbuseSettings(): Promise<InviteAbuseSettings> {
     datacenter_cidr_list: parseDomains(
       map['invite_abuse_setting.datacenter_cidr_list']
     ),
+    check_ip_subnet: bool('invite_abuse_setting.check_ip_subnet', true),
+    max_per_subnet: num('invite_abuse_setting.max_per_subnet', 5),
+    check_ipv6_subnet: bool('invite_abuse_setting.check_ipv6_subnet', true),
+    check_invitee_network: bool(
+      'invite_abuse_setting.check_invitee_network',
+      true
+    ),
     topup_unlock_threshold: (() => {
       const v = map['invite_abuse_setting.topup_unlock_threshold']
       return v !== undefined ? parseFloat(v) || 50 : 50
@@ -151,6 +169,19 @@ export async function saveInviteAbuseSettings(
     [
       'invite_abuse_setting.datacenter_cidr_list',
       serializeDomains(cfg.datacenter_cidr_list),
+    ],
+    [
+      'invite_abuse_setting.check_ip_subnet',
+      String(cfg.check_ip_subnet),
+    ],
+    ['invite_abuse_setting.max_per_subnet', String(cfg.max_per_subnet)],
+    [
+      'invite_abuse_setting.check_ipv6_subnet',
+      String(cfg.check_ipv6_subnet),
+    ],
+    [
+      'invite_abuse_setting.check_invitee_network',
+      String(cfg.check_invitee_network),
     ],
     [
       'invite_abuse_setting.topup_unlock_threshold',

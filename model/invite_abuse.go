@@ -138,6 +138,79 @@ func countRecentInvitesByInviter(inviterId int, windowHours int) int64 {
 	return count
 }
 
+// countRecentInviteesByIP 统计某邀请人的被邀请人中,最近 windowHours 小时内
+// 是否有使用同一注册 IP 的(含软删除,防止删号绕过)。
+// 用于「小号横向关联」检测——刷号者换 IP/指纹/邮箱注册多个小号填同一邀请码时,
+// 每个小号与邀请人比对可能都是干净的,但小号之间往往共享 IP。
+func countRecentInviteesByIP(inviterId int, ip string, windowHours int) int64 {
+	if inviterId == 0 || ip == "" {
+		return 0
+	}
+	since := common.GetTimestamp() - int64(windowHours)*3600
+	var count int64
+	DB.Unscoped().Model(&User{}).
+		Where("inviter_id = ? AND register_ip = ? AND created_at >= ?", inviterId, ip, since).
+		Count(&count)
+	return count
+}
+
+// countRecentInviteesByFingerprint 同 countRecentInviteesByIP，信号换成浏览器指纹。
+func countRecentInviteesByFingerprint(inviterId int, fp string, windowHours int) int64 {
+	if inviterId == 0 || fp == "" {
+		return 0
+	}
+	since := common.GetTimestamp() - int64(windowHours)*3600
+	var count int64
+	DB.Unscoped().Model(&User{}).
+		Where("inviter_id = ? AND register_fingerprint = ? AND created_at >= ?", inviterId, fp, since).
+		Count(&count)
+	return count
+}
+
+// sameIPv6Subnet64 判断两个 IPv6 地址文本是否属于同一 /64 子网。
+// 任一方不是 IPv6 返回 false。
+func sameIPv6Subnet64(a, b string) bool {
+	pa, pb := net.ParseIP(a), net.ParseIP(b)
+	if pa == nil || pb == nil || pa.To4() != nil || pb.To4() != nil {
+		return false
+	}
+	mask := net.CIDRMask(64, 128)
+	return pa.Mask(mask).Equal(pb.Mask(mask))
+}
+
+// countRecentRegistrationsByIPv6Subnet64 统计与给定 IPv6 地址同 /64 子网
+// 在最近 windowHours 小时内的注册数(含软删除)。
+//
+// 实现说明:数据库存的是 c.ClientIP() 的压缩文本形式,无法直接用 LIKE 做
+// /64 前缀匹配("::" 压缩点位置不定)。改用两段式:先按首 hextet 文本前缀
+// LIKE 走 register_ip 索引缩小候选(IPv6 文本首段无前导零,稳定可匹配;
+// 首段为 0 时 "::" 开头的形式单独 OR),再在 Go 侧用 /64 掩码精确比对。
+func countRecentRegistrationsByIPv6Subnet64(ip string, windowHours int) int64 {
+	parsed := net.ParseIP(ip)
+	if parsed == nil || parsed.To4() != nil {
+		return 0
+	}
+	since := common.GetTimestamp() - int64(windowHours)*3600
+	first := strings.SplitN(parsed.String(), ":", 2)[0]
+	query := DB.Unscoped().Model(&User{}).Where("created_at >= ?", since)
+	if first == "0" {
+		query = query.Where("register_ip LIKE ? OR register_ip LIKE ?", "0:%", "::%")
+	} else {
+		query = query.Where("register_ip LIKE ?", first+":%")
+	}
+	var candidates []string
+	if err := query.Pluck("register_ip", &candidates).Error; err != nil {
+		return 0
+	}
+	var count int64
+	for _, s := range candidates {
+		if sameIPv6Subnet64(ip, s) {
+			count++
+		}
+	}
+	return count
+}
+
 // ipInCIDRList 判断 IP 是否命中任一 CIDR 网段。非法 IP / 空列表返回 false。
 func ipInCIDRList(ipStr string, cidrs []string) bool {
 	if ipStr == "" || len(cidrs) == 0 {
@@ -333,6 +406,25 @@ func DetectInviteAbuse(inviterId int, registrantIP, fingerprint, rawEmail string
 			reasons = append(reasons, "注册 IP 命中机房/VPN 网段名单")
 		} else if s.UseIPReputationAPI && isDatacenterIPViaAPI(registrantIP) {
 			reasons = append(reasons, "注册 IP 经信誉库判定为机房/代理")
+		}
+	}
+
+	// 7. 小号横向关联:被邀请人与同一邀请人的其他被邀请人同 IP/同指纹。
+	// 刷号者换 IP+换指纹+换邮箱注册多个小号填同一邀请码时,每个小号对邀请人
+	// 单独看都可能干净(Layer 1 速率之外),但小号池往往共享部分信号。
+	if s.CheckInviteeNetwork && inviterId != 0 {
+		if registrantIP != "" && countRecentInviteesByIP(inviterId, registrantIP, s.WindowHours) > 0 {
+			reasons = append(reasons, "与同一邀请人的其他被邀请人使用相同注册 IP")
+		}
+		if s.CheckFingerprint && fingerprint != "" && countRecentInviteesByFingerprint(inviterId, fingerprint, s.WindowHours) > 0 {
+			reasons = append(reasons, "与同一邀请人的其他被邀请人浏览器指纹相同")
+		}
+	}
+
+	// 8. IPv6 /64 子网速率——与 IPv4 /24 同理,防同一 IPv6 段批量注册。
+	if s.CheckIPSubnet && s.CheckIPv6Subnet && s.MaxPerSubnet > 0 && registrantIP != "" {
+		if n := countRecentRegistrationsByIPv6Subnet64(registrantIP, s.WindowHours); n >= int64(s.MaxPerSubnet) {
+			reasons = append(reasons, fmt.Sprintf("同IPv6段(/64) %d 小时内注册数达上限(%d)", s.WindowHours, s.MaxPerSubnet))
 		}
 	}
 
