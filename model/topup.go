@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"sync"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
@@ -309,6 +311,33 @@ func GetUserSuccessTopupMoney(userId int) float64 {
 		Where("user_id = ? AND status = ?", userId, common.TopUpStatusSuccess).
 		Scan(&total)
 	return total
+}
+
+// userPaidCache 付费用户判定缓存：成功充值后状态只会从免费变付费，不会反向，
+// 故 30s TTL 的最坏后果只是「刚充值的用户最多等 30 秒解锁付费分组」，无需主动失效。
+var userPaidCache sync.Map // userId -> cachedUserPaid
+
+type cachedUserPaid struct {
+	paid      bool
+	expiresAt time.Time
+}
+
+const userPaidCacheTTL = 30 * time.Second
+
+// IsUserPaid 判断用户是否有任意成功充值记录（= 非免费用户）。
+// 带 30 秒内存缓存，避免在展示路径上每次查库。
+func IsUserPaid(userId int) bool {
+	if userId <= 0 {
+		return false
+	}
+	if v, ok := userPaidCache.Load(userId); ok {
+		if c, ok := v.(cachedUserPaid); ok && time.Now().Before(c.expiresAt) {
+			return c.paid
+		}
+	}
+	paid := GetUserSuccessTopupMoney(userId) > 0
+	userPaidCache.Store(userId, cachedUserPaid{paid: paid, expiresAt: time.Now().Add(userPaidCacheTTL)})
+	return paid
 }
 
 func GetUserTopUps(userId int, pageInfo *common.PageInfo) (topups []*TopUp, total int64, err error) {

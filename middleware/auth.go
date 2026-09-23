@@ -18,6 +18,7 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
+	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -477,6 +478,8 @@ func TokenAuth() func(c *gin.Context) {
 		// 管理员不受「用户可选分组/独享授权」限制，可使用任何已定义的分组
 		// （仍校验分组是否存在于 GroupRatio，防止指向已弃用分组）。
 		isAdmin := userCache.Role >= common.RoleAdminUser
+		// 付费分组：无任何成功充值记录的免费用户不得使用（名单见 PaidGroups 设置）。
+		userPaid := isAdmin || model.IsUserPaid(userCache.Id)
 		if tokenGroup != "" {
 			// token 可绑定多个分组(逗号分隔,顺序即优先级)。逐个校验权限与有效性。
 			tokenGroups := token.GetGroups()
@@ -488,6 +491,11 @@ func TokenAuth() func(c *gin.Context) {
 					// 始终可用，不受可选分组列表为空的影响。
 					if model.IsExclusiveGroup(g) && !model.IsUserAllowedExclusive(userCache.Id, g) {
 						abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", g))
+						return
+					}
+					// 付费分组硬拦截：免费用户（无成功充值记录）不能使用。
+					if !userPaid && setting.IsPaidGroup(g) {
+						abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("分组 %s 为付费分组，完成任意一笔充值后即可使用", g))
 						return
 					}
 				}
@@ -509,6 +517,11 @@ func TokenAuth() func(c *gin.Context) {
 			// 若该分组为独享分组且用户未被授权（如被移出名单），拒绝访问。
 			if !isAdmin && model.IsExclusiveGroup(userGroup) && !model.IsUserAllowedExclusive(userCache.Id, userGroup) {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", userGroup))
+				return
+			}
+			// 用户自身分组为付费分组时同样拦截免费用户。
+			if !userPaid && setting.IsPaidGroup(userGroup) {
+				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("分组 %s 为付费分组，完成任意一笔充值后即可使用", userGroup))
 				return
 			}
 		}
