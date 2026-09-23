@@ -99,11 +99,23 @@ func Distribute() func(c *gin.Context) {
 		}
 		if pinned || shouldSelectChannel {
 			usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
+			// 多分组令牌:auth 阶段 UsingGroup 仅占位为列表首个分组,
+			// 这里需还原为完整的逗号分隔列表,才能让 CacheGetRandomSatisfiedChannel
+			// 走多分组遍历分支(否则首个分组不覆盖该模型时会直接失败,永远轮不到后续分组)。
+			// 若 playground 已显式收窄到某个单分组(usingGroup != 首个分组),则尊重其选择,不再拓宽。
+			groupForSelect := usingGroup
+			tokenGroup := common.GetContextKeyString(c, constant.ContextKeyTokenGroup)
+			if usingGroup != "auto" && strings.Contains(tokenGroup, ",") {
+				firstGroup := strings.TrimSpace(strings.SplitN(tokenGroup, ",", 2)[0])
+				if usingGroup == firstGroup {
+					groupForSelect = tokenGroup
+				}
+			}
 			var selectErr *service.ChannelSelectError
 			channel, _, selectErr = service.SelectChannelForRequest(c, modelRequest.Model, &service.RetryParam{
 				Ctx:         c,
 				ModelName:   modelRequest.Model,
-				TokenGroup:  usingGroup,
+				TokenGroup:  groupForSelect,
 				RequestPath: c.Request.URL.Path,
 				Retry:       common.GetPointer(0),
 			})
