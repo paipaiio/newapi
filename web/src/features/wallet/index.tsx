@@ -24,6 +24,7 @@ import { useStatus } from '@/hooks/use-status'
 import { useSystemConfig } from '@/hooks/use-system-config'
 import { getSelf } from '@/lib/api'
 
+import { AbusePendingBonusBanner } from './components/abuse-pending-bonus-banner'
 import { AffiliateRewardsCard } from './components/affiliate-rewards-card'
 import { BillingHistoryDialog } from './components/dialogs/billing-history-dialog'
 import { CreemConfirmDialog } from './components/dialogs/creem-confirm-dialog'
@@ -318,6 +319,7 @@ export function Wallet(props: WalletProps) {
                       )}
                     </div>
                   )}
+                <AbusePendingBonusBanner topupInfo={topupInfo} />
                 <RechargeFormCard
                   topupInfo={topupInfo}
                   presetAmounts={presetAmounts}

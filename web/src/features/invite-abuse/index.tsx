@@ -122,7 +122,6 @@ function InviteAbuseContent() {
             <Input
               type='number'
               min={1}
-              disabled={!cfg.enabled}
               value={String(cfg.max_per_ip)}
               onChange={(e) => set('max_per_ip', Number(e.target.value) || 0)}
             />
@@ -132,7 +131,6 @@ function InviteAbuseContent() {
             <Input
               type='number'
               min={1}
-              disabled={!cfg.enabled}
               value={String(cfg.window_hours)}
               onChange={(e) => set('window_hours', Number(e.target.value) || 0)}
             />
@@ -147,7 +145,6 @@ function InviteAbuseContent() {
             'Treat as suspicious when the inviter and the new account register from the same IP.'
           )}
           checked={cfg.check_inviter_same_ip}
-          disabled={!cfg.enabled}
           onChange={(v) => set('check_inviter_same_ip', v)}
         />
         <ToggleRow
@@ -156,7 +153,6 @@ function InviteAbuseContent() {
             'Treat +alias and Gmail dot tricks of the same address as one person.'
           )}
           checked={cfg.check_email_alias}
-          disabled={!cfg.enabled}
           onChange={(v) => set('check_email_alias', v)}
         />
         <ToggleRow
@@ -165,7 +161,6 @@ function InviteAbuseContent() {
             'Treat as suspicious when the same device fingerprint registers repeatedly.'
           )}
           checked={cfg.check_fingerprint}
-          disabled={!cfg.enabled}
           onChange={(v) => set('check_fingerprint', v)}
         />
 
@@ -175,7 +170,6 @@ function InviteAbuseContent() {
           <Label>{t('Blocked email domains')}</Label>
           <Textarea
             rows={4}
-            disabled={!cfg.enabled}
             value={cfg.blocked_email_domains}
             onChange={(e) => set('blocked_email_domains', e.target.value)}
             placeholder={'example.com\nmailinator.com'}
@@ -194,7 +188,6 @@ function InviteAbuseContent() {
           <Input
             type='number'
             min={0}
-            disabled={!cfg.enabled}
             value={String(cfg.max_invites_per_inviter)}
             onChange={(e) =>
               set('max_invites_per_inviter', Number(e.target.value) || 0)
@@ -215,7 +208,6 @@ function InviteAbuseContent() {
             'Flag registrations from hosting or proxy IPs. First checks the local CIDR list, then optionally calls an online IP-reputation API.'
           )}
           checked={cfg.check_datacenter_ip}
-          disabled={!cfg.enabled}
           onChange={(v) => set('check_datacenter_ip', v)}
         />
         <ToggleRow
@@ -224,7 +216,7 @@ function InviteAbuseContent() {
             'When local CIDR misses, query ip-api.com (1 s timeout, 7-day Redis cache, fail-open). Free, no key required.'
           )}
           checked={cfg.use_ip_reputation_api}
-          disabled={!cfg.enabled || !cfg.check_datacenter_ip}
+          disabled={!cfg.check_datacenter_ip}
           onChange={(v) => set('use_ip_reputation_api', v)}
         />
 
@@ -232,7 +224,7 @@ function InviteAbuseContent() {
           <Label>{t('Datacenter / VPN CIDR list (Layer 2 — local)')}</Label>
           <Textarea
             rows={4}
-            disabled={!cfg.enabled || !cfg.check_datacenter_ip}
+            disabled={!cfg.check_datacenter_ip}
             value={cfg.datacenter_cidr_list}
             onChange={(e) => set('datacenter_cidr_list', e.target.value)}
             placeholder={'45.128.223.0/24\n104.28.0.0/16'}

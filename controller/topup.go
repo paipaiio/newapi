@@ -28,10 +28,17 @@ func GetTopUpInfo(c *gin.Context) {
 
 	// 该用户专属充值折扣率（0-1，1=不打折），随 topup_info 下发给钱包页展示。
 	userTopupDiscount := 1.0
+	var abusePendingBonus int
+	var abuseTopupAccumulated float64
 	if id := c.GetInt("id"); id > 0 {
 		if user, err := model.GetUserById(id, false); err == nil && user != nil {
 			if user.TopupDiscount > 0 && user.TopupDiscount <= 1 {
 				userTopupDiscount = user.TopupDiscount
+			}
+			// 滥用标记用户的待发赠金与充值解锁进度（钱包页进度条用）。
+			if user.AbusePendingBonus > 0 {
+				abusePendingBonus = user.AbusePendingBonus
+				abuseTopupAccumulated = model.GetUserSuccessTopupMoney(id)
 			}
 		}
 	}
@@ -97,6 +104,9 @@ func GetTopUpInfo(c *gin.Context) {
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
 		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
 		"topup_link":              common.TopUpLink,
+		"abuse_pending_bonus":     abusePendingBonus,
+		"abuse_topup_required":    operation_setting.GetInviteAbuseSetting().TopupUnlockThreshold,
+		"abuse_topup_accumulated": abuseTopupAccumulated,
 	}
 	common.ApiSuccess(c, data)
 }
