@@ -110,6 +110,12 @@ For commercial licensing, please contact support@quantumnous.com
   html {
     @apply overflow-x-hidden font-sans;
   }
+  /* Display headings carry the tight tracking of the reference design
+   * systems (Resend/zkPass use negative tracking on headlines). Kept
+   * subtle so CJK headlines stay comfortable. */
+  :is(h1, h2) {
+    letter-spacing: -0.015em;
+  }
   body {
     @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
     /* Font is driven by the theme's font axis via `--font-body`
@@ -731,13 +737,18 @@ For commercial licensing, please contact support@quantumnous.com
   }
 
   @media (min-width: 641px) {
+    /* Hairline elevation instead of drop shadows: the hover state reads as a
+       border-brightening step (Resend/zkPass-style), not a floating shadow. */
     [data-slot='card']:not([data-card-hover='false']):hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgb(0 0 0 / 0.06);
+      box-shadow:
+        0 0 0 1px var(--border),
+        0 1px 2px rgb(0 0 0 / 0.04);
     }
 
     .dark [data-slot='card']:not([data-card-hover='false']):hover {
-      box-shadow: 0 4px 12px rgb(0 0 0 / 0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 1px color-mix(in oklch, var(--foreground) 14%, transparent);
     }
   }
 
