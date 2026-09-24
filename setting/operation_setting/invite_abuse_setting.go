@@ -63,6 +63,12 @@ type InviteAbuseSetting struct {
 	// 邀请码的场景——小号与邀请人单独比对可能干净,但小号池之间往往共享信号。默认开启。
 	CheckInviteeNetwork bool `json:"check_invitee_network"`
 
+	// CheckAPIRequestIP 开启后,记录每个用户发起 API 请求的来源 IP（滚动 7 天），
+	// 并在请求时对被邀请人做请求侧 IP 关联检测：请求 IP 与邀请人（其请求/注册/登录 IP）
+	// 或与同一邀请人的其他被邀请人的请求 IP 重合，判定为疑似滥用。
+	// 注册时可挂代理造假，API 调用一般出自真实出口，这是注册时检测的盲区补强。默认开启。
+	CheckAPIRequestIP bool `json:"check_api_request_ip"`
+
 	// MaxInvitesPerInviter 同一邀请人在 WindowHours 内允许的最大邀请注册数(含本次)。
 	// 达到该值即判定为疑似滥用。这是针对「换 IP + 换指纹 但用同一个邀请码短时间连续
 	// 拉新」这类刷返利的核心信号——现有其它检测都只看被邀请人自身的 IP/指纹/邮箱,
@@ -105,6 +111,7 @@ var inviteAbuseSetting = InviteAbuseSetting{
 	CheckDatacenterIP:    true,
 	DatacenterCIDRList:   []string{},
 	UseIPReputationAPI:   true,
+	CheckAPIRequestIP:    true,
 	TopupUnlockThreshold: 50.0,
 }
 

@@ -152,6 +152,7 @@ func (user *User) ToBaseUser() *UserBase {
 		Setting:     user.Setting,
 		Email:       user.Email,
 		Role:        user.Role,
+		InviterId:   user.InviterId,
 		Rpm:         user.Rpm,
 		Tpm:         user.Tpm,
 		AuthVersion: user.AuthVersion,

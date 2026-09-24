@@ -19,6 +19,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/gin-gonic/gin"
@@ -526,6 +527,16 @@ func TokenAuth() func(c *gin.Context) {
 			}
 		}
 		common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
+
+		// 邀请滥用：记录 API 请求来源 IP 并做请求侧关联检测（软处理）。
+		// 任何失败都静默放行，绝不影响请求；管理员不计不查。
+		if !isAdmin && operation_setting.IsInviteAbuseDetectionEnabled() {
+			if res := model.DetectAPIRequestAbuse(userCache.Id, userCache.InviterId, c.ClientIP()); res.Flagged {
+				if err := model.FlagUserForInviteAbuse(userCache.Id, res.Reason); err != nil {
+					common.SysLog(fmt.Sprintf("FlagUserForInviteAbuse failed: %v", err))
+				}
+			}
+		}
 
 		err = SetupContextForToken(c, token, parts...)
 		if err != nil {

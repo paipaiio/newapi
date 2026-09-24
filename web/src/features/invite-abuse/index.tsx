@@ -171,6 +171,14 @@ function InviteAbuseContent() {
           checked={cfg.check_invitee_network}
           onChange={(v) => set('check_invitee_network', v)}
         />
+        <ToggleRow
+          title={t('Flag shared API request IP')}
+          description={t(
+            'Record the actual source IP of each user’s API calls (rolling 7 days) and flag when an invitee’s request IP matches the inviter or a sibling invitee — catches abusers who register through a VPN but call the API from their real exit IP.'
+          )}
+          checked={cfg.check_api_request_ip}
+          onChange={(v) => set('check_api_request_ip', v)}
+        />
 
         <Separator />
 

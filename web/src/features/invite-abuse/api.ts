@@ -42,6 +42,8 @@ export interface InviteAbuseSettings {
   check_ipv6_subnet: boolean
   /** Flag invitees sharing IP/fingerprint with the inviter's other invitees. */
   check_invitee_network: boolean
+  /** Record each user's API request source IP (rolling 7 days) and flag request-IP overlap with the inviter or sibling invitees. */
+  check_api_request_ip: boolean
   /** Topup unlock: CNY amount a flagged user must accumulate to auto-release their withheld bonuses (0 = disabled). */
   topup_unlock_threshold: number
 }
@@ -62,6 +64,7 @@ export const DEFAULT_INVITE_ABUSE_SETTINGS: InviteAbuseSettings = {
   max_per_subnet: 5,
   check_ipv6_subnet: true,
   check_invitee_network: true,
+  check_api_request_ip: true,
   topup_unlock_threshold: 50,
 }
 
@@ -130,6 +133,10 @@ export async function getInviteAbuseSettings(): Promise<InviteAbuseSettings> {
       'invite_abuse_setting.check_invitee_network',
       true
     ),
+    check_api_request_ip: bool(
+      'invite_abuse_setting.check_api_request_ip',
+      true
+    ),
     topup_unlock_threshold: (() => {
       const v = map['invite_abuse_setting.topup_unlock_threshold']
       return v !== undefined ? parseFloat(v) || 50 : 50
@@ -182,6 +189,10 @@ export async function saveInviteAbuseSettings(
     [
       'invite_abuse_setting.check_invitee_network',
       String(cfg.check_invitee_network),
+    ],
+    [
+      'invite_abuse_setting.check_api_request_ip',
+      String(cfg.check_api_request_ip),
     ],
     [
       'invite_abuse_setting.topup_unlock_threshold',

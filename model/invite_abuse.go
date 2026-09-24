@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -436,4 +437,213 @@ func DetectInviteAbuse(inviterId int, registrantIP, fingerprint, rawEmail string
 		reason = string([]rune(reason)[:120])
 	}
 	return InviteAbuseResult{Flagged: true, Reason: reason}
+}
+
+// ============================================================================
+// API 请求侧 IP 信号（请求时检测，补注册时检测的盲区）
+//
+// 注册时的 IP 检测可以挂代理造假，但 API 调用流量一般出自真实出口 IP。
+// 因此额外记录「每个用户最近发起 API 请求的来源 IP」（滚动 7 天），并在
+// 每次请求时对被邀请人做两类关联判定：
+//  1. 请求 IP 与邀请人重合（邀请人自己的请求 IP / 注册 IP / 登录 IP）
+//  2. 请求 IP 与同一邀请人的其他被邀请人的请求 IP 重合（小号池共享出口）
+// 存储优先 Redis（JSON 字符串读改写），未启用 Redis 时退化为进程内 map
+// （单实例全量；多实例只能看到本机流量，属可接受的 best-effort 降级）。
+// ============================================================================
+
+// apiRequestIPTTL 请求 IP 记录的滚动保留时长。
+const apiRequestIPTTL = 7 * 24 * time.Hour
+
+// maxRecordedRequestIPsPerUser 单用户最多保留的请求 IP 数，超出时淘汰最早过期的。
+const maxRecordedRequestIPsPerUser = 32
+
+// inviteeListCacheTTL 邀请人 → 被邀请人 ID 列表的缓存时长（避免每个请求都查库）。
+const inviteeListCacheTTL = 5 * time.Minute
+
+// pruneExpiredIPs 就地清理已过期的 IP 记录，返回剩余数量。
+func pruneExpiredIPs(ips map[string]int64, now int64) int {
+	for ip, exp := range ips {
+		if exp <= now {
+			delete(ips, ip)
+		}
+	}
+	return len(ips)
+}
+
+// loadRequestIPs 读取某用户最近的请求 IP 记录（expiry: unix 秒）。无记录返回空 map。
+func loadRequestIPs(userId int) map[string]int64 {
+	if common.RedisEnabled {
+		key := fmt.Sprintf("urip:u:%d", userId)
+		raw, err := common.RedisGet(key)
+		if err == nil && raw != "" {
+			var ips map[string]int64
+			if common.Unmarshal([]byte(raw), &ips) == nil {
+				return ips
+			}
+		}
+		return map[string]int64{}
+	}
+	return requestIPMemLoad(userId)
+}
+
+// saveRequestIPs 写回某用户的请求 IP 记录并续期 TTL。
+func saveRequestIPs(userId int, ips map[string]int64) {
+	if common.RedisEnabled {
+		key := fmt.Sprintf("urip:u:%d", userId)
+		data, err := common.Marshal(ips)
+		if err == nil {
+			_ = common.RedisSet(key, string(data), apiRequestIPTTL)
+		}
+		return
+	}
+	requestIPMemStore(userId, ips)
+}
+
+// requestIPMemStoreData 进程内兜底存储：userId -> ip -> expiry。
+var requestIPMem = struct {
+	sync.Mutex
+	users map[int]map[string]int64
+}{users: make(map[int]map[string]int64)}
+
+func requestIPMemLoad(userId int) map[string]int64 {
+	requestIPMem.Lock()
+	defer requestIPMem.Unlock()
+	src, ok := requestIPMem.users[userId]
+	if !ok {
+		return map[string]int64{}
+	}
+	ips := make(map[string]int64, len(src))
+	for ip, exp := range src {
+		ips[ip] = exp
+	}
+	return ips
+}
+
+func requestIPMemStore(userId int, ips map[string]int64) {
+	requestIPMem.Lock()
+	defer requestIPMem.Unlock()
+	if len(ips) == 0 {
+		delete(requestIPMem.users, userId)
+		return
+	}
+	requestIPMem.users[userId] = ips
+}
+
+// RecordAPIRequestIP 记录某用户的一次 API 请求来源 IP（滚动窗口，容量有上限）。
+// 热路径调用：读改写单个小 JSON key，未启用 Redis 时纯内存操作，失败静默。
+func RecordAPIRequestIP(userId int, ip string) {
+	if userId <= 0 || ip == "" {
+		return
+	}
+	now := common.GetTimestamp()
+	expiry := now + int64(apiRequestIPTTL/time.Second)
+	ips := loadRequestIPs(userId)
+	pruneExpiredIPs(ips, now)
+	ips[ip] = expiry
+	// 容量控制：淘汰最早过期的条目
+	for len(ips) > maxRecordedRequestIPsPerUser {
+		oldestIP, oldestExp := "", int64(-1)
+		for k, v := range ips {
+			if oldestExp == -1 || v < oldestExp {
+				oldestIP, oldestExp = k, v
+			}
+		}
+		delete(ips, oldestIP)
+	}
+	saveRequestIPs(userId, ips)
+}
+
+// userHasRecentRequestIP 判断某用户最近是否从指定 IP 发起过 API 请求。
+func userHasRecentRequestIP(userId int, ip string) bool {
+	if userId <= 0 || ip == "" {
+		return false
+	}
+	ips := loadRequestIPs(userId)
+	exp, ok := ips[ip]
+	return ok && exp > common.GetTimestamp()
+}
+
+// recentInviteeIDsOf 某邀请人在时间窗内的被邀请人 ID 列表（排除指定用户）。
+// 结果按邀请人缓存 inviteeListCacheTTL，避免每个请求都查库。
+func recentInviteeIDsOf(inviterId, excludeUserId, windowHours int) []int {
+	if inviterId <= 0 {
+		return nil
+	}
+	cacheKey := fmt.Sprintf("urip:inv:%d:%d", inviterId, excludeUserId)
+	if common.RedisEnabled {
+		if raw, err := common.RedisGet(cacheKey); err == nil && raw != "" {
+			var ids []int
+			if common.Unmarshal([]byte(raw), &ids) == nil {
+				return ids
+			}
+		}
+	}
+	since := common.GetTimestamp() - int64(windowHours)*3600
+	ids := make([]int, 0, 8)
+	DB.Unscoped().Model(&User{}).
+		Where("inviter_id = ? AND created_at >= ? AND id != ?", inviterId, since, excludeUserId).
+		Pluck("id", &ids)
+	if common.RedisEnabled {
+		if data, err := common.Marshal(ids); err == nil {
+			_ = common.RedisSet(cacheKey, string(data), inviteeListCacheTTL)
+		}
+	}
+	return ids
+}
+
+// DetectAPIRequestAbuse 请求时滥用检测（软处理，调用方负责打标）。
+// 先无条件记录本次请求 IP（供后续其他用户的关联判定使用），再对有邀请人的
+// 用户做两类请求侧 IP 关联检测。失败一律放行（fail-open），绝不影响请求。
+func DetectAPIRequestAbuse(userId, inviterId int, requestIP string) InviteAbuseResult {
+	RecordAPIRequestIP(userId, requestIP)
+
+	s := operation_setting.GetInviteAbuseSetting()
+	if !s.Enabled || !s.CheckAPIRequestIP {
+		return InviteAbuseResult{}
+	}
+	if inviterId == 0 || requestIP == "" {
+		return InviteAbuseResult{}
+	}
+
+	var reasons []string
+	// 1. 请求 IP 与邀请人重合：邀请人自己的请求 IP，或其注册/历史登录 IP。
+	// 注册时挂代理、调 API 回真实出口的场景在这里现形。
+	if userHasRecentRequestIP(inviterId, requestIP) || inviterUsesIP(inviterId, requestIP) {
+		reasons = append(reasons, "API 请求 IP 与邀请人相同")
+	}
+	// 2. 请求 IP 与同一邀请人的其他被邀请人的请求 IP 重合（小号池共享出口）。
+	for _, id := range recentInviteeIDsOf(inviterId, userId, s.WindowHours) {
+		if userHasRecentRequestIP(id, requestIP) {
+			reasons = append(reasons, "与同一邀请人的其他被邀请人使用相同 API 请求 IP")
+			break
+		}
+	}
+
+	if len(reasons) == 0 {
+		return InviteAbuseResult{}
+	}
+	return InviteAbuseResult{Flagged: true, Reason: strings.Join(reasons, "；")}
+}
+
+// FlagUserForInviteAbuse 给已存在的用户打疑似滥用标记（请求时检测命中用）。
+// 已标记用户跳过；成功后失效用户缓存并记日志。软处理：不阻断、不动已发放额度。
+func FlagUserForInviteAbuse(userId int, reason string) error {
+	if userId <= 0 {
+		return nil
+	}
+	if len(reason) > 255 {
+		reason = string([]rune(reason)[:120])
+	}
+	// 兼容历史/手工插入的 NULL 值：NULL 视为未标记
+	res := DB.Model(&User{}).
+		Where("id = ? AND (invite_abuse_flagged = ? OR invite_abuse_flagged IS NULL)", userId, false).
+		Updates(map[string]any{"invite_abuse_flagged": true, "invite_abuse_reason": reason})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected > 0 {
+		_ = InvalidateUserCache(userId)
+		common.SysLog(fmt.Sprintf("疑似滥用(API请求侧): user_id=%d reason=%s", userId, reason))
+	}
+	return nil
 }
