@@ -17,6 +17,7 @@ type apiSaleItem struct {
 	Group         string   `json:"group"`
 	ExtraGroups   []string `json:"extra_groups"`   // token 额外路由分组（逗号拼接后写入 token.Group），账户分组仍为单值 Group
 	VisibleGroups []string `json:"visible_groups"` // 账户可见分组白名单（仅影响展示）
+	ForcePaid     bool     `json:"force_paid"`     // 是否把新账户直接标记为付费用户（无需充值记录即可用付费分组）
 	Quota         float64  `json:"quota"`
 	Unlimited     bool     `json:"unlimited"`
 	Exclusive     bool     `json:"exclusive"` // 是否把新账户加入该分组的独享授权名单
@@ -104,6 +105,12 @@ func createOneSaleItem(item apiSaleItem) ApiSaleResult {
 	if err := applyUserVisibleGroups(user.Id, visibleGroups); err != nil {
 		res.Error = "设置可见分组失败: " + err.Error()
 		return res
+	}
+	if item.ForcePaid {
+		if err := applyUserForcePaid(user.Id, true); err != nil {
+			res.Error = "设置付费用户失败: " + err.Error()
+			return res
+		}
 	}
 
 	// 直接设置用户额度为指定值（覆盖 Insert 写入的注册赠送额度，避免叠加）

@@ -100,6 +100,7 @@ function ApiSaleContent() {
   const [defVisibleGroups, setDefVisibleGroups] = useState<string[]>([])
   const [defQuota, setDefQuota] = useState(10)
   const [defUnlimited, setDefUnlimited] = useState(false)
+  const [defForcePaid, setDefForcePaid] = useState(false)
   const [batchId, setBatchId] = useState('')
 
   const [rows, setRows] = useState<Row[]>([])
@@ -186,6 +187,7 @@ function ApiSaleContent() {
       visible_groups: r.visibleGroups,
       quota: r.quota,
       unlimited: r.unlimited,
+      force_paid: defForcePaid,
       batch_id: trimmedBatchId || undefined,
     }))
     try {
@@ -342,6 +344,16 @@ function ApiSaleContent() {
           <Label>{t('Unlimited quota')}</Label>
           <div className='pt-1'>
             <Switch checked={defUnlimited} onCheckedChange={setDefUnlimited} />
+          </div>
+        </div>
+
+        <div className='space-y-1'>
+          <Label>{t('Mark as paid user')}</Label>
+          <div className='pt-1'>
+            <Switch
+              checked={defForcePaid}
+              onCheckedChange={setDefForcePaid}
+            />
           </div>
         </div>
 

@@ -19,6 +19,8 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { type Table } from '@tanstack/react-table'
 import {
+  BadgeCheck,
+  BadgeX,
   Power,
   PowerOff,
   LogIn,
@@ -58,6 +60,7 @@ import {
   batchManageQuota,
   batchSetGroup,
   batchSetTopup,
+  batchSetUserPaid,
   getAllGroupNames,
   setVisibleGroups,
 } from '../api'
@@ -197,6 +200,18 @@ export function DataTableBulkActions({ table }: DataTableBulkActionsProps) {
           <WalletMinimal />,
           () =>
             runBatch(() => batchSetTopup(selectedIds, false), 'Top-up disabled')
+        )}
+        {iconBtn('mark_paid', 'Batch mark paid', <BadgeCheck />, () =>
+          runBatch(
+            () => batchSetUserPaid(selectedIds, true),
+            'Marked as paid users'
+          )
+        )}
+        {iconBtn('unmark_paid', 'Batch unmark paid', <BadgeX />, () =>
+          runBatch(
+            () => batchSetUserPaid(selectedIds, false),
+            'Unmarked paid users'
+          )
         )}
         {iconBtn('group', 'Batch set group', <Tag />, () =>
           setShowGroupDialog(true)

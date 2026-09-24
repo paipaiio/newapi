@@ -74,6 +74,9 @@ export const userSchema = z.object({
   // until an admin clears the flag.
   invite_abuse_flagged: z.boolean().optional(),
   invite_abuse_reason: z.string().optional(),
+  // Fork: admin-granted paid status — the user can use paid groups without any
+  // successful top-up record. Parsed from the setting blob by the backend.
+  force_paid: z.boolean().optional(),
 })
 export type User = z.infer<typeof userSchema>
 

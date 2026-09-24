@@ -276,6 +276,50 @@ func BatchSetVisibleGroups(c *gin.Context) {
 	common.ApiSuccess(c, nil)
 }
 
+// BatchSetUserPaidRequest 批量设置/取消「付费用户」标记请求。
+// Paid=true 时用户无需充值记录即可使用付费分组；false 时恢复按充值记录判定。
+type BatchSetUserPaidRequest struct {
+	IDs  []int `json:"ids"`
+	Paid bool  `json:"paid"`
+}
+
+// applyUserForcePaid 读改写单个用户的 ForcePaid 标记，保留其他 setting。
+func applyUserForcePaid(userId int, paid bool) error {
+	user, err := model.GetUserById(userId, true)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return errors.New("用户不存在")
+	}
+	setting := user.GetSetting()
+	setting.ForcePaid = paid
+	user.SetSetting(setting)
+	if err := user.Update(false); err != nil {
+		return err
+	}
+	_ = model.InvalidateUserCache(userId)
+	model.InvalidateUserPaidCache(userId)
+	return nil
+}
+
+// BatchSetUserPaid 批量设置/取消用户的「付费用户」标记。
+// POST /api/user/manage/batch_paid
+func BatchSetUserPaid(c *gin.Context) {
+	var req BatchSetUserPaidRequest
+	if err := c.ShouldBindJSON(&req); err != nil || len(req.IDs) == 0 || len(req.IDs) > 500 {
+		c.JSON(http.StatusOK, gin.H{"success": false, "message": "参数错误：ids 须为 1-500 条"})
+		return
+	}
+	for _, id := range req.IDs {
+		if err := applyUserForcePaid(id, req.Paid); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	}
+	common.ApiSuccess(c, nil)
+}
+
 // ExportApiSaleBatch 按批次导出账户：用户名、售卖密码、已有 API Key、可见分组。
 // GET /api/user/batch/export?batch_id=xxx
 func ExportApiSaleBatch(c *gin.Context) {

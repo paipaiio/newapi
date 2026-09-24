@@ -24,6 +24,7 @@ import {
   PowerOff,
   ArrowUp,
   ArrowDown,
+  BadgeCheck,
   KeyRound,
   ShieldAlert,
   Link2,
@@ -58,7 +59,7 @@ import {
 import { UserSubscriptionsDialog } from '@/features/subscriptions/components/dialogs/user-subscriptions-dialog'
 import { handleServerError } from '@/lib/handle-server-error'
 
-import { manageUser, resetUserPasskey, resetUserTwoFA } from '../api'
+import { manageUser, resetUserPasskey, resetUserTwoFA, batchSetUserPaid } from '../api'
 import {
   USER_STATUS,
   USER_ROLE,
@@ -138,6 +139,22 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       handleServerError(error, t(ERROR_MESSAGES.UNEXPECTED))
     } finally {
       setResetTwoFAOpen(false)
+    }
+  }
+
+  const handleSetPaid = async () => {
+    try {
+      const result = await batchSetUserPaid([user.id], !user.force_paid)
+      if (result.success) {
+        toast.success(
+          user.force_paid ? t('Unset paid user') : t('Set as paid user')
+        )
+        triggerRefresh()
+      } else {
+        handleServerError(result, t('Operation failed'))
+      }
+    } catch (error) {
+      handleServerError(error, t(ERROR_MESSAGES.UNEXPECTED))
     }
   }
 
@@ -256,6 +273,13 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         )}
+
+        <DropdownMenuItem onClick={handleSetPaid} disabled={isRoot}>
+          {user.force_paid ? t('Unset paid user') : t('Set as paid user')}
+          <DropdownMenuShortcut>
+            <BadgeCheck size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
 
         {user.invite_abuse_flagged && (
           <DropdownMenuItem onClick={() => handleManage('clear_invite_abuse')}>

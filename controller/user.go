@@ -366,6 +366,7 @@ func GetAllUsers(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
+		fillUserForcePaid(users)
 		pageInfo.SetTotal(int(total))
 		pageInfo.SetItems(users)
 		common.ApiSuccess(c, pageInfo)
@@ -377,12 +378,20 @@ func GetAllUsers(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	fillUserForcePaid(users)
 
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(users)
 
 	common.ApiSuccess(c, pageInfo)
 	return
+}
+
+// fillUserForcePaid 从用户 setting 解析 ForcePaid 标记，供后台列表展示付费开关状态。
+func fillUserForcePaid(users []*model.User) {
+	for _, user := range users {
+		user.ForcePaid = user.GetSetting().ForcePaid
+	}
 }
 
 func SearchUsers(c *gin.Context) {
@@ -419,6 +428,7 @@ func SearchUsers(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	fillUserForcePaid(users)
 
 	pageInfo.SetTotal(int(total))
 	pageInfo.SetItems(users)

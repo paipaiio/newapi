@@ -197,6 +197,19 @@ export async function batchSetTopup(
 }
 
 /**
+ * Batch set / unset the paid-user flag. Paid users can use paid groups
+ * without any successful top-up record.
+ * POST /api/user/manage/batch_paid  body: { ids, paid }
+ */
+export async function batchSetUserPaid(
+  ids: number[],
+  paid: boolean
+): Promise<ApiResponse> {
+  const res = await api.post('/api/user/manage/batch_paid', { ids, paid })
+  return res.data
+}
+
+/**
  * Batch reassign user group.
  * POST /api/user/manage/batch_group  body: { ids, group }
  */

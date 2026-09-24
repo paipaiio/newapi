@@ -127,6 +127,7 @@ type User struct {
 	AbusePendingBonus      int                        `json:"abuse_pending_bonus" gorm:"type:int;default:0;column:abuse_pending_bonus"`                  // 滥用标记用户因未达充值门槛而暂扣的赠金额度（本人注册赠额+被邀请赠额），充值满门槛后自动发放
 	PendingQuota           int                        `json:"pending_quota" gorm:"type:int;default:0;column:pending_quota"`                              // 待验证后释放的注册赠额（完成邮件验证或绑定微信/LinuxDO后自动转入 Quota）
 	VerifiedAtRegistration bool                       `json:"-" gorm:"-:all"`                                                                            // 瞬态：OAuth注册时为 true，表示已通过第三方身份验证，直接发放赠额无需等待验证
+	ForcePaid              bool                       `json:"force_paid" gorm:"-:all"`                                                                   // 瞬态：管理员是否已直接标记为付费用户（从 setting 解析，仅供后台展示/开关状态，不入库）
 	AuthVersion            int64                      `json:"-" gorm:"type:bigint;not null;default:1;column:auth_version"`
 	AdminPermissions       map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }

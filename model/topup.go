@@ -313,8 +313,9 @@ func GetUserSuccessTopupMoney(userId int) float64 {
 	return total
 }
 
-// userPaidCache 付费用户判定缓存：成功充值后状态只会从免费变付费，不会反向，
-// 故 30s TTL 的最坏后果只是「刚充值的用户最多等 30 秒解锁付费分组」，无需主动失效。
+// userPaidCache 付费用户判定缓存：30s TTL。
+// 管理员变更 ForcePaid 标记时必须调用 InvalidateUserPaidCache 主动失效，
+// 否则变更最多要等 30 秒才生效；充值路径无需处理（免费→付费方向变更无风险）。
 var userPaidCache sync.Map // userId -> cachedUserPaid
 
 type cachedUserPaid struct {
@@ -324,7 +325,14 @@ type cachedUserPaid struct {
 
 const userPaidCacheTTL = 30 * time.Second
 
-// IsUserPaid 判断用户是否有任意成功充值记录（= 非免费用户）。
+// InvalidateUserPaidCache 在管理员变更用户的 ForcePaid 标记后主动失效对应缓存，
+// 使付费判定立即生效，无需等待 30 秒 TTL。
+func InvalidateUserPaidCache(userId int) {
+	userPaidCache.Delete(userId)
+}
+
+// IsUserPaid 判断用户是否为付费用户：有任意成功充值记录，或被管理员
+// 直接标记为付费用户（UserSetting.ForcePaid）。
 // 带 30 秒内存缓存，避免在展示路径上每次查库。
 func IsUserPaid(userId int) bool {
 	if userId <= 0 {
@@ -336,6 +344,12 @@ func IsUserPaid(userId int) bool {
 		}
 	}
 	paid := GetUserSuccessTopupMoney(userId) > 0
+	if !paid {
+		// 管理员直接标记的付费用户无需充值记录；用户缓存读不到时回退为未标记
+		if userCache, err := GetUserCache(userId); err == nil && userCache != nil {
+			paid = userCache.GetSetting().ForcePaid
+		}
+	}
 	userPaidCache.Store(userId, cachedUserPaid{paid: paid, expiresAt: time.Now().Add(userPaidCacheTTL)})
 	return paid
 }

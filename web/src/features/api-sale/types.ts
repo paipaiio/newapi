@@ -32,6 +32,8 @@ export interface ApiSaleItem {
   extra_groups?: string[]
   /** Display-only group whitelist written to the user setting. */
   visible_groups?: string[]
+  /** Mark the created account as a paid user (can use paid groups without top-up). */
+  force_paid?: boolean
   quota: number
   unlimited: boolean
   /** Optional batch label written to token.batch_id for per-batch tracking/export. */
