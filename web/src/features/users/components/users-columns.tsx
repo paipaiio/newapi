@@ -143,6 +143,20 @@ export function useUsersColumns(
                 <LongText className='max-w-[140px] text-sm font-normal'>
                   {username}
                 </LongText>
+                {row.original.force_paid && (
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={<StatusBadge variant='success' copyable={false} />}
+                    >
+                      {t('Paid')}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className='text-xs'>
+                        {t('Marked as a paid user by admin')}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 {remark && (
                   <Tooltip>
                     <TooltipTrigger
