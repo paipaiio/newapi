@@ -748,3 +748,59 @@ func ListFlaggedInviteAbuseUsers() ([]FlaggedInviteAbuseUser, error) {
 	}
 	return rows, nil
 }
+
+// RelatedAccount 关联账号：与某被标记用户同处一个邀请关系链的账号（邀请人 / 同邀请人名下的被邀请人）。
+type RelatedAccount struct {
+	Id                  int                  `json:"id"`
+	Username            string               `json:"username"`
+	Role                int                  `json:"role"`
+	Status              int                  `json:"status"`
+	Group               string               `json:"group"`
+	CreatedAt           int64                `json:"created_at"`
+	RegisterIP          string               `json:"register_ip"`
+	RegisterFingerprint string               `json:"register_fingerprint"`
+	InviteAbuseFlagged  bool                 `json:"invite_abuse_flagged"`
+	InviteAbuseReason   string               `json:"invite_abuse_reason"`
+	RequestIPs          []APIRequestIPRecord `json:"request_ips"`
+}
+
+func toRelatedAccount(u *User) RelatedAccount {
+	return RelatedAccount{
+		Id:                  u.Id,
+		Username:            u.Username,
+		Role:                u.Role,
+		Status:              u.Status,
+		Group:               u.Group,
+		CreatedAt:           u.CreatedAt,
+		RegisterIP:          u.RegisterIP,
+		RegisterFingerprint: u.RegisterFingerprint,
+		InviteAbuseFlagged:  u.InviteAbuseFlagged,
+		InviteAbuseReason:   u.InviteAbuseReason,
+		RequestIPs:          GetRecentRequestIPs(u.Id),
+	}
+}
+
+// RelatedInviteAbuseAccounts 以某用户为起点，「一键列出涉及账号」：
+// 其邀请人 + 同一邀请人名下的全部被邀请人（含本人），每人附带注册 IP/指纹与最近请求 IP 证据。
+// 该用户无邀请人时只返回本人。按 邀请人 → 被邀请人(ID 升序) 排列。
+func RelatedInviteAbuseAccounts(userId int) ([]RelatedAccount, error) {
+	var target User
+	if err := DB.First(&target, userId).Error; err != nil {
+		return nil, err
+	}
+	if target.InviterId == 0 {
+		return []RelatedAccount{toRelatedAccount(&target)}, nil
+	}
+	accounts := make([]RelatedAccount, 0, 8)
+	if inviter, err := GetUserById(target.InviterId, false); err == nil {
+		accounts = append(accounts, toRelatedAccount(inviter))
+	}
+	var invitees []User
+	if err := DB.Where("inviter_id = ?", target.InviterId).Order("id ASC").Find(&invitees).Error; err != nil {
+		return nil, err
+	}
+	for i := range invitees {
+		accounts = append(accounts, toRelatedAccount(&invitees[i]))
+	}
+	return accounts, nil
+}

@@ -479,6 +479,25 @@ func GetFlaggedInviteAbuseUsers(c *gin.Context) {
 	})
 }
 
+// GetRelatedInviteAbuseAccounts 管理端：一键列出某用户涉及的全部关联账号（邀请人 + 同邀请人名下被邀请人）及证据。
+func GetRelatedInviteAbuseAccounts(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	accounts, err := model.RelatedInviteAbuseAccounts(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    accounts,
+	})
+}
+
 // GetUserRequestIPs 管理端查看某用户（及其邀请人）最近的 API 请求来源 IP，供邀请滥用复核。
 func GetUserRequestIPs(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))

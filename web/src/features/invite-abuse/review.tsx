@@ -18,9 +18,11 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ShieldAlert } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
@@ -32,9 +34,12 @@ import {
 import { formatTimestampRelative, formatTimestampToDate } from '@/lib/format'
 
 import {
+  batchDisableUsers,
   clearInviteAbuseFlag,
   getFlaggedInviteAbuseUsers,
+  getRelatedAccounts,
   type FlaggedUser,
+  type RelatedAccount,
   type RequestIPRecord,
 } from './api'
 
@@ -91,6 +96,163 @@ function IPList(props: {
         )
       })}
     </ul>
+  )
+}
+
+function RelatedAccounts(props: { user: FlaggedUser }) {
+  const { t } = useTranslation()
+  const { user } = props
+  const [show, setShow] = useState(false)
+  const [confirmBan, setConfirmBan] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['invite-abuse-related', user.id],
+    queryFn: () => getRelatedAccounts(user.id),
+    enabled: show,
+  })
+
+  const banMutation = useMutation({
+    mutationFn: (ids: number[]) => batchDisableUsers(ids),
+    onSuccess: (ok) => {
+      setConfirmBan(false)
+      if (ok) {
+        toast.success(t('Accounts banned'))
+        queryClient.invalidateQueries({ queryKey: ['invite-abuse-flagged'] })
+        queryClient.invalidateQueries({
+          queryKey: ['invite-abuse-related', user.id],
+        })
+      } else {
+        toast.error(t('Operation failed'))
+      }
+    },
+    onError: () => {
+      setConfirmBan(false)
+      toast.error(t('Operation failed'))
+    },
+  })
+
+  // 封禁目标：排除 root（role >= 100）与已封禁账号
+  const banTargets = (data || []).filter((a) => a.role < 100 && a.status !== 2)
+
+  // 与邀请人重合的请求 IP 高亮
+  const inviter = data?.find((a) => a.id === user.inviter_id)
+  const inviterIPs = new Set<string>()
+  if (inviter) {
+    if (inviter.register_ip) inviterIPs.add(inviter.register_ip)
+    for (const r of inviter.request_ips) inviterIPs.add(r.ip)
+  }
+
+  const relationOf = (a: RelatedAccount): string => {
+    if (a.id === user.id) return t('This user')
+    if (a.id === user.inviter_id) return t('Inviter')
+    return t('Sibling invitee')
+  }
+
+  return (
+    <div className='space-y-2'>
+      <Button variant='outline' size='sm' onClick={() => setShow((s) => !s)}>
+        {show ? t('Hide related accounts') : t('List involved accounts')}
+      </Button>
+
+      {show && (
+        <div className='space-y-2 rounded-md border p-3'>
+          {isLoading ? (
+            <p className='text-muted-foreground text-xs'>{t('Loading')}</p>
+          ) : isError ? (
+            <p className='text-destructive text-xs'>
+              {t('Failed to load related accounts')}
+            </p>
+          ) : (
+            <>
+              <div className='flex items-center justify-between gap-3'>
+                <p className='text-muted-foreground text-xs'>
+                  {t('{{count}} involved accounts', {
+                    count: data?.length ?? 0,
+                  })}
+                </p>
+                {banTargets.length > 0 && (
+                  <Button
+                    variant='destructive'
+                    size='sm'
+                    onClick={() => setConfirmBan(true)}
+                  >
+                    {t('Ban all involved accounts')}
+                  </Button>
+                )}
+              </div>
+              <ul className='space-y-2'>
+                {(data || []).map((a) => (
+                  <li key={a.id} className='space-y-1.5 rounded border p-2'>
+                    <div className='flex flex-wrap items-center gap-2 text-xs'>
+                      <span className='font-medium'>
+                        {a.username}
+                        <span className='text-muted-foreground'> #{a.id}</span>
+                      </span>
+                      <StatusBadge variant='info' copyable={false}>
+                        {relationOf(a)}
+                      </StatusBadge>
+                      {a.status === 2 ? (
+                        <StatusBadge variant='neutral' copyable={false}>
+                          {t('Disabled')}
+                        </StatusBadge>
+                      ) : (
+                        <StatusBadge variant='success' copyable={false}>
+                          {t('Enabled')}
+                        </StatusBadge>
+                      )}
+                      {a.invite_abuse_flagged && (
+                        <StatusBadge variant='warning' copyable={false}>
+                          {t('Abuse?')}
+                        </StatusBadge>
+                      )}
+                      {a.invite_abuse_reason && (
+                        <span className='text-muted-foreground'>
+                          {a.invite_abuse_reason}
+                        </span>
+                      )}
+                    </div>
+                    <div className='text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs'>
+                      <span>
+                        {t('Register IP')}:{' '}
+                        <span className='font-mono'>{a.register_ip || '-'}</span>
+                      </span>
+                      {a.register_fingerprint && (
+                        <span>
+                          {t('Fingerprint')}:{' '}
+                          <span className='font-mono'>
+                            {a.register_fingerprint.slice(0, 12)}…
+                          </span>
+                        </span>
+                      )}
+                      <span>
+                        {t('Registered at')}:{' '}
+                        {formatTimestampToDate(a.created_at)}
+                      </span>
+                    </div>
+                    <IPList records={a.request_ips} highlight={inviterIPs} />
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={confirmBan}
+        onOpenChange={setConfirmBan}
+        destructive
+        title={t('Ban all involved accounts?')}
+        desc={t(
+          'This will ban {{count}} accounts (the inviter and all invitees under them). Their API keys and logins stop working immediately.',
+          { count: banTargets.length }
+        )}
+        confirmText={t('Ban')}
+        isLoading={banMutation.isPending}
+        handleConfirm={() => banMutation.mutate(banTargets.map((a) => a.id))}
+      />
+    </div>
   )
 }
 
@@ -197,6 +359,8 @@ function FlaggedUserCard(props: { user: FlaggedUser }) {
           </div>
         )}
       </div>
+
+      <RelatedAccounts user={user} />
     </div>
   )
 }

@@ -117,6 +117,36 @@ export async function clearInviteAbuseFlag(id: number): Promise<boolean> {
   return !!res.data?.success
 }
 
+export interface RelatedAccount {
+  id: number
+  username: string
+  role: number
+  status: number
+  group: string
+  created_at: number
+  register_ip: string
+  register_fingerprint: string
+  invite_abuse_flagged: boolean
+  invite_abuse_reason: string
+  request_ips: RequestIPRecord[]
+}
+
+/** 一键列出涉及账号：目标用户的邀请人 + 同邀请人名下全部被邀请人（含本人），附证据。 */
+export async function getRelatedAccounts(id: number): Promise<RelatedAccount[]> {
+  const res = await api.get(`/api/user/invite_abuse/related/${id}`)
+  if (!res.data?.success) throw new Error('failed to load related accounts')
+  return (res.data.data || []) as RelatedAccount[]
+}
+
+/** 批量封禁用户（status → 禁用，API 与登录同时失效）。 */
+export async function batchDisableUsers(ids: number[]): Promise<boolean> {
+  const res = await api.post('/api/user/manage/batch_action', {
+    ids,
+    action: 'disable',
+  })
+  return !!res.data?.success
+}
+
 /** Parse a stored JSON-array-string of domains into newline-separated text. */
 function parseDomains(value: string | undefined): string {
   if (!value) return ''
