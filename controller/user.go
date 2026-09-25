@@ -465,6 +465,43 @@ func GetUser(c *gin.Context) {
 	return
 }
 
+// GetUserRequestIPs 管理端查看某用户（及其邀请人）最近的 API 请求来源 IP，供邀请滥用复核。
+func GetUserRequestIPs(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	user, err := model.GetUserById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	myRole := c.GetInt("role")
+	if !canManageTargetRole(myRole, user.Role) {
+		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+		return
+	}
+	data := gin.H{
+		"user":    gin.H{"id": user.Id, "username": user.Username, "records": model.GetRecentRequestIPs(user.Id)},
+		"inviter": nil,
+	}
+	if user.InviterId != 0 {
+		if inviter, err := model.GetUserById(user.InviterId, false); err == nil {
+			data["inviter"] = gin.H{
+				"id":       inviter.Id,
+				"username": inviter.Username,
+				"records":  model.GetRecentRequestIPs(inviter.Id),
+			}
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    data,
+	})
+}
+
 type TransferAffQuotaRequest struct {
 	Quota int `json:"quota" binding:"required"`
 }

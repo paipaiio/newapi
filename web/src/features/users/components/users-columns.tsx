@@ -46,6 +46,7 @@ import {
   isUserDeleted,
 } from '../constants'
 import type { User } from '../types'
+import { AbuseReviewBadge } from './abuse-review-badge'
 import { DataTableRowActions } from './data-table-row-actions'
 import { UserQuotaCell } from './user-quota-cell'
 
@@ -177,18 +178,10 @@ export function useUsersColumns(
                 )}
               </div>
               {abuseFlagged && (
-                <Tooltip>
-                  <TooltipTrigger
-                    render={<StatusBadge variant='warning' copyable={false} />}
-                  >
-                    {t('Abuse?')}
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className='text-xs'>
-                      {abuseReason || t('Suspected invite abuse')}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                <AbuseReviewBadge
+                  userId={row.original.id}
+                  reason={abuseReason}
+                />
               )}
               {displayName && displayName !== username && (
                 <div

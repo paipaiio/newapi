@@ -3,6 +3,7 @@ package model
 import (
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
@@ -44,8 +45,8 @@ func TestRequestIPRecordPrunesExpired(t *testing.T) {
 	now := common.GetTimestamp()
 	requestIPMem.Lock()
 	requestIPMem.users[201] = map[string]int64{
-		"198.51.100.1": now - 10,            // 已过期
-		"198.51.100.2": now + 3600,          // 有效
+		"198.51.100.1": now - 10,   // 已过期
+		"198.51.100.2": now + 3600, // 有效
 	}
 	requestIPMem.Unlock()
 
@@ -154,4 +155,27 @@ func TestFlagUserForInviteAbuse(t *testing.T) {
 	require.NoError(t, DB.First(&got, raw.Id).Error)
 	assert.True(t, got.InviteAbuseFlagged)
 	assert.Equal(t, "NULL 标记也要能打", got.InviteAbuseReason)
+}
+
+func TestGetRecentRequestIPs(t *testing.T) {
+	require.False(t, common.RedisEnabled)
+
+	now := common.GetTimestamp()
+	ttlSec := int64(apiRequestIPTTL / time.Second)
+	saveRequestIPs(301, map[string]int64{
+		"198.51.100.1": now + ttlSec,       // 刚记录
+		"198.51.100.2": now + ttlSec - 600, // 10 分钟前记录
+		"198.51.100.3": now - 10,           // 已过期
+	})
+	t.Cleanup(func() { saveRequestIPs(301, map[string]int64{}) })
+
+	records := GetRecentRequestIPs(301)
+	require.Len(t, records, 2)
+	assert.Equal(t, "198.51.100.1", records[0].IP)
+	assert.Equal(t, "198.51.100.2", records[1].IP)
+	assert.Greater(t, records[0].LastSeen, records[1].LastSeen)
+	assert.InDelta(t, now, records[0].LastSeen, 5)
+
+	assert.Nil(t, GetRecentRequestIPs(0))
+	assert.Empty(t, GetRecentRequestIPs(302))
 }

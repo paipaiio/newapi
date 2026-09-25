@@ -1,6 +1,7 @@
 package model
 
 import (
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -8,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -561,6 +563,39 @@ func userHasRecentRequestIP(userId int, ip string) bool {
 	ips := loadRequestIPs(userId)
 	exp, ok := ips[ip]
 	return ok && exp > common.GetTimestamp()
+}
+
+// APIRequestIPRecord 某用户的一条 API 请求来源 IP 记录（管理端复核展示用）。
+type APIRequestIPRecord struct {
+	IP       string `json:"ip"`
+	LastSeen int64  `json:"last_seen"` // unix 秒：由滚动过期时间反推的最近出现时刻
+}
+
+// GetRecentRequestIPs 返回某用户最近的 API 请求来源 IP（未过期，按最近出现时间倒序）。
+// 管理端邀请滥用复核用；记录自本功能上线起累计，滚动 7 天。
+func GetRecentRequestIPs(userId int) []APIRequestIPRecord {
+	if userId <= 0 {
+		return nil
+	}
+	now := common.GetTimestamp()
+	ips := loadRequestIPs(userId)
+	records := make([]APIRequestIPRecord, 0, len(ips))
+	for ip, exp := range ips {
+		if exp <= now {
+			continue
+		}
+		records = append(records, APIRequestIPRecord{
+			IP:       ip,
+			LastSeen: exp - int64(apiRequestIPTTL/time.Second),
+		})
+	}
+	slices.SortFunc(records, func(a, b APIRequestIPRecord) int {
+		if a.LastSeen != b.LastSeen {
+			return cmp.Compare(b.LastSeen, a.LastSeen)
+		}
+		return strings.Compare(a.IP, b.IP)
+	})
+	return records
 }
 
 // recentInviteeIDsOf 某邀请人在时间窗内的被邀请人 ID 列表（排除指定用户）。
