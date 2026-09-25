@@ -26,6 +26,15 @@ import { ConfirmDialog } from '@/components/confirm-dialog'
 import { SectionPageLayout } from '@/components/layout'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import {
   Tooltip,
   TooltipContent,
@@ -372,6 +381,36 @@ function InviteAbuseReviewContent() {
     queryFn: getFlaggedInviteAbuseUsers,
   })
 
+  const [search, setSearch] = useState('')
+  const [reasonFilter, setReasonFilter] = useState('all')
+  const [groupByInviter, setGroupByInviter] = useState(false)
+  const [hideBanned, setHideBanned] = useState(false)
+
+  const filtered = (data || []).filter((u) => {
+    if (hideBanned && u.status === 2) return false
+    if (reasonFilter !== 'all' && u.reason !== reasonFilter) return false
+    if (search && !u.username.toLowerCase().includes(search.toLowerCase()))
+      return false
+    return true
+  })
+
+  const reasons = Array.from(
+    new Set((data || []).map((u) => u.reason).filter(Boolean))
+  )
+
+  // 按邀请人聚合（无邀请人的归到「无邀请人」组）
+  const groups = new Map<string, { label: string; users: FlaggedUser[] }>()
+  if (groupByInviter) {
+    for (const u of filtered) {
+      const key = u.inviter ? String(u.inviter.id) : 'none'
+      const label = u.inviter
+        ? `${u.inviter.username} (#${u.inviter.id})`
+        : t('No inviter')
+      if (!groups.has(key)) groups.set(key, { label, users: [] })
+      groups.get(key)!.users.push(u)
+    }
+  }
+
   return (
     <div className='mx-auto max-w-[800px]'>
       <div className='mb-4 flex items-center justify-between gap-3'>
@@ -390,6 +429,46 @@ function InviteAbuseReviewContent() {
         </Button>
       </div>
 
+      {!isLoading && !isError && data && data.length > 0 && (
+        <div className='mb-4 flex flex-wrap items-center gap-3 rounded-lg border p-3'>
+          <Input
+            className='w-44'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('Search username')}
+          />
+          {reasons.length > 0 && (
+            <Select
+              value={reasonFilter}
+              onValueChange={(v) => setReasonFilter(v ?? 'all')}
+            >
+              <SelectTrigger className='w-56'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>{t('All reasons')}</SelectItem>
+                {reasons.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          <label className='flex items-center gap-2 text-sm'>
+            <Switch
+              checked={groupByInviter}
+              onCheckedChange={setGroupByInviter}
+            />
+            {t('Group by inviter')}
+          </label>
+          <label className='flex items-center gap-2 text-sm'>
+            <Switch checked={hideBanned} onCheckedChange={setHideBanned} />
+            {t('Hide banned')}
+          </label>
+        </div>
+      )}
+
       {isLoading ? (
         <p className='text-muted-foreground text-sm'>{t('Loading')}</p>
       ) : isError ? (
@@ -401,9 +480,28 @@ function InviteAbuseReviewContent() {
           <ShieldAlert className='size-4' />
           {t('No flagged users')}
         </div>
+      ) : filtered.length === 0 ? (
+        <div className='text-muted-foreground flex items-center gap-2 rounded-lg border border-dashed p-6 text-sm'>
+          <ShieldAlert className='size-4' />
+          {t('No flagged users match the current filters')}
+        </div>
+      ) : groupByInviter ? (
+        <div className='space-y-4'>
+          {Array.from(groups.entries()).map(([key, g]) => (
+            <div key={key} className='space-y-2'>
+              <p className='text-muted-foreground text-sm'>
+                <span className='font-medium'>{g.label}</span>{' '}
+                {t('{{count}} flagged accounts', { count: g.users.length })}
+              </p>
+              {g.users.map((u) => (
+                <FlaggedUserCard key={u.id} user={u} />
+              ))}
+            </div>
+          ))}
+        </div>
       ) : (
         <div className='space-y-3'>
-          {data.map((u) => (
+          {filtered.map((u) => (
             <FlaggedUserCard key={u.id} user={u} />
           ))}
         </div>
