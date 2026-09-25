@@ -465,6 +465,20 @@ func GetUser(c *gin.Context) {
 	return
 }
 
+// GetFlaggedInviteAbuseUsers 管理端复核列表：所有被标记疑似邀请滥用的用户及其请求侧证据。
+func GetFlaggedInviteAbuseUsers(c *gin.Context) {
+	rows, err := model.ListFlaggedInviteAbuseUsers()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    rows,
+	})
+}
+
 // GetUserRequestIPs 管理端查看某用户（及其邀请人）最近的 API 请求来源 IP，供邀请滥用复核。
 func GetUserRequestIPs(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))

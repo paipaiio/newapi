@@ -305,6 +305,12 @@ export function useSidebarData(): SidebarData {
             icon: ShieldAlert,
             requiredRole: ROLE.SUPER_ADMIN,
           },
+          {
+            title: t('Abuse Review'),
+            url: '/invite-abuse/review',
+            icon: ShieldCheck,
+            requiredRole: ROLE.SUPER_ADMIN,
+          },
         ],
       },
       {

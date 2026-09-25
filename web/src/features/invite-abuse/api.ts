@@ -73,6 +73,50 @@ interface OptionItem {
   value: string
 }
 
+export interface RequestIPRecord {
+  ip: string
+  last_seen: number
+}
+
+export interface FlaggedInviterInfo {
+  id: number
+  username: string
+  register_ip: string
+  request_ips: RequestIPRecord[]
+}
+
+export interface FlaggedUser {
+  id: number
+  username: string
+  email: string
+  group: string
+  status: number
+  quota: number
+  created_at: number
+  register_ip: string
+  register_fingerprint: string
+  reason: string
+  inviter_id: number
+  request_ips: RequestIPRecord[]
+  inviter: FlaggedInviterInfo | null
+}
+
+/** 滥用复核列表：所有被标记疑似邀请滥用的用户及其请求侧证据。 */
+export async function getFlaggedInviteAbuseUsers(): Promise<FlaggedUser[]> {
+  const res = await api.get('/api/user/invite_abuse/flagged')
+  if (!res.data?.success) throw new Error('failed to load flagged users')
+  return (res.data.data || []) as FlaggedUser[]
+}
+
+/** 清除某用户的邀请滥用标记（复核确认为误报时）。 */
+export async function clearInviteAbuseFlag(id: number): Promise<boolean> {
+  const res = await api.post('/api/user/manage', {
+    id,
+    action: 'clear_invite_abuse',
+  })
+  return !!res.data?.success
+}
+
 /** Parse a stored JSON-array-string of domains into newline-separated text. */
 function parseDomains(value: string | undefined): string {
   if (!value) return ''

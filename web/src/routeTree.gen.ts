@@ -51,6 +51,7 @@ import { Route as AuthenticatedFirstTokenTestIndexRouteImport } from './routes/_
 import { Route as AuthenticatedGroupExclusiveIndexRouteImport } from './routes/_authenticated/group-exclusive/index'
 import { Route as AuthenticatedGroupManagementIndexRouteImport } from './routes/_authenticated/group-management/index'
 import { Route as AuthenticatedInviteAbuseIndexRouteImport } from './routes/_authenticated/invite-abuse/index'
+import { Route as AuthenticatedInviteAbuseReviewRouteImport } from './routes/_authenticated/invite-abuse/review'
 import { Route as AuthenticatedKeysIndexRouteImport } from './routes/_authenticated/keys/index'
 import { Route as AuthenticatedModelsIndexRouteImport } from './routes/_authenticated/models/index'
 import { Route as AuthenticatedModelsSectionRouteImport } from './routes/_authenticated/models/$section'
@@ -315,6 +316,12 @@ const AuthenticatedInviteAbuseIndexRoute =
   AuthenticatedInviteAbuseIndexRouteImport.update({
     id: '/invite-abuse/',
     path: '/invite-abuse/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInviteAbuseReviewRoute =
+  AuthenticatedInviteAbuseReviewRouteImport.update({
+    id: '/invite-abuse/review',
+    path: '/invite-abuse/review',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedKeysIndexRoute = AuthenticatedKeysIndexRouteImport.update({
@@ -603,6 +610,7 @@ export interface FileRoutesByFullPath {
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
+  '/invite-abuse/review': typeof AuthenticatedInviteAbuseReviewRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
@@ -687,6 +695,7 @@ export interface FileRoutesByTo {
   '/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/errors/$error': typeof AuthenticatedErrorsErrorRoute
+  '/invite-abuse/review': typeof AuthenticatedInviteAbuseReviewRoute
   '/models/$section': typeof AuthenticatedModelsSectionRoute
   '/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
@@ -775,6 +784,7 @@ export interface FileRoutesById {
   '/_authenticated/chat/$chatId': typeof AuthenticatedChatChatIdRoute
   '/_authenticated/dashboard/$section': typeof AuthenticatedDashboardSectionRoute
   '/_authenticated/errors/$error': typeof AuthenticatedErrorsErrorRoute
+  '/_authenticated/invite-abuse/review': typeof AuthenticatedInviteAbuseReviewRoute
   '/_authenticated/models/$section': typeof AuthenticatedModelsSectionRoute
   '/_authenticated/usage-logs/$section': typeof AuthenticatedUsageLogsSectionRoute
   '/_authenticated/usage-logs/audit': typeof AuthenticatedUsageLogsAuditRoute
@@ -862,6 +872,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId'
     | '/dashboard/$section'
     | '/errors/$error'
+    | '/invite-abuse/review'
     | '/models/$section'
     | '/usage-logs/$section'
     | '/usage-logs/audit'
@@ -946,6 +957,7 @@ export interface FileRouteTypes {
     | '/chat/$chatId'
     | '/dashboard/$section'
     | '/errors/$error'
+    | '/invite-abuse/review'
     | '/models/$section'
     | '/usage-logs/$section'
     | '/usage-logs/audit'
@@ -1033,6 +1045,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chat/$chatId'
     | '/_authenticated/dashboard/$section'
     | '/_authenticated/errors/$error'
+    | '/_authenticated/invite-abuse/review'
     | '/_authenticated/models/$section'
     | '/_authenticated/usage-logs/$section'
     | '/_authenticated/usage-logs/audit'
@@ -1405,6 +1418,13 @@ declare module '@tanstack/react-router' {
       path: '/invite-abuse'
       fullPath: '/invite-abuse/'
       preLoaderRoute: typeof AuthenticatedInviteAbuseIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/invite-abuse/review': {
+      id: '/_authenticated/invite-abuse/review'
+      path: '/invite-abuse/review'
+      fullPath: '/invite-abuse/review'
+      preLoaderRoute: typeof AuthenticatedInviteAbuseReviewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/keys/': {
@@ -1806,6 +1826,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChatChatIdRoute: typeof AuthenticatedChatChatIdRoute
   AuthenticatedDashboardSectionRoute: typeof AuthenticatedDashboardSectionRoute
   AuthenticatedErrorsErrorRoute: typeof AuthenticatedErrorsErrorRoute
+  AuthenticatedInviteAbuseReviewRoute: typeof AuthenticatedInviteAbuseReviewRoute
   AuthenticatedModelsSectionRoute: typeof AuthenticatedModelsSectionRoute
   AuthenticatedUsageLogsSectionRoute: typeof AuthenticatedUsageLogsSectionRoute
   AuthenticatedUsageLogsAuditRoute: typeof AuthenticatedUsageLogsAuditRoute
@@ -1851,6 +1872,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChatChatIdRoute: AuthenticatedChatChatIdRoute,
   AuthenticatedDashboardSectionRoute: AuthenticatedDashboardSectionRoute,
   AuthenticatedErrorsErrorRoute: AuthenticatedErrorsErrorRoute,
+  AuthenticatedInviteAbuseReviewRoute: AuthenticatedInviteAbuseReviewRoute,
   AuthenticatedModelsSectionRoute: AuthenticatedModelsSectionRoute,
   AuthenticatedUsageLogsSectionRoute: AuthenticatedUsageLogsSectionRoute,
   AuthenticatedUsageLogsAuditRoute: AuthenticatedUsageLogsAuditRoute,

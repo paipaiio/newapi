@@ -682,3 +682,69 @@ func FlagUserForInviteAbuse(userId int, reason string) error {
 	}
 	return nil
 }
+
+// ============================================================================
+// 滥用复核列表（管理端单独页面）
+// ============================================================================
+
+// FlaggedInviteAbuseUser 复核列表单行：被标记用户摘要 + 请求侧证据。
+type FlaggedInviteAbuseUser struct {
+	Id                  int                  `json:"id"`
+	Username            string               `json:"username"`
+	Email               string               `json:"email"`
+	Group               string               `json:"group"`
+	Status              int                  `json:"status"`
+	Quota               int                  `json:"quota"`
+	CreatedAt           int64                `json:"created_at"`
+	RegisterIP          string               `json:"register_ip"`
+	RegisterFingerprint string               `json:"register_fingerprint"`
+	Reason              string               `json:"reason"`
+	InviterId           int                  `json:"inviter_id"`
+	RequestIPs          []APIRequestIPRecord `json:"request_ips"`
+	Inviter             *FlaggedInviterInfo  `json:"inviter"`
+}
+
+// FlaggedInviterInfo 复核列表中的邀请人摘要（用于对照证据）。
+type FlaggedInviterInfo struct {
+	Id         int                  `json:"id"`
+	Username   string               `json:"username"`
+	RegisterIP string               `json:"register_ip"`
+	RequestIPs []APIRequestIPRecord `json:"request_ips"`
+}
+
+// ListFlaggedInviteAbuseUsers 所有被标记疑似邀请滥用的用户（含邀请人与请求 IP 对照），按 ID 倒序。
+func ListFlaggedInviteAbuseUsers() ([]FlaggedInviteAbuseUser, error) {
+	var users []User
+	if err := DB.Where("invite_abuse_flagged = ?", true).Order("id DESC").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	rows := make([]FlaggedInviteAbuseUser, 0, len(users))
+	for _, u := range users {
+		row := FlaggedInviteAbuseUser{
+			Id:                  u.Id,
+			Username:            u.Username,
+			Email:               u.Email,
+			Group:               u.Group,
+			Status:              u.Status,
+			Quota:               u.Quota,
+			CreatedAt:           u.CreatedAt,
+			RegisterIP:          u.RegisterIP,
+			RegisterFingerprint: u.RegisterFingerprint,
+			Reason:              u.InviteAbuseReason,
+			InviterId:           u.InviterId,
+			RequestIPs:          GetRecentRequestIPs(u.Id),
+		}
+		if u.InviterId != 0 {
+			if inviter, err := GetUserById(u.InviterId, false); err == nil {
+				row.Inviter = &FlaggedInviterInfo{
+					Id:         inviter.Id,
+					Username:   inviter.Username,
+					RegisterIP: inviter.RegisterIP,
+					RequestIPs: GetRecentRequestIPs(inviter.Id),
+				}
+			}
+		}
+		rows = append(rows, row)
+	}
+	return rows, nil
+}
