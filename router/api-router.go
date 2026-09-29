@@ -340,6 +340,15 @@ func SetApiRouter(router *gin.Engine) {
 		}
 		apiRouter.GET("/audit", middleware.DisableCache(), middleware.AdminAuth(), middleware.RequirePermission(authz.AuditRead), controller.GetAuditLogs)
 		apiRouter.GET("/audit/self", middleware.DisableCache(), middleware.UserAuth(), controller.GetAuditLogs)
+
+		contentSafetyRoute := apiRouter.Group("/content_safety")
+		contentSafetyRoute.Use(middleware.AdminAuth())
+		{
+			contentSafetyRoute.GET("/events", controller.GetContentSafetyEvents)
+			contentSafetyRoute.GET("/events/:id", controller.GetContentSafetyEvent)
+			contentSafetyRoute.GET("/stats", controller.GetContentSafetyStats)
+			contentSafetyRoute.POST("/events/:id/review", controller.ReviewContentSafetyEvent)
+		}
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		logRoute.GET("/stat", middleware.AdminAuth(), controller.GetLogsStat)

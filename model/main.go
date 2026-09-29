@@ -390,6 +390,7 @@ func migrateDB() error {
 		&SystemTaskLock{},
 		&CasbinRule{},
 		&AuthzRole{},
+		&ContentSafetyEvent{},
 	)
 	if err != nil {
 		return err
@@ -440,6 +441,9 @@ func migrateLOGDB() error {
 		return err
 	}
 	if err := LOG_DB.AutoMigrate(&ConversationGroup{}); err != nil {
+		return err
+	}
+	if err := LOG_DB.AutoMigrate(&ContentSafetyEvent{}); err != nil {
 		return err
 	}
 	return LOG_DB.AutoMigrate(&MonitorSample{})
