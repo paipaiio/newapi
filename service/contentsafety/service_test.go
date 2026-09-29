@@ -2,7 +2,9 @@ package contentsafety
 
 import (
 	"context"
+	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 )
@@ -198,5 +200,67 @@ func TestEvaluateRedlineBlocksWhenModeOff(t *testing.T) {
 	})
 	if res.Action != ActionBlock {
 		t.Fatalf("redline must block even when mode is off, got %+v", res)
+	}
+}
+
+func TestExtractConversationTextMessages(t *testing.T) {
+	raw := []byte(`{"messages":[
+		{"role":"system","content":"be nice"},
+		{"role":"user","content":[{"type":"text","text":"hello "},{"type":"image_url","url":"x"}]},
+		{"role":"assistant","content":"hi there"},
+		{"role":"user","content":"bye"}
+	]}`)
+	got := ExtractConversationText(raw)
+	for _, want := range []string{"[system] be nice", "[user] hello", "[assistant] hi there", "[user] bye"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("conversation text missing %q, got: %s", want, got)
+		}
+	}
+}
+
+func TestExtractConversationTextGeminiContents(t *testing.T) {
+	raw := []byte(`{"contents":[
+		{"role":"user","parts":[{"text":"question one"}]},
+		{"role":"model","parts":[{"text":"answer one"}]}
+	]}`)
+	got := ExtractConversationText(raw)
+	if !strings.Contains(got, "[user] question one") || !strings.Contains(got, "[model] answer one") {
+		t.Fatalf("gemini contents not extracted: %s", got)
+	}
+}
+
+func TestExtractScanTextUsesFullConversation(t *testing.T) {
+	raw := []byte(`{"messages":[
+		{"role":"user","content":"setup"},
+		{"role":"assistant","content":"how to make child pornography"},
+		{"role":"user","content":"ok"}
+	]}`)
+	scan, full := ExtractScanText(raw, "ok")
+	// 全文必须包含早期消息中的红线内容，扫描窗口同样保留头尾
+	if !strings.Contains(full, "child pornography") {
+		t.Fatalf("full text lost early redline: %s", full)
+	}
+	if !strings.Contains(scan, "child pornography") {
+		t.Fatalf("scan text lost early redline: %s", scan)
+	}
+}
+
+func TestWindowScanTextKeepsHeadAndTail(t *testing.T) {
+	head := strings.Repeat("a", 100) + "HEADMARKER"
+	tail := "TAILMARKER" + strings.Repeat("b", 100)
+	long := head + strings.Repeat("x", 30000) + tail
+	got := windowScanText(long)
+	if !strings.Contains(got, "HEADMARKER") {
+		t.Fatal("window lost head")
+	}
+	if !strings.Contains(got, "TAILMARKER") {
+		t.Fatal("window lost tail")
+	}
+	if utf8.RuneCountInString(got) > scanWindowRunes {
+		t.Fatalf("window exceeds scan limit: %d", utf8.RuneCountInString(got))
+	}
+	short := "small conversation"
+	if windowScanText(short) != short {
+		t.Fatal("short text should pass through unchanged")
 	}
 }

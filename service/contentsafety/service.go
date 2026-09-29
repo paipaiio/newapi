@@ -201,6 +201,13 @@ func maybeDisableUser(userId int) {
 
 func ExtractScanText(requestRaw []byte, combineText string) (scan string, full string) {
 	full = strings.TrimSpace(combineText)
+	// 优先扫描完整多轮对话：越狱尝试常分散在早期设定消息与最新消息中，
+	// 只扫最后一条会漏掉铺垫内容。红线扫描拿全文，越狱/guard 拿头尾窗口。
+	if conv := ExtractConversationText(requestRaw); conv != "" {
+		full = truncateRunes(conv, fullTextMaxRunes)
+		scan = windowScanText(full)
+		return scan, full
+	}
 	if len(requestRaw) > 0 {
 		if last := model.ExtractContentText(requestRaw, ""); last != "" {
 			scan = last
