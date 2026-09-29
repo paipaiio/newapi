@@ -188,7 +188,7 @@ func OaiStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Re
 
 	applyUsagePostProcessing(info, usage, common.StringToByteSlice(usageFrame))
 
-	if operation_setting.IsSessionLoggingEnabled() {
+	if operation_setting.ShouldCaptureResponseText() {
 		info.CapturedResponseText = responseTextBuilder.String()
 	}
 	for _, name := range streamFunctionCallNames {
@@ -261,8 +261,8 @@ func OpenaiHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Respo
 		return nil, types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError)
 	}
 	logger.LogDebug(c, "upstream response body: %s", responseBody)
-	// 会话日志:记录非流式完整响应体(仅在开启会话记录时)。
-	if operation_setting.IsSessionLoggingEnabled() {
+	// 会话日志/内容安全输出扫描:记录非流式完整响应体(仅在需要捕获响应文本时)。
+	if operation_setting.ShouldCaptureResponseText() {
 		info.CapturedResponseText = string(responseBody)
 	}
 	// Unmarshal to simpleResponse

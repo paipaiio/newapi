@@ -571,4 +571,7 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		StatusCode:       200,
 		IsSuccess:        true,
 	})
+
+	// 内容安全输出侧扫描（异步、仅记录不拦截）。
+	ScanContentSafetyOutput(ctx, relayInfo)
 }

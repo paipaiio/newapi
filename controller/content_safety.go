@@ -6,11 +6,70 @@ import (
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service/contentsafety"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
 )
+
+// errCodeContentSafetyBlocked 内容安全硬拦的错误码（文档约定，前端/客户端可识别）。
+const errCodeContentSafetyBlocked = types.ErrorCode("content_safety_blocked")
+
+// scanContentSafetyInput 在预扣费之前对文本类请求做内容安全输入侧扫描。
+// 返回 nil 表示放行；命中硬拦返回 403 content_safety_blocked。
+// 任何取参/扫描异常都静默放行——内容安全是软增强，绝不影响正常请求链路。
+func scanContentSafetyInput(c *gin.Context, relayInfo *relaycommon.RelayInfo) *types.NewAPIError {
+	if !operation_setting.GetContentSafetySetting().Enabled {
+		return nil
+	}
+	switch relayInfo.RelayFormat {
+	case types.RelayFormatOpenAI,
+		types.RelayFormatClaude,
+		types.RelayFormatGemini,
+		types.RelayFormatOpenAIResponses,
+		types.RelayFormatOpenAIAlphaSearch:
+	default:
+		return nil
+	}
+	storage, err := common.GetBodyStorage(c)
+	if err != nil {
+		return nil
+	}
+	rawBody, err := storage.Bytes()
+	if err != nil || len(rawBody) == 0 {
+		return nil
+	}
+	scanText, fullText := contentsafety.ExtractScanText(
+		rawBody, model.ExtractContentText(rawBody, ""))
+	if strings.TrimSpace(scanText) == "" && strings.TrimSpace(fullText) == "" {
+		return nil
+	}
+	req := contentsafety.Request{
+		UserId:    relayInfo.UserId,
+		Username:  common.GetContextKeyString(c, constant.ContextKeyUserName),
+		TokenName: c.GetString("token_name"),
+		ModelName: relayInfo.OriginModelName,
+		// 注意：此时尚未选渠道，relayInfo.ChannelMeta 为 nil，
+		// 上游模型名（UpstreamModelName）不可用，留空即可。
+		Group:      common.GetContextKeyString(c, constant.ContextKeyUsingGroup),
+		TokenGroup: relayInfo.TokenGroup,
+		RequestId:  relayInfo.RequestId,
+		ScanText:   scanText,
+		FullText:   fullText,
+		Phase:      contentsafety.PhaseInput,
+	}
+	result := contentsafety.Evaluate(c.Request.Context(), req)
+	if result.Action != contentsafety.ActionBlock {
+		return nil
+	}
+	return types.NewErrorWithStatusCode(
+		contentsafety.ErrBlocked, errCodeContentSafetyBlocked,
+		http.StatusForbidden, types.ErrOptionWithSkipRetry())
+}
 
 func GetContentSafetyEvents(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)

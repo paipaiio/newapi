@@ -44,7 +44,7 @@ func OaiResponsesHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http
 	service.IOCopyBytesGracefully(c, resp, responseBody)
 
 	// 会话日志:记录非流式完整响应体。
-	if operation_setting.IsSessionLoggingEnabled() {
+	if operation_setting.ShouldCaptureResponseText() {
 		info.CapturedResponseText = string(responseBody)
 	}
 
@@ -101,7 +101,7 @@ func OaiResponsesStreamHandler(c *gin.Context, info *relaycommon.RelayInfo, resp
 	})
 
 	// 会话日志:记录流式聚合的响应文本。
-	if operation_setting.IsSessionLoggingEnabled() {
+	if operation_setting.ShouldCaptureResponseText() {
 		info.CapturedResponseText = accumulator.OutputText()
 	}
 

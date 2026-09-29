@@ -240,8 +240,8 @@ func countClaudeStreamBillableTools(c *gin.Context, info *relaycommon.RelayInfo,
 }
 
 func HandleStreamFinalResponse(c *gin.Context, info *relaycommon.RelayInfo, claudeInfo *ClaudeResponseInfo) {
-	// 会话日志:记录流式聚合的助手回复文本(仅在开启会话记录时)。
-	if operation_setting.IsSessionLoggingEnabled() {
+	// 会话日志/内容安全输出扫描:记录流式聚合的助手回复文本(仅在需要捕获响应文本时)。
+	if operation_setting.ShouldCaptureResponseText() {
 		info.CapturedResponseText = claudeInfo.ResponseText.String()
 	}
 	if claudeInfo.Usage.PromptTokens == 0 {
@@ -396,7 +396,7 @@ func HandleClaudeResponseData(c *gin.Context, info *relaycommon.RelayInfo, claud
 		c.Set("claude_web_search_requests", claudeResponse.Usage.ServerToolUse.WebSearchRequests)
 	}
 
-	if operation_setting.IsSessionLoggingEnabled() {
+	if operation_setting.ShouldCaptureResponseText() {
 		info.CapturedResponseText = string(responseData)
 	}
 	for _, block := range claudeResponse.Content {

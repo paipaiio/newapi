@@ -124,6 +124,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		return
 	}
 
+	// 内容安全：预扣费之前对文本类请求做输入侧扫描，命中硬拦直接 403。
+	if newAPIError = scanContentSafetyInput(c, relayInfo); newAPIError != nil {
+		return
+	}
+
 	defer func() {
 		recovered := recover()
 		resultErr := newAPIError

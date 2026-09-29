@@ -171,6 +171,14 @@ func GetContentSafetyStats() (ContentSafetyStats, error) {
 }
 
 // DisableUserForPolicy sets a user's status to disabled as a content-safety policy action.
+// 封号后同步失效用户缓存与令牌缓存并踢掉全部会话，
+// 否则缓存里的令牌在 TTL 过期前仍能继续调用 API。
 func DisableUserForPolicy(userId int) error {
-	return DB.Model(&User{}).Where("id = ?", userId).Update("status", common.UserStatusDisabled).Error
+	if err := DB.Model(&User{}).Where("id = ?", userId).Update("status", common.UserStatusDisabled).Error; err != nil {
+		return err
+	}
+	_ = InvalidateUserCache(userId)
+	_ = InvalidateUserTokensCache(userId)
+	_, _ = RevokeAllUserSessions(userId, "content_safety_policy")
+	return nil
 }
